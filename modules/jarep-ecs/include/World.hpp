@@ -7,6 +7,9 @@
 
 
 #include <iostream>
+#include "../src/entitygenerator.hpp"
+
+
 class World {
     public:
         World() {
@@ -17,7 +20,13 @@ class World {
 
         }
 
-        static void test();
+        Entity createNewEntity();
+        void removeEntity();
+
+
+
+    private:
+
 };
 
 
