@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-add_library(jarep-ecs include/World.hpp src/World.cpp src/archetype.hpp src/component.hpp src/entitygenerator.hpp src/entitygenerator.cpp)
+add_library(jarep-ecs include/World.hpp src/World.cpp src/archetype.hpp src/component.hpp src/entitygenerator.hpp src/entitygenerator.cpp src/component.cpp)
 
 find_package(Catch2 2 REQUIRED)
 add_executable(jarep-ecs-tests tests/entitygeneratortests.cpp)

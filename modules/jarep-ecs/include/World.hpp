@@ -7,17 +7,25 @@
 
 
 #include <iostream>
+#include <vector>
+#include <unordered_map>
 #include "../src/entitygenerator.hpp"
+#include "../src/archetype.hpp"
 
 
 class World {
     public:
         World() {
+            entityGenerator = new EntityGenerator();
+            entityLocationMap.clear();
+            archetypes.clear();
 
         }
 
         ~World() {
-
+            entityGenerator = nullptr;
+            entityLocationMap.clear();
+            archetypes.clear();
         }
 
         Entity createNewEntity();
@@ -26,6 +34,9 @@ class World {
 
 
     private:
+        EntityGenerator *entityGenerator;
+        std::unordered_map<Entity, int> entityLocationMap;
+        std::vector<Archetype> archetypes;
 
 };
 
