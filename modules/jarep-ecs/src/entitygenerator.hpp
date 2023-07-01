@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <unordered_set>
+#include <optional>
 
 typedef size_t Entity;
 
@@ -15,7 +16,7 @@ class EntityGenerator {
         EntityGenerator();
         ~EntityGenerator();
 
-        Entity createEntity();
+        std::optional<Entity> createEntity();
         void removeEntity(Entity entity);
         bool isAlive(Entity entity);
 

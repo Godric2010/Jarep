@@ -15,12 +15,12 @@ EntityGenerator::~EntityGenerator() {
     deadEntities.clear();
 }
 
-Entity EntityGenerator::createEntity() {
+std::optional<Entity> EntityGenerator::createEntity() {
     Entity newEntity = nextId;
 
-    if(nextId == sizeof(size_t) + 1){
+    if(nextId == SIZE_MAX){
         printf("Exceeded the maximum entities!");
-        return -1;
+        return std::nullopt;
     }
 
     nextId += 1;
