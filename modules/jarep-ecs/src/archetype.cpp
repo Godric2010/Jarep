@@ -84,3 +84,31 @@ size_t Archetype::generate_hash(std::vector<std::type_index> *componentTypes) {
     typeHash = seed;
 }
 
+void Archetype::removeEntity(Entity &entity) {
+
+}
+
+void Archetype::migrateEntity(Archetype *from, Entity entity) {
+
+}
+
+template<class T>
+std::optional<std::vector<std::tuple<T *, Entity>>> Archetype::getComponentsWithEntities() {
+    return std::optional<std::vector<std::tuple<T *, Entity>>>();
+}
+
+template<class T>
+std::optional<T *> Archetype::getComponent(size_t index) {
+    return std::optional<T *>();
+}
+
+template<class T>
+void Archetype::setComponentInstance(T componentInstance) {
+
+}
+
+template<class T>
+bool Archetype::containsType() {
+    return 0;
+}
+
