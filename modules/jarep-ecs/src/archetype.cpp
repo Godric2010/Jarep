@@ -4,44 +4,48 @@
 
 #include "archetype.hpp"
 
-Archetype* Archetype::createEmpty() {
+Archetype *Archetype::createEmpty() {
     auto instance = new Archetype();
     return instance;
 }
 
 template<class T>
-Archetype* Archetype::createFromAdd(Archetype &fromArchetype) {
+Archetype *Archetype::createFromAdd(Archetype &fromArchetype) {
 
+    auto instance = new Archetype();
     // Take the existing archetype and create a new component instance collection with only empty vectors.
-    auto columns = new std::vector<ComponentInstanceCollection>();
-    for (const auto &column: fromArchetype.componentCollections) {
-        columns->push_back(column.createNewAndEmpty());
+    size_t fromColumnLength = fromArchetype.componentCollectionsLength;
+    for (int i = 0; i < fromColumnLength; ++i) {
+        instance->componentCollections[i] = fromArchetype.componentCollections[i]->createNewAndEmpty();
     }
+    instance->componentCollections[fromColumnLength] = new InstanceCollection<T>();
+    instance->componentCollectionsLength += 1;
 
     // Iterate over the exisiting typemap and copy it, as well as collecting all types from the old archetype.
-    auto typeMap = new std::unordered_map<std::type_index, size_t>();
+    instance->componentTypeMap = std::unordered_map<std::type_index, size_t>();
     auto typesInArchetype = new std::vector<std::type_index>();
     for (const auto typeEntry: fromArchetype.componentTypeMap) {
-        typeMap->insert_or_assign(typeEntry.first, typeEntry.second);
+        instance->componentTypeMap.insert_or_assign(typeEntry.first, typeEntry.second);
         typesInArchetype->push_back(typeEntry.first);
     }
 
     // Assign the new generic component to all maps and lists so the new archetype will be different from the old one.
-    typeMap->insert_or_assign(typeid(T), columns->size());
+    instance->componentTypeMap.insert_or_assign(typeid(T), instance->componentCollectionsLength);
     typesInArchetype->push_back(typeid(T));
-    columns->push_back(new InstanceCollection<T>());
 
     // Create a new archetype instance and return it.
-    auto instance = new Archetype();
-    instance->componentCollections = *columns;
-    instance->componentTypeMap = *typeMap;
+    //auto instance = new Archetype();
+    //instance->componentCollections = *columns;
+    //instance->componentTypeMap = *typeMap;
     instance->generate_hash(typesInArchetype);
 
     return instance;
 }
 
 template<class T>
-Archetype* Archetype::createFromRemove(Archetype &fromArchetype) {
+Archetype *Archetype::createFromRemove(Archetype &fromArchetype)
+{
+    auto instance = new Archetype();
 
     // Start with coping the existing types and filter out the index of the type to remove in the process.
     auto typeMap = new std::unordered_map<std::type_index, size_t>();
@@ -58,23 +62,24 @@ Archetype* Archetype::createFromRemove(Archetype &fromArchetype) {
         typeMap->insert_or_assign(typeEntry.first, typeEntry.second);
         typesInArchetype->push_back(typeEntry.first);
     }
+
+
     // Copy the component lists and instantiate them empty except for the collection at the memorized index.
-    auto columns = new std::vector<ComponentInstanceCollection>();
-    for (int i = 0; i < fromArchetype.componentCollections.size(); ++i) {
-        if(i == targetIndexToRemove) continue;
-        columns->push_back(columns->at(i).createNewAndEmpty());
+    size_t newComponentCollectionsLength = fromArchetype.componentCollectionsLength--;
+    for (int i = 0; i < newComponentCollectionsLength; ++i) {
+        if (i == targetIndexToRemove) continue;
+        instance->componentCollections[i] = fromArchetype.componentCollections[i]->createNewAndEmpty();
     }
 
     // Create a new archetype and return the instance pointer.
-    auto instance = new Archetype();
-    instance->componentCollections = *columns;
+
     instance->componentTypeMap = *typeMap;
     instance->generate_hash(typesInArchetype);
 
     return instance;
 }
 
-size_t Archetype::generate_hash(std::vector<std::type_index> *componentTypes) {
+void Archetype::generate_hash(std::vector<std::type_index> *componentTypes) {
     // Create a unique hash from the component types in the archetype.
     size_t seed = componentTypes->size();
     for (const auto type: *componentTypes) {

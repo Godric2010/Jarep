@@ -39,25 +39,26 @@ class Archetype {
         template<class T>
         std::optional<std::vector<std::tuple<T *, Entity>>> getComponentsWithEntities();
 
-        void migrateEntity(Archetype* from, Entity entity);
+        void migrateEntity(Archetype *from, Entity entity);
 
 
 
-        template<class T>
-        std::optional<std::
+        //template<class T>
+        //std::optional<std::
 
     private:
         Archetype() {
             typeHash = 0;
+            componentCollectionsLength = 0;
         };
 
+        void generate_hash(std::vector<std::type_index> *componentTypes);
 
         std::vector<Entity> entities;
         std::unordered_map<std::type_index, size_t> componentTypeMap;
-        std::vector<ComponentInstanceCollection> componentCollections;
         std::size_t typeHash;
-
-        size_t generate_hash(std::vector<std::type_index> *componentTypes);
+        std::size_t componentCollectionsLength;
+        ComponentInstanceCollection* componentCollections[];
 
 };
 

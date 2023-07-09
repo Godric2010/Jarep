@@ -13,7 +13,7 @@ class ComponentInstanceCollection {
         virtual ~ComponentInstanceCollection() = default;
 
         // This is called "Curiously recurring template pattern" (CRTP) which basically allows to return the deriving type from the base type.
-         [[nodiscard]] virtual const ComponentInstanceCollection createNewAndEmpty() const = 0;
+         [[nodiscard]] virtual ComponentInstanceCollection* createNewAndEmpty() const = 0;
 };
 
 template<class T>
