@@ -15,15 +15,15 @@
 class Archetype {
 
     public:
-        ~Archetype() = default;
+        ~Archetype();
 
         static Archetype *createEmpty();
 
         template<class T>
-        static Archetype *createFromAdd(Archetype &fromArchetype);
+        static std::optional<Archetype*> createFromAdd(Archetype &fromArchetype);
 
         template<class T>
-        static Archetype *createFromRemove(Archetype &fromArchetype);
+        static std::optional<Archetype*> createFromRemove(Archetype &fromArchetype);
 
         template<class T>
         bool containsType();

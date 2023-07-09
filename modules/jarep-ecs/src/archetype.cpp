@@ -9,10 +9,18 @@ Archetype *Archetype::createEmpty() {
     return instance;
 }
 
+Archetype::~Archetype() {
+    for (int i = 0; i < componentCollectionsLength; ++i) {
+        delete componentCollections[i];
+    }
+    componentTypeMap.clear();
+}
+
 template<class T>
-Archetype *Archetype::createFromAdd(Archetype &fromArchetype) {
+std::optional<Archetype *> Archetype::createFromAdd(Archetype &fromArchetype) {
 
     auto instance = new Archetype();
+
     // Take the existing archetype and create a new component instance collection with only empty vectors.
     size_t fromColumnLength = fromArchetype.componentCollectionsLength;
     for (int i = 0; i < fromColumnLength; ++i) {
@@ -33,24 +41,25 @@ Archetype *Archetype::createFromAdd(Archetype &fromArchetype) {
     instance->componentTypeMap.insert_or_assign(typeid(T), instance->componentCollectionsLength);
     typesInArchetype->push_back(typeid(T));
 
-    // Create a new archetype instance and return it.
-    //auto instance = new Archetype();
-    //instance->componentCollections = *columns;
-    //instance->componentTypeMap = *typeMap;
     instance->generate_hash(typesInArchetype);
 
     return instance;
 }
 
 template<class T>
-Archetype *Archetype::createFromRemove(Archetype &fromArchetype)
-{
+std::optional<Archetype *> Archetype::createFromRemove(Archetype &fromArchetype) {
+
+    // Check if the old archetype contains the requested type to remove and return nullopt if not.
+    if (!fromArchetype.containsType<T>()) {
+        return std::nullopt;
+    }
+
     auto instance = new Archetype();
 
     // Start with coping the existing types and filter out the index of the type to remove in the process.
-    auto typeMap = new std::unordered_map<std::type_index, size_t>();
+    instance->componentTypeMap = std::unordered_map<std::type_index, size_t>();
     auto typesInArchetype = new std::vector<std::type_index>();
-    size_t targetIndexToRemove = -1; // Setting this to an invalid value to provoke an error if nothing happens here.TODO: Add proper error handling here.
+    size_t targetIndexToRemove = 0;
     for (const auto typeEntry: fromArchetype.componentTypeMap) {
 
         // If the typeid is the one to remove we do not copy it memorize the index of that type in the archetype lists.
@@ -59,10 +68,10 @@ Archetype *Archetype::createFromRemove(Archetype &fromArchetype)
             continue;
         }
 
-        typeMap->insert_or_assign(typeEntry.first, typeEntry.second);
+        instance->componentTypeMap.insert_or_assign(typeEntry.first, typeEntry.second);
         typesInArchetype->push_back(typeEntry.first);
     }
-
+    instance->generate_hash(typesInArchetype);
 
     // Copy the component lists and instantiate them empty except for the collection at the memorized index.
     size_t newComponentCollectionsLength = fromArchetype.componentCollectionsLength--;
@@ -70,11 +79,6 @@ Archetype *Archetype::createFromRemove(Archetype &fromArchetype)
         if (i == targetIndexToRemove) continue;
         instance->componentCollections[i] = fromArchetype.componentCollections[i]->createNewAndEmpty();
     }
-
-    // Create a new archetype and return the instance pointer.
-
-    instance->componentTypeMap = *typeMap;
-    instance->generate_hash(typesInArchetype);
 
     return instance;
 }
@@ -114,6 +118,10 @@ void Archetype::setComponentInstance(T componentInstance) {
 
 template<class T>
 bool Archetype::containsType() {
-    return 0;
+    auto result = componentTypeMap.find(typeid(T));
+    if (componentTypeMap.end() != result) {
+        return false;
+    }
+    return true;
 }
 
