@@ -9,21 +9,33 @@
 #include <unordered_map>
 #include <typeindex>
 #include <tuple>
+#include <optional>
 #include "componentInstanceCollection.hpp"
 #include "entitygenerator.hpp"
 
 class Archetype {
 
     public:
+        Archetype();
         ~Archetype();
 
-        static Archetype *createEmpty();
+        /// Create a basic archetype with no components at all.
+        /// \return An instance of a the most basic archetype.
+        static std::unique_ptr<Archetype> createEmpty();
 
-        template<class T>
-        static std::optional<Archetype*> createFromAdd(Archetype &fromArchetype);
+        /// Create a new archetype, based on another archetype by adding a new component.
+        /// \tparam T -> The new component type to add.
+        /// \param fromArchetype -> The old archetype this one is based on.
+        /// \return A new instance of an archetype.
+        template<typename T>
+        static std::optional<std::unique_ptr<Archetype>> createFromAdd(const std::unique_ptr<Archetype> &fromArchetype);
 
+        /// Create a new archetype, based on another archetype by removing a component.
+        /// \tparam T -> The component type to remove.
+        /// \param fromArchetype -> The old archetype this one is based on.
+        /// \return A new instance of an archetype.
         template<class T>
-        static std::optional<Archetype*> createFromRemove(Archetype &fromArchetype);
+        static std::optional<std::unique_ptr<Archetype>> createFromRemove(const std::unique_ptr<Archetype> &fromArchetype);
 
         template<class T>
         bool containsType();
@@ -39,26 +51,18 @@ class Archetype {
         template<class T>
         std::optional<std::vector<std::tuple<T *, Entity>>> getComponentsWithEntities();
 
-        void migrateEntity(Archetype *from, Entity entity);
+        void migrateEntity(std::unique_ptr<Archetype> &from, const Entity& entity);
 
-
-
-        //template<class T>
-        //std::optional<std::
-
+        std::vector<Entity> entities;
     private:
-        Archetype() {
-            typeHash = 0;
-            componentCollectionsLength = 0;
-        };
+
 
         void generate_hash(std::vector<std::type_index> *componentTypes);
 
-        std::vector<Entity> entities;
         std::unordered_map<std::type_index, size_t> componentTypeMap;
-        std::size_t typeHash;
-        std::size_t componentCollectionsLength;
-        ComponentInstanceCollection* componentCollections[];
+        std::size_t typeHash{};
+        std::size_t componentCollectionsLength{};
+        std::vector<std::unique_ptr<ComponentInstanceCollection>> componentCollections;
 
 };
 

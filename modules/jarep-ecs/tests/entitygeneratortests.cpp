@@ -17,22 +17,6 @@ TEST_CASE("Add new entity - Entity is 0") {
     REQUIRE(newEntity.value() == 0);
 }
 
-/*TEST_CASE("Add more entries than possible - Entity is -1") {
-    auto *eg = new EntityGenerator();
-    size_t entitiesCreated = 0;
-    for (size_t i = 0; i < SIZE_MAX; ++i) {
-        auto entity = eg->createEntity();
-        if (!entity.has_value()) {
-            break;
-        }
-        entitiesCreated++;
-    }
-
-    auto invalidEntity = eg->createEntity();
-    REQUIRE(invalidEntity.has_value() == false );
-    REQUIRE(entitiesCreated == SIZE_MAX);
-}*/
-
 TEST_CASE("Remove an existing entity - Entity should be labeled as dead"){
     auto *eg = new EntityGenerator();
     auto entity_opt = eg->createEntity();

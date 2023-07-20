@@ -3,6 +3,7 @@ project(JAREP)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_OSX_ARCHITECTURES "arm64")
 
 add_subdirectory(modules/jarep-ecs)
 add_subdirectory(modules/jarep-renderer)

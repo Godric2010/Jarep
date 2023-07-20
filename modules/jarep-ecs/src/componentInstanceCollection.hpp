@@ -7,70 +7,101 @@
 
 #include <vector>
 #include <functional>
+#include <any>
+
+
+/// This pattern is called "Curiously recurring template pattern" (CRTP). It allows the compiler to
+/// work with generic classes which shall be accessible by a non-generic interface like class.
+/// In Rust a trait would be used for this, C++ mirrors this in most of the way, but checks types at runtime and
+/// not at compile time like rust.
 
 class ComponentInstanceCollection {
     public:
-        virtual ~ComponentInstanceCollection() = default;
+        virtual ~ComponentInstanceCollection() = default ;
 
-        // This is called "Curiously recurring template pattern" (CRTP) which basically allows to return the deriving type from the base type.
-         [[nodiscard]] virtual ComponentInstanceCollection* createNewAndEmpty() const = 0;
+        /// Create a new collection based of the generic value given to a similar collection.
+        /// \return Unique pointer to the new collection.
+        virtual std::unique_ptr<ComponentInstanceCollection> createNewAndEmpty() = 0;
+
+        /// Get the instance of this collection immutable.
+        /// \return Reference to this generic collection.
+        virtual const std::any& as_any_const() const = 0;
+
+        /// Get the instance of this collection mutable.
+        /// \return Reference to this generic collection.
+        virtual std::any& as_any() = 0;
+
+        /// Remove and item at at the given entity index.
+        /// \param index -> The index of the entity to which this item belongs.
+        virtual void removeAt(size_t index) = 0;
+
+        /// Migrate entries from this collection to another collection.
+        /// \param index -> The entity index of the element that should be migrated.
+        /// \param target -> The target collection to which this element shall migrate.
+        virtual void migrate(size_t index, ComponentInstanceCollection& other) = 0;
+
+        /// Gets the hash value of this collection instance.
+        /// \return The hash valur of this collection.
+        virtual size_t getHashValue() = 0;
 };
 
 template<class T>
 class InstanceCollection : public ComponentInstanceCollection {
 
     public:
-        InstanceCollection();
+        /// Create a new collection based of the generic value given to a similar collection.
+        /// \return Unique pointer to the new collection.
+        std::unique_ptr<ComponentInstanceCollection> createNewAndEmpty() override{
+            return std::make_unique<InstanceCollection<T>>();
+        }
 
-        ~InstanceCollection() override;
+        /// Get the instance of this collection immutable.
+        const std::any& as_any_const() const override{
+            return *this;
+        }
 
-        const InstanceCollection* createNewAndEmpty() const override;
+        /// Get the instance of this collection mutable.
+        std::any& as_any() override{
+            return *this;
+        }
 
-        void add(T component);
+        /// Remove and item at at the given entity index.
+        /// \param index -> The index of the entity to which this item belongs.
+        void removeAt(size_t index) override{
+            componentList.erase(componentList.begin(),index);
+        }
 
-        std::vector<T> &getInstances();
+        /// Migrate entries from this collection to another collection.
+        /// \param index -> The entity index of the element that should be migrated.
+        /// \param target -> The target collection to which this element shall migrate.
+        void migrate(size_t index, ComponentInstanceCollection& target) override{
+            T value = std::move(componentList[index]);
+            removeAt(index);
+            static_cast<InstanceCollection<T>&>(target).data.push_back(std::move(value));
+        }
 
-        void removeAt(size_t index);
+        /// Gets the hash value of this collection instance.
+        /// \return The hash valur of this collection.
+        size_t getHashValue() override{
+            return new std::hash<InstanceCollection<T>>;
+        }
 
-        size_t getHash() { return hashValue; }
+        /// Add a new component to this collection.
+        /// \param component -> The instance of the component to add.
+        void add(T component){
+            componentList.push_back(component);
+        }
 
+        /// Get all instances of this collection immutable.
+        /// \return A immutable reference of this collection.
+        const std::vector<T> &getInstances() const{
+            return &componentList;
+        }
 
     private:
         std::vector<T> componentList;
-        size_t hashValue;
 
 };
-
-template<class T>
-InstanceCollection<T>::InstanceCollection() {
-    componentList.clear();
-    hashValue = new std::hash<InstanceCollection<T>>;
-}
-
-template<class T>
-const InstanceCollection<T>* InstanceCollection<T>::createNewAndEmpty() const {
-    return new InstanceCollection();
-}
-
-template<class T>
-InstanceCollection<T>::~InstanceCollection() {
-    componentList.clear();
-}
-
-template<class T>
-void InstanceCollection<T>::add(T component) {
-    componentList.push_back(component);
-}
-
-template<class T>
-std::vector<T> &InstanceCollection<T>::getInstances() {
-    return &componentList;
-}
-
-template<class T>
-void InstanceCollection<T>::removeAt(size_t index) {
-    componentList.erase(componentList.begin() + index);
-}
 
 
 template<typename T>
