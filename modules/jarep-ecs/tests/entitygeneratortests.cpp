@@ -7,8 +7,7 @@
 #include <catch2/catch.hpp>
 #endif
 
-#include "../src/entitygenerator.hpp"
-
+#include "../src/entity-generator.hpp"
 
 TEST_CASE("Add new entity - Entity is 0") {
     auto *eg = new EntityGenerator();

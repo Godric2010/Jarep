@@ -2,7 +2,7 @@
 // Created by Sebastian Borsch on 01.07.23.
 //
 
-#include "entitygenerator.hpp"
+#include "entity-generator.hpp"
 
 EntityGenerator::EntityGenerator() {
     nextId = 0;

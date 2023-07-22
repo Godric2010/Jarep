@@ -1,5 +1,5 @@
 #include <iostream>
-#include "modules/jarep-ecs/include/World.hpp"
+#include "modules/jarep-ecs/src/World.hpp"
 #include "modules/jarep-renderer/Renderer.hpp"
 
 int main() {

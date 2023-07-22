@@ -17,6 +17,7 @@ std::unique_ptr<Archetype> Archetype::createEmpty() {
     return std::make_unique<Archetype>();
 }
 
+//template std::optional<std::unique_ptr<Archetype>> Archetype::createFromAdd<Component>(const std::unique_ptr<Archetype>&);
 template<typename T>
 std::optional<std::unique_ptr<Archetype>> Archetype::createFromAdd(const std::unique_ptr<Archetype> &fromArchetype) {
 

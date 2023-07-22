@@ -9,17 +9,16 @@
 #endif
 
 #include "../src/archetype.hpp"
+#include "../src/Component.hpp"
 
-class TestComponentA{
+
+class TestComponentA: Component{
 
     public:
-        TestComponentA(){}
-        ~TestComponentA(){}
+        TestComponentA()= default;
+        ~TestComponentA()= default;
 };
 
-void do_stuff(std::unique_ptr<Archetype>& archetype){
-//    auto t = Archetype::createFromRemove<int>(archetype);
-}
 
 TEST_CASE("Archetype - Create an empty Archetype and add new components.") {
 
@@ -38,7 +37,4 @@ TEST_CASE("Archetype - Create an empty Archetype and add new components.") {
 //    REQUIRE(archetype02.value()->entities.size() == 1);
 //    REQUIRE(archetype02.value()->entities[0] == entity);
 //    REQUIRE(archetype01->entities.empty());
-
-
-
 }

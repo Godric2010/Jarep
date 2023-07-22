@@ -11,7 +11,9 @@
 #include <tuple>
 #include <optional>
 #include "componentInstanceCollection.hpp"
-#include "entitygenerator.hpp"
+#include "entity-generator.hpp"
+#include "Component.hpp"
+
 
 class Archetype {
 
@@ -65,6 +67,5 @@ class Archetype {
         std::vector<std::unique_ptr<ComponentInstanceCollection>> componentCollections;
 
 };
-
 
 #endif //JAREP_ARCHETYPE_HPP

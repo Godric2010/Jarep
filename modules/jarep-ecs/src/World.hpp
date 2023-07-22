@@ -9,8 +9,8 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
-#include "../src/entitygenerator.hpp"
-#include "../src/archetype.hpp"
+#include "entity-generator.hpp"
+#include "archetype.hpp"
 
 
 class World {

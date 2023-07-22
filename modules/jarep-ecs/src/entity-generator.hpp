@@ -2,8 +2,8 @@
 // Created by Sebastian Borsch on 01.07.23.
 //
 
-#ifndef JAREP_ENTITYGENERATOR_HPP
-#define JAREP_ENTITYGENERATOR_HPP
+#ifndef JAREP_ENTITY_GENERATOR_HPP
+#define JAREP_ENTITY_GENERATOR_HPP
 
 #include <iostream>
 #include <unordered_set>
@@ -27,4 +27,4 @@ class EntityGenerator {
 };
 
 
-#endif //JAREP_ENTITYGENERATOR_HPP
+#endif //JAREP_ENTITY_GENERATOR_HPP
