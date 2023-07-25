@@ -9,16 +9,13 @@
 #endif
 
 #include "../src/archetype.hpp"
-#include "../src/Component.hpp"
 
-
-class TestComponentA: Component{
+class ComponentA{
 
     public:
-        TestComponentA()= default;
-        ~TestComponentA()= default;
+        ComponentA() = default;
+        ~ComponentA() = default;
 };
-
 
 TEST_CASE("Archetype - Create an empty Archetype and add new components.") {
 
@@ -28,13 +25,15 @@ TEST_CASE("Archetype - Create an empty Archetype and add new components.") {
 
     REQUIRE(archetype01->entities.size() == 1);
     REQUIRE(archetype01->entities[0] == entity);
-    auto archetype02 = Archetype::createFromAdd<TestComponentA>(archetype01);
-    //REQUIRE(archetype02.has_value());
-//    REQUIRE(archetype02.value()->entities.empty());
-//    REQUIRE(archetype02.value()->containsType<TestComponentA>());
-//
+
+    auto archetype02 = Archetype::createFromAdd<ComponentA>(archetype01);
+    REQUIRE(archetype02.has_value());
+    REQUIRE(archetype02.value()->entities.empty());
+//    REQUIRE(archetype02.value()->containsType<ComponentA>());
+
 //    archetype02.value()->migrateEntity(*archetype01, entity);
 //    REQUIRE(archetype02.value()->entities.size() == 1);
 //    REQUIRE(archetype02.value()->entities[0] == entity);
 //    REQUIRE(archetype01->entities.empty());
 }
+

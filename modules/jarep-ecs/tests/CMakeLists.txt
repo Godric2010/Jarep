@@ -6,10 +6,10 @@ add_executable(JAREP_ECS_Tests
         )
 
 find_package(Catch2 REQUIRED)
-target_link_libraries(JAREP_ECS_Tests PRIVATE JAREP_ECS Catch2::Catch2WithMain)
+target_link_libraries(JAREP_ECS_Tests PUBLIC JAREP_ECS Catch2::Catch2WithMain)
 
 # Enable verbose output for Catch2 tests
-target_compile_definitions(JAREP_ECS_Tests PRIVATE CATCH_CONFIG_VERBOSE)
+target_compile_definitions(JAREP_ECS_Tests PUBLIC CATCH_CONFIG_VERBOSE)
 
 # Set the output directory for the test executable
 set_target_properties(JAREP_ECS_Tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/test)
