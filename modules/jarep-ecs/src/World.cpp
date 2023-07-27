@@ -12,6 +12,7 @@ Entity World::createNewEntity() {
     archetype->entities.push_back(entity.value());
 
     auto target = Archetype::createFromAdd<int>(archetype);
+    target.value()-> containsType<int>();
 
     return 0;
 }

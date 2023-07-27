@@ -17,6 +17,12 @@ class ComponentA{
         ~ComponentA() = default;
 };
 
+class ComponentB{
+    public:
+        ComponentB() = default;
+        ~ComponentB() = default;
+};
+
 TEST_CASE("Archetype - Create an empty Archetype and add new components.") {
 
     auto entity = 2;
@@ -29,11 +35,12 @@ TEST_CASE("Archetype - Create an empty Archetype and add new components.") {
     auto archetype02 = Archetype::createFromAdd<ComponentA>(archetype01);
     REQUIRE(archetype02.has_value());
     REQUIRE(archetype02.value()->entities.empty());
-//    REQUIRE(archetype02.value()->containsType<ComponentA>());
+    REQUIRE(archetype02.value()->containsType<ComponentA>());
+    REQUIRE_FALSE(archetype02.value()->containsType<ComponentB>());
 
-//    archetype02.value()->migrateEntity(*archetype01, entity);
-//    REQUIRE(archetype02.value()->entities.size() == 1);
-//    REQUIRE(archetype02.value()->entities[0] == entity);
-//    REQUIRE(archetype01->entities.empty());
+    archetype02.value()->migrateEntity(archetype01, entity);
+    REQUIRE(archetype02.value()->entities.size() == 1);
+    REQUIRE(archetype02.value()->entities[0] == entity);
+    REQUIRE(archetype01->entities.empty());
 }
 

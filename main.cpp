@@ -1,13 +1,10 @@
 #include <iostream>
-#include "modules/jarep-ecs/src/World.hpp"
-#include "modules/jarep-renderer/Renderer.hpp"
+#include "World.hpp"
 
 int main() {
 
     std::cout << "Hello, World!" << std::endl;
-//    World::test();
-    auto renderer = new Renderer();
-    renderer->test();
-
+    auto world = new World();
+    world->createNewEntity();
     return 0;
 }

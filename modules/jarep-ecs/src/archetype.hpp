@@ -8,6 +8,7 @@
 #include <vector>
 #include <unordered_map>
 #include <typeindex>
+#include <typeinfo>
 #include <tuple>
 #include <memory>
 #include <optional>
@@ -15,7 +16,7 @@
 #include "entity-generator.hpp"
 #include "Component.hpp"
 
-/// The archetype contains all entites with their respected component instances.
+/// The archetype contains all entities with their respected component instances.
 /// The implementation of the generic functions has to happen in the header to tackle linker issues when
 /// attaching generic types from outside the scope of the archetype files.
 class Archetype {
@@ -108,11 +109,11 @@ class Archetype {
 
         template<class T>
         bool containsType(){
-            auto result = componentTypeMap.find(typeid(T));
-            if (componentTypeMap.end() != result) {
-                return false;
+            const std::type_info& typeId = typeid(T);
+            if(componentTypeMap.count(typeId)){
+                return true;
             }
-            return true;
+            return false;
         }
 
         void removeEntity(Entity &entity);
@@ -141,8 +142,8 @@ class Archetype {
         void generate_hash(std::vector<std::type_index> *componentTypes);
 
         std::unordered_map<std::type_index, size_t> componentTypeMap;
-        std::size_t typeHash{};
-        std::size_t componentCollectionsLength{};
+        std::size_t typeHash;
+        std::size_t componentCollectionsLength;
         std::vector<std::unique_ptr<ComponentInstanceCollection>> componentCollections;
 
 };
