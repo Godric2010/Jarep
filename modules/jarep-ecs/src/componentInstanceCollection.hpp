@@ -61,12 +61,12 @@ class InstanceCollection : public ComponentInstanceCollection {
 
         /// Get the instance of this collection immutable.
         const std::any as_any_const() const override {
-            return std::any(*this);
+            return std::any(std::reference_wrapper(componentList));
         }
 
         /// Get the instance of this collection mutable.
         std::any as_any() override {
-            return std::any(*this);
+            return std::any(std::reference_wrapper(componentList));
         }
 
         /// Remove and item at the given entity index.
@@ -80,7 +80,7 @@ class InstanceCollection : public ComponentInstanceCollection {
         /// \param index -> The entity index of the element that should be migrated.
         /// \param target -> The target collection to which this element shall migrate.
         void migrate(size_t index, ComponentInstanceCollection &target) override {
-            T value = std::move(componentList[index]);
+           std::shared_ptr<T> value = std::move(componentList[index]);
             static_cast<InstanceCollection<T> &>(target).componentList.push_back(std::move(value));
         }
 
@@ -90,21 +90,9 @@ class InstanceCollection : public ComponentInstanceCollection {
             std::hash<InstanceCollection<T>> hasher;
             return hasher(*this);
         }
-//
-//        /// Add a new component to this collection.
-//        /// \param component -> The instance of the component to add.
-//        void add(T component){
-//            componentList.push_back(component);
-//        }
-//
-//        /// Get all instances of this collection immutable.
-//        /// \return A immutable reference of this collection.
-//        const std::vector<T> &getInstances() const{
-//            return &componentList;
-//        }
 
     private:
-        std::vector<T> componentList;
+        std::vector<std::shared_ptr<T>> componentList;
 
 };
 
@@ -114,8 +102,8 @@ struct std::hash<InstanceCollection<T>> {
     std::size_t operator()(const InstanceCollection<T> &obj) const {
         std::hash<std::type_index> elementHasher;
         std::size_t hashValue = 0;
-        for (const T &component: obj.componentList) {
-            hashValue ^= elementHasher(typeid(component));
+        for (const std::shared_ptr<T> &component: obj.componentList) {
+            hashValue ^= elementHasher(typeid(*component));
         }
         return hashValue;
     }

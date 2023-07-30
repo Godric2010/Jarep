@@ -6,7 +6,6 @@
 
 Archetype::Archetype(){
     typeHash = 0;
-    componentCollectionsLength = 0;
 }
 
 Archetype::~Archetype() {
@@ -33,8 +32,8 @@ void Archetype::removeEntity(Entity &entity) {
     if(it == entities.end()) return;
     int entityIndex = std::distance(entities.begin(), it);
 
-    for (int i = 0; i < componentCollectionsLength; ++i) {
-        componentCollections[i]->removeAt(entityIndex);
+    for (const auto & componentCollection : componentCollections) {
+        componentCollection->removeAt(entityIndex);
     }
     entities.erase(entities.begin() + entityIndex);
 }
