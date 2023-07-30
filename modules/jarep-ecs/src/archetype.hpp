@@ -107,6 +107,9 @@ class Archetype {
             return std::make_optional<std::unique_ptr<Archetype>>(std::move(instance));
         }
 
+        /// Checks if an archetype is equipped with the requested component.
+        /// \tparam T -> The component to test for.
+        /// \return True if the archetype contains the component T, otherwise returns false.
         template<class T>
         bool containsType(){
             const std::type_info& typeId = typeid(T);
@@ -116,29 +119,46 @@ class Archetype {
             return false;
         }
 
+        /// Remove an entity from an archetype, including all the connected component instances to this entity
+        /// \param entity -> The entity to remove.
         void removeEntity(Entity &entity);
 
+        /// Set an instance to a component
+        /// \tparam T -> The type of the component instance to add
+        /// \param componentInstance -> The component instance to add
         template<class T>
         void setComponentInstance(T componentInstance){
 
         }
 
+        /// Get the instance of a component by the index of the entity in this archetype.
+        /// \tparam T -> The type of the component
+        /// \param index -> The index of the entity in this component
+        /// \return Pointer to the components instance
         template<class T>
         std::optional<T *> getComponent(size_t index){
 
         }
 
+        /// Get all instances of a specific component type and their respected entites.
+        /// \tparam T -> The type of component to receive
+        /// \return A list of tuples containing the pointer to the component instance and the respected entity.
         template<class T>
         std::optional<std::vector<std::tuple<T *, Entity>>> getComponentsWithEntities(){
 
         }
 
+        /// Migrate an entity with all of its components from one archetype to another one.
+        /// \param from -> The "old" archetype, the entity shall migrate from
+        /// \param entity -> The entity that shall be migrated.
         void migrateEntity(std::unique_ptr<Archetype> &from, const Entity& entity);
 
+        /// Collection of entities, stored in this very archetype.
         std::vector<Entity> entities;
     private:
 
-
+        /// Generate a hash value from all the component types, stored in this very archetype
+        /// \param componentTypes -> Collection of the type indices of each component.
         void generate_hash(std::vector<std::type_index> &componentTypes);
 
         std::unordered_map<std::type_index, size_t> componentTypeMap;
