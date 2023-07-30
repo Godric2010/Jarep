@@ -108,6 +108,13 @@ TEST_CASE("Archetype - Create an archetype with a data component, access the dat
     REQUIRE(test_archetype.value()->entities.at(0) == entity2);
     REQUIRE(test_archetype.value()->getComponentsWithEntities<ComponentB>().value().size() == 1);
     REQUIRE(test_archetype.value()->getComponent<ComponentB>(0).value()->value == 3);
+}
 
+TEST_CASE("Archetype - Compare hashes for created and anticipated archetypes"){
+    auto archetype01 = Archetype::createEmpty();
+    auto check_archetype = Archetype::createFromAdd<ComponentA>(archetype01);
+
+    REQUIRE_FALSE(archetype01->getHashValue() == check_archetype.value()->getHashValue());
+    REQUIRE(Archetype::generateExpectedHash<ComponentA>(archetype01) == check_archetype.value()->getHashValue());
 }
 

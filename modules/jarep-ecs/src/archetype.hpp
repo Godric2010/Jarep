@@ -64,7 +64,7 @@ class Archetype {
             instance->componentTypeMap.insert_or_assign(typeid(T), newComponentIndex);
             typesInArchetype.push_back(typeid(T));
 
-            instance->generate_hash(typesInArchetype);
+            instance->typeHash = Archetype::generate_hash(typesInArchetype);
 
             return std::make_optional<std::unique_ptr<Archetype>>(std::move(instance));
         };
@@ -98,7 +98,7 @@ class Archetype {
                 instance->componentTypeMap.insert_or_assign(typeEntry.first, typeEntry.second);
                 typesInArchetype.push_back(typeEntry.first);
             }
-            instance->generate_hash(typesInArchetype);
+            instance->typeHash = Archetype::generate_hash(typesInArchetype);
 
             // Copy the component lists and instantiate them empty except for the collection at the memorized index.
             size_t newComponentCollectionsLength = fromArchetype->componentCollections.size() - 1;
@@ -179,13 +179,25 @@ class Archetype {
         /// \param entity -> The entity that shall be migrated.
         void migrateEntity(std::unique_ptr<Archetype> &from, const Entity &entity);
 
+        template<typename T>
+        static std::size_t generateExpectedHash(std::unique_ptr<Archetype> &from) {
+            auto componentTypes = std::vector<std::type_index>();
+            for (auto maped_type: from->componentTypeMap) {
+                componentTypes.push_back(maped_type.first);
+            }
+            componentTypes.push_back(typeid(T));
+            return generate_hash(componentTypes);
+        }
+
+        const std::size_t getHashValue() const { return typeHash;}
+
         /// Collection of entities, stored in this very archetype.
         std::vector<Entity> entities;
     private:
 
         /// Generate a hash value from all the component types, stored in this very archetype
         /// \param componentTypes -> Collection of the type indices of each component.
-        void generate_hash(std::vector<std::type_index> &componentTypes);
+        static std::size_t generate_hash(std::vector<std::type_index> &componentTypes);
 
         std::unordered_map<std::type_index, size_t> componentTypeMap;
         std::size_t typeHash;
