@@ -17,10 +17,10 @@ std::unique_ptr<Archetype> Archetype::createEmpty() {
     return std::make_unique<Archetype>();
 }
 
-void Archetype::generate_hash(std::vector<std::type_index> *componentTypes) {
+void Archetype::generate_hash(std::vector<std::type_index> &componentTypes) {
     // Create a unique hash from the component types in the archetype.
-    size_t seed = componentTypes->size();
-    for (const auto type: *componentTypes) {
+    size_t seed = componentTypes.size();
+    for (const auto type: componentTypes) {
         // ChatGPT suggested these constants to generate more secure and unique hash values.
         seed ^= type.hash_code() * 0x9e3779b9 + (seed << 6) + (seed << 2);
     }

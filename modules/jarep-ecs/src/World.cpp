@@ -14,6 +14,8 @@ Entity World::createNewEntity() {
     auto target = Archetype::createFromAdd<int>(archetype);
     target.value()-> containsType<int>();
 
+    auto target02 = Archetype::createFromRemove<int>(target.value());
+
     return 0;
 }
 void World::removeEntity() {

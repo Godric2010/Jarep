@@ -23,7 +23,7 @@ class ComponentB{
         ~ComponentB() = default;
 };
 
-TEST_CASE("Archetype - Create an empty Archetype and add new components.") {
+TEST_CASE("Archetype - Create an empty Archetype and add new components and remove them.") {
 
     auto entity = 2;
     auto archetype01 = Archetype::createEmpty();
@@ -42,5 +42,10 @@ TEST_CASE("Archetype - Create an empty Archetype and add new components.") {
     REQUIRE(archetype02.value()->entities.size() == 1);
     REQUIRE(archetype02.value()->entities[0] == entity);
     REQUIRE(archetype01->entities.empty());
+
+    auto archetype03_opt = Archetype::createFromRemove<ComponentA>(archetype02.value());
+    REQUIRE(archetype03_opt.has_value());
+    REQUIRE(archetype03_opt.value()->entities.empty());
+    REQUIRE_FALSE(archetype03_opt.value()->containsType<ComponentA>());
 }
 
