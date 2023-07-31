@@ -1,0 +1,80 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class World{
+    +addEntity()
+    +removeEntity()
+    +addComponent()
+    +removeComponent()
+    +registerSystem()
+    +unregisterSystem()
+    +updateWorld()
+
+    - EntityManager entityManager
+    - ComponentManager componentManager
+    - SystemManager systemManager
+
+}
+    World <|-- EntityManager
+    World <|--- ComponentManager
+    World <|-- SystemManager
+
+class Entity{
+    + size_t index
+}
+
+class Signature{
+    + size_t value
+}
+
+class EntityManager{
+    - {static}size_t last_entity_index
+    - std::vector<size_t> activeEntities
+    - std::vector<size_t> unusedEntities
+    - std::unordered_map<size_t, Signature> archetypeMap
+
+    + Entity addEntity()
+    + void removeEntity()
+    + void assignEntityToArchetype(Entity& entity, Signature newSignature)
+    + Signature getEntityArchetype(Entity& entity)
+}
+EntityManager <|-- "1..*" Entity: managed by
+
+class ComponentManager{
+    - std::unordered_map<Signature, Archetype> archetypes
+    - std::unordered_map<std::typeid, size_t> componentSignatureMap
+    - {static}size_t last_component_signature
+
+    + void registerComponent<T : Component>()
+    + std::optional<size_t> getComponentsSignature<T : Component>()
+    + size_t migrateEntityFromAdd<T: Component>(size_t entityIndexInArchetype, Signature from, T component)
+    + size_t migrateEntityFromRemove<T: Component>(size_t entityIndexInArchetype, Signature from)
+    - Signature calculateArchetypeSignature(const Archetype& archetype)
+    - Archetype getOrAddArchetype(Signature signature)
+    - std::shared_ptr<T> getComponent<T: Component>(Signature signature, size_t entityIndexInArchetype)
+}
+
+ComponentManager <|-- "1..*" Archetype: manged by
+ComponentManager <|-- Signature: created by
+
+class Archetype{
+    - std::vector<ComponentCollectionInstances> componentCollection
+    - std::unordered_map<typeid, size_t> componentTypeMap
+    +{static} std::unique_ptr<Archetype> createFromAdd<T: Component>(Archetype& from)
+    +{static} std::unique_ptr<Archetype> createFromRemove<T: Component>(Archetype& from)
+    +size_t migrateEntity(const Archetype& from, size_t entityIndexInArchetype)
+    +void setComponentInstance<T: Component>(size_t entityIndexInArchetype, T instance)
+    +T getComponent<T>(size_t entityIndexInArchetype)
+}
+
+class SystemManager{
+    +std::unordered_map<Signature, System> systemSigantureMap
+    +std::unordered_map<Signature, std::vector<Entity>> validEntitiesMap
+
+    +registerSystem<T: System>(T system)
+    +unregisterSystem<T: System>()
+    +void updateSystems()
+}
+
+
+@enduml

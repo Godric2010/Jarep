@@ -29,8 +29,28 @@ class World {
         }
 
         Entity createNewEntity();
+
         void removeEntity();
 
+        template<class T>
+        void addComponent(Entity entity, std::shared_ptr<T> component) {
+
+        }
+
+        template<class T>
+        void removeComponent(Entity entity) {
+
+        }
+
+        template<class T>
+        void registerSystem() {
+
+        }
+
+        template<class T>
+        void deregisterSystem() {
+
+        }
 
 
     private:

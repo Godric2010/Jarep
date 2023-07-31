@@ -6,6 +6,7 @@ add_library(JAREP_ECS
         entity-generator.hpp
         World.cpp
         World.hpp
-        entity-generator.cpp Component.hpp)
+        entity-generator.cpp Component.hpp
+        System.hpp)
 
 target_include_directories(JAREP_ECS PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
