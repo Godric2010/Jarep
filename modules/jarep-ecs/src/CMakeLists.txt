@@ -9,6 +9,7 @@ add_library(JAREP_ECS
         entity-generator.cpp Component.hpp
         System.hpp
         componentmanager.cpp
-        componentmanager.hpp)
+        componentmanager.hpp
+        signature.hpp)
 
 target_include_directories(JAREP_ECS PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -18,14 +18,14 @@
 
 ## ComponentManager
 -[x] create a new class component manager
--[ ] each component should be registered on creation in the component manager
+-[x] each component should be registered on creation in the component manager
 -[ ] each component has to get an identifier value based on the bitwise iteration 
 -[ ] the component manager keeps track of all the archetypes and their respected signature 
 -[ ] define the getComponent function
 -[ ] define the getComponents function
  
 ## Signature 
--[ ] create a typedef for a signature
+-[x] create a typedef for a signature
 
 ## SystemManager
 -[ ] create a new class system manager
