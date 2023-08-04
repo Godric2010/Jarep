@@ -17,7 +17,7 @@
 -[ ] move the entity storing from the archetype into the entity manager so each entity knows its signature 
 
 ## ComponentManager
--[ ] create a new class component manager
+-[x] create a new class component manager
 -[ ] each component should be registered on creation in the component manager
 -[ ] each component has to get an identifier value based on the bitwise iteration 
 -[ ] the component manager keeps track of all the archetypes and their respected signature 
