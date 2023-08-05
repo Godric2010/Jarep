@@ -176,8 +176,8 @@ class Archetype {
 
         /// Migrate an entity with all of its components from one archetype to another one.
         /// \param from -> The "old" archetype, the entity shall migrate from
-        /// \param entity -> The entity that shall be migrated.
-        void migrateEntity(std::unique_ptr<Archetype> &from, const Entity &entity);
+        /// \param entityIndex -> The entity index of the old archetype that shall be migrated.
+        std::optional<size_t> migrateEntity(std::unique_ptr<Archetype> &from, const size_t &entityIndex);
 
         template<typename T>
         static std::size_t generateExpectedHash(std::unique_ptr<Archetype> &from) {

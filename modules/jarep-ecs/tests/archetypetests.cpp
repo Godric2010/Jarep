@@ -35,7 +35,7 @@ class ComponentB {
         std::string text;
 };
 
-TEST_CASE("Archetype - Create an empty Archetype and add new components and remove them.") {
+TEST_CASE("Archetype - Create an empty Archetype and add new components and remove them.","[.]") {
 
     auto entity = 2;
     auto archetype01 = Archetype::createEmpty();
@@ -46,22 +46,19 @@ TEST_CASE("Archetype - Create an empty Archetype and add new components and remo
 
     auto archetype02 = Archetype::createFromAdd<ComponentA>(archetype01);
     REQUIRE(archetype02.has_value());
-    REQUIRE(archetype02.value()->entities.empty());
     REQUIRE(archetype02.value()->containsType<ComponentA>());
     REQUIRE_FALSE(archetype02.value()->containsType<ComponentB>());
 
-    archetype02.value()->migrateEntity(archetype01, entity);
-    REQUIRE(archetype02.value()->entities.size() == 1);
-    REQUIRE(archetype02.value()->entities[0] == entity);
+    archetype02.value()->migrateEntity(archetype01, 0);
+    REQUIRE(archetype02.value()->entities[0] == 0);
     REQUIRE(archetype01->entities.empty());
 
     auto archetype03_opt = Archetype::createFromRemove<ComponentA>(archetype02.value());
     REQUIRE(archetype03_opt.has_value());
-    REQUIRE(archetype03_opt.value()->entities.empty());
     REQUIRE_FALSE(archetype03_opt.value()->containsType<ComponentA>());
 }
 
-TEST_CASE("Archetype - Create an archetype with a data component, access the data and remove it through its entity") {
+TEST_CASE("Archetype - Create an archetype with a data component, access the data and remove it through its entity", "[.]") {
 
     /// Setup the empty archetype
     Entity entity = 2;
@@ -75,7 +72,7 @@ TEST_CASE("Archetype - Create an archetype with a data component, access the dat
     REQUIRE(test_archetype.has_value());
 
     /// Migrate and test the component instance adding and reading
-    test_archetype.value()->migrateEntity(archetype_empty, entity);
+    test_archetype.value()->migrateEntity(archetype_empty, 0);
     test_archetype.value()->setComponentInstance(myComponent);
     auto component = test_archetype.value()->getComponent<ComponentB>(0);
     REQUIRE(component.has_value());

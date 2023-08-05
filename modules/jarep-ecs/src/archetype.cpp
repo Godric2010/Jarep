@@ -38,18 +38,25 @@ void Archetype::removeEntity(Entity &entity) {
     entities.erase(entities.begin() + entityIndex);
 }
 
-void Archetype::migrateEntity(std::unique_ptr<Archetype> &from, const Entity& entity) {
+std::optional<size_t> Archetype::migrateEntity(std::unique_ptr<Archetype> &from, const size_t & entityIndex) {
 
-    auto it = std::find(from->entities.begin(), from->entities.end(), entity);
+    size_t newEntityIndex = componentCollections[0]->getCollectionLength();
 
-    if(it == from->entities.end()) return;
-    size_t entityIndex = std::distance(from->entities.begin(), it);
 
-    for (size_t i = 0; i < from->componentCollections.size(); ++i) {
-        from->componentCollections[i]->migrate(entityIndex, *componentCollections[i]);
+    for(const auto& element : from->componentTypeMap){
+
+        if(!componentTypeMap.contains(element.first))
+        {
+            from->componentCollections.at(element.second)->removeAt(entityIndex);
+            continue;
+        }
+        if(componentCollections[element.second]->getCollectionLength() != newEntityIndex) return std::nullopt;
+
+        from->componentCollections[element.second]->migrate(entityIndex, *componentCollections[element.second]);
     }
-    from->entities.erase(from->entities.begin() + entityIndex);
-    entities.push_back(entity);
+
+
+    return std::make_optional(newEntityIndex);
 }
 
 

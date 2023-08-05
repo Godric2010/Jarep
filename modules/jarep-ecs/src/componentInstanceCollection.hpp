@@ -41,6 +41,9 @@ class ComponentInstanceCollection {
         /// \param target -> The target collection to which this element shall migrate.
         virtual void migrate(size_t index, ComponentInstanceCollection &other) = 0;
 
+        /// Fetch the amount of entries in this collection.
+        virtual size_t getCollectionLength() = 0;
+
         /// Gets the hash value of this collection instance.
         /// \return The hash valur of this collection.
         virtual size_t getHashValue() = 0;
@@ -57,6 +60,11 @@ class InstanceCollection : public ComponentInstanceCollection {
         /// \return Unique pointer to the new collection.
         std::unique_ptr<ComponentInstanceCollection> createNewAndEmpty() override {
             return std::make_unique<InstanceCollection<T>>();
+        }
+
+        /// Fetch the amount of entries inside this collection.
+        size_t getCollectionLength() override{
+            return componentList.size();
         }
 
         /// Get the instance of this collection immutable.
