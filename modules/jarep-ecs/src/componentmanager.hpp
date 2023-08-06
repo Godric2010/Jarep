@@ -26,6 +26,8 @@ class ComponentManager {
 
         ~ComponentManager() = default;
 
+        /// Register a component for usage in the ecs system. Each component must be registered before the first usage.
+        /// \tparam T The component type to register. Must be a deriving class of Component
         template<class T, class = class std::enable_if<std::is_base_of<Component, T>::value>::type>
         void regsisterComponent() {
             if (nextComponentType >= MAX_COMPONENTS) {
@@ -35,6 +37,12 @@ class ComponentManager {
             ++nextComponentType;
         }
 
+        /// Add a component to a signature
+        /// \tparam T The component type to add. Must be a deriving class of Component
+        /// \param oldSignature The old signature this component shall be added to
+        /// \param entityIndex The index of the entity to which the signature change shall occur
+        /// \param component The instance of the component to add
+        /// \return Optional pair of the new signature (item1) and the new entity index (item2)
         template<class T, class = class std::enable_if<std::is_base_of<Component, T>::value>::type>
         std::optional<std::pair<Signature,size_t>> addComponentToSignature(Signature oldSignature, size_t entityIndex, T component) {
 
@@ -57,6 +65,11 @@ class ComponentManager {
             return std::make_optional(std::make_pair(newSignature, newEntityIndex.value()));
         }
 
+        /// Remove a component from a signature
+        /// \tparam T The component type to remove. Must be a deriving class of component.
+        /// \param oldSignature The old signature this component shall be removed from.
+        /// \param enityIndex The index of the entity to which the signature change shall occur
+        /// \return Optional pair of the new signature (item1) and the new entity index (item2)
         template<class T, class = class std::enable_if<std::is_base_of<Component, T>::value>::type>
         std::optional<std::pair<Signature, size_t>> removeComponentFromSignature(Signature oldSignature, size_t enityIndex) {
 
@@ -77,6 +90,9 @@ class ComponentManager {
 
             return std::make_optional(std::make_pair(newSignature, newEntityIndex.value()));
         }
+
+
+
 
 
     private:
