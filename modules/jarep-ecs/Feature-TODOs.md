@@ -15,14 +15,16 @@
 -[ ] the entity manager creates, deletes and keeps track of all entites 
 -[ ] it provides an array of unused entities for recycling
 -[ ] move the entity storing from the archetype into the entity manager so each entity knows its signature 
+-[ ] ensure functionality through unit tests 
 
 ## ComponentManager
 -[x] create a new class component manager
 -[x] each component should be registered on creation in the component manager
 -[x] each component has to get an identifier value based on the bitwise iteration 
 -[x] the component manager keeps track of all the archetypes and their respected signature 
--[ ] define the getComponent function
--[ ] define the getComponents function
+-[x] define the getComponent function
+-[x] define the getComponents function
+-[ ] ensure functionality through unit tests
  
 ## Signature 
 -[x] create a typedef for a signature
@@ -32,4 +34,5 @@
 -[ ] each system should be registered on creation in the system manager
 -[ ] each system can be assigned with a signature to use 
 -[ ] the system manager updates the entities available for each system by checking the entities signature
+-[ ] ensure functionality through unit tests
 

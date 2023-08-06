@@ -160,18 +160,18 @@ class Archetype {
         /// \tparam T -> The type of component to receive
         /// \return A list of tuples containing the pointer to the component instance and the respected entity.
         template<class T>
-        std::optional<std::vector<std::tuple<std::shared_ptr<T>, Entity>>> getComponentsWithEntities() {
+        std::vector<std::shared_ptr<T>> getComponentsWithEntities() {
 
             size_t component_index = componentTypeMap.at(typeid(T));
             auto &componentCollection = componentCollections.at(component_index);
             auto &target_collection = std::any_cast<std::reference_wrapper<std::vector<std::shared_ptr<T>>>>(
                     componentCollection->as_any()).get();
-            auto result_tuples = std::vector<std::tuple<std::shared_ptr<T>, Entity>>();
-            for (size_t i = 0; i < target_collection.size(); ++i) {
-                result_tuples.push_back(std::make_tuple(target_collection.at(i), entities.at(i)));
-            }
+//            auto result_tuples = std::vector<std::shared_ptr<T>>();
+//            for (size_t i = 0; i < target_collection.size(); ++i) {
+//                result_tuples.push_back(std::make_tuple(target_collection.at(i), i));
+//            }
 
-            return std::make_optional(result_tuples);
+            return target_collection;
         }
 
         /// Migrate an entity with all of its components from one archetype to another one.
