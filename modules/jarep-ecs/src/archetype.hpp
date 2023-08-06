@@ -64,8 +64,6 @@ class Archetype {
             instance->componentTypeMap.insert_or_assign(typeid(T), newComponentIndex);
             typesInArchetype.push_back(typeid(T));
 
-            instance->typeHash = Archetype::generate_hash(typesInArchetype);
-
             return std::make_optional<std::unique_ptr<Archetype>>(std::move(instance));
         };
 
@@ -98,8 +96,6 @@ class Archetype {
                 instance->componentTypeMap.insert_or_assign(typeEntry.first, typeEntry.second);
                 typesInArchetype.push_back(typeEntry.first);
             }
-            instance->typeHash = Archetype::generate_hash(typesInArchetype);
-
             // Copy the component lists and instantiate them empty except for the collection at the memorized index.
             size_t newComponentCollectionsLength = fromArchetype->componentCollections.size() - 1;
             for (int i = 0; i < newComponentCollectionsLength; ++i) {
@@ -123,8 +119,8 @@ class Archetype {
         }
 
         /// Remove an entity from an archetype, including all the connected component instances to this entity
-        /// \param entity -> The entity to remove.
-        void removeEntity(Entity &entity);
+        /// \param entityIndex -> The entity index to remove.
+        void removeComponentsAtEntityIndex(size_t entityIndex);
 
         /// Set an instance to a component
         /// \tparam T -> The type of the component instance to add
@@ -166,11 +162,6 @@ class Archetype {
             auto &componentCollection = componentCollections.at(component_index);
             auto &target_collection = std::any_cast<std::reference_wrapper<std::vector<std::shared_ptr<T>>>>(
                     componentCollection->as_any()).get();
-//            auto result_tuples = std::vector<std::shared_ptr<T>>();
-//            for (size_t i = 0; i < target_collection.size(); ++i) {
-//                result_tuples.push_back(std::make_tuple(target_collection.at(i), i));
-//            }
-
             return target_collection;
         }
 
@@ -179,28 +170,9 @@ class Archetype {
         /// \param entityIndex -> The entity index of the old archetype that shall be migrated.
         std::optional<size_t> migrateEntity(std::unique_ptr<Archetype> &from, const size_t &entityIndex);
 
-        template<typename T>
-        static std::size_t generateExpectedHash(std::unique_ptr<Archetype> &from) {
-            auto componentTypes = std::vector<std::type_index>();
-            for (auto maped_type: from->componentTypeMap) {
-                componentTypes.push_back(maped_type.first);
-            }
-            componentTypes.push_back(typeid(T));
-            return generate_hash(componentTypes);
-        }
-
-        const std::size_t getHashValue() const { return typeHash;}
-
-        /// Collection of entities, stored in this very archetype.
-        std::vector<Entity> entities;
     private:
 
-        /// Generate a hash value from all the component types, stored in this very archetype
-        /// \param componentTypes -> Collection of the type indices of each component.
-        static std::size_t generate_hash(std::vector<std::type_index> &componentTypes);
-
         std::unordered_map<std::type_index, size_t> componentTypeMap;
-        std::size_t typeHash;
         std::vector<std::unique_ptr<ComponentInstanceCollection>> componentCollections;
 
 };

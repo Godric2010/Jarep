@@ -37,12 +37,7 @@ class ComponentB {
 
 TEST_CASE("Archetype - Create an empty Archetype and add new components and remove them.","[.]") {
 
-    auto entity = 2;
     auto archetype01 = Archetype::createEmpty();
-    archetype01->entities.push_back(entity);
-
-    REQUIRE(archetype01->entities.size() == 1);
-    REQUIRE(archetype01->entities[0] == entity);
 
     auto archetype02 = Archetype::createFromAdd<ComponentA>(archetype01);
     REQUIRE(archetype02.has_value());
@@ -50,8 +45,6 @@ TEST_CASE("Archetype - Create an empty Archetype and add new components and remo
     REQUIRE_FALSE(archetype02.value()->containsType<ComponentB>());
 
     archetype02.value()->migrateEntity(archetype01, 0);
-    REQUIRE(archetype02.value()->entities[0] == 0);
-    REQUIRE(archetype01->entities.empty());
 
     auto archetype03_opt = Archetype::createFromRemove<ComponentA>(archetype02.value());
     REQUIRE(archetype03_opt.has_value());
@@ -63,7 +56,6 @@ TEST_CASE("Archetype - Create an archetype with a data component, access the dat
     /// Setup the empty archetype
     Entity entity = 2;
     auto archetype_empty = Archetype::createEmpty();
-    archetype_empty->entities.push_back(entity);
 
     /// Setup the component
     auto myComponent = std::make_shared<ComponentB>(ComponentB(1, "Hello World!"));
@@ -85,7 +77,6 @@ TEST_CASE("Archetype - Create an archetype with a data component, access the dat
 
     /// Create more entities and component instances to add
     Entity entity2 = 6;
-    test_archetype.value()->entities.push_back(entity2);
     auto myComponent2 = std::make_shared<ComponentB>(ComponentB(3, "Bye bye, World!"));
     test_archetype.value()->setComponentInstance(myComponent2);
 
@@ -100,18 +91,6 @@ TEST_CASE("Archetype - Create an archetype with a data component, access the dat
 //    REQUIRE(std::get<1>(entities_and_components.value().at(1)) == entity2);
 
     /// Remove an entity and all of its respected components
-    test_archetype.value()->removeEntity(entity);
-    REQUIRE(test_archetype.value()->entities.size()== 1);
-    REQUIRE(test_archetype.value()->entities.at(0) == entity2);
 //    REQUIRE(test_archetype.value()->getComponentsWithEntities<ComponentB>().value().size() == 1);
 //    REQUIRE(test_archetype.value()->getComponent<ComponentB>(0).value()->value == 3);
 }
-
-TEST_CASE("Archetype - Compare hashes for created and anticipated archetypes"){
-    auto archetype01 = Archetype::createEmpty();
-    auto check_archetype = Archetype::createFromAdd<ComponentA>(archetype01);
-
-    REQUIRE_FALSE(archetype01->getHashValue() == check_archetype.value()->getHashValue());
-    REQUIRE(Archetype::generateExpectedHash<ComponentA>(archetype01) == check_archetype.value()->getHashValue());
-}
-

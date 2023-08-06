@@ -20,7 +20,6 @@ Entity World::createNewEntity() {
     if (!entity.has_value()) return 0;
 
     auto archetype = Archetype::createEmpty();
-    archetype->entities.push_back(entity.value());
 
     auto target = Archetype::createFromAdd<Test>(archetype);
     auto test = std::make_shared<Test>(Test(2));

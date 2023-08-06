@@ -58,7 +58,7 @@ class ComponentManager {
                 newEntityIndex = archetypeSignatureMap[newSignature]->migrateEntity(archetypeSignatureMap[oldSignature],
                                                                                     entityIndex);
             } else {
-                auto newArchetype = Archetype::createFromAdd<T>(archetypeSignatureMap[oldSignature]);
+                auto newArchetype = Archetype::createFromAdd<T>(archetypeSignatureMap[oldSignature]).value();
                 newEntityIndex = newArchetype.migrateEntity(archetypeSignatureMap[oldSignature], entityIndex);
                 archetypeSignatureMap.insert_or_assign(newSignature, std::move(newArchetype));
             }
@@ -87,7 +87,7 @@ class ComponentManager {
                 newEntityIndex = archetypeSignatureMap[newSignature]->migrateEntity(archetypeSignatureMap[oldSignature],
                                                                                     entityIndex);
             } else {
-                auto newArchetype = Archetype::createFromRemove<T>(archetypeSignatureMap[oldSignature]);
+                auto newArchetype = Archetype::createFromRemove<T>(archetypeSignatureMap[oldSignature]).value();
                 newEntityIndex = newArchetype.migrateEntity(archetypeSignatureMap[oldSignature], entityIndex);
                 archetypeSignatureMap.insert_or_assign(newSignature, std::move(newArchetype));
             }
@@ -126,6 +126,14 @@ class ComponentManager {
             }
 
             return std::make_optional(results);
+        }
+
+        /// Remove an entity from an archetype without migrating it to another
+        /// \param signature The signature, this entity refers to.
+        /// \param entityIndex The index of the entity at which the components are stored in the archetype.
+        void removeEntityComponents(Signature signature, size_t entityIndex){
+            if(!archetypeSignatureMap.contains(signature)) return;
+            archetypeSignatureMap[signature]->removeComponentsAtEntityIndex(entityIndex);
         }
 
 
