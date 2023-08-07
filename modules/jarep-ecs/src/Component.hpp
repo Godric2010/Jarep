@@ -7,8 +7,8 @@
 
 class Component{
     public:
-        Component();
-        ~Component();
+        Component()= default;
+        ~Component() = default;
 };
 
 #endif //JAREP_COMPONENT_HPP

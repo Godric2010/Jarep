@@ -8,7 +8,6 @@ add_library(JAREP_ECS
         World.hpp
         entity-generator.cpp Component.hpp
         System.hpp
-        componentmanager.cpp
         componentmanager.hpp
         signature.hpp)
 

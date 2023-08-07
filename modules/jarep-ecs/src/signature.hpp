@@ -7,7 +7,7 @@
 
 #include <bitset>
 
-const std::size_t MAX_COMPONENTS = 1024;
+const std::size_t MAX_COMPONENTS = 32;//1024;
 typedef std::bitset<MAX_COMPONENTS> Signature;
 
 

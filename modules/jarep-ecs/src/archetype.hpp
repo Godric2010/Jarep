@@ -34,7 +34,7 @@ class Archetype {
         /// \tparam T -> The new component type to add.
         /// \param fromArchetype -> The old archetype this one is based on.
         /// \return A new instance of an archetype.
-        template<typename T>
+        template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>
         static std::optional<std::unique_ptr<Archetype>>
         createFromAdd(const std::unique_ptr<Archetype> &fromArchetype) {
             auto instance = std::make_unique<Archetype>();
@@ -54,15 +54,12 @@ class Archetype {
 
             // Iterate over the existing type-map and copy it, as well as collecting all types from the old archetype.
             instance->componentTypeMap = std::unordered_map<std::type_index, size_t>();
-            auto typesInArchetype = std::vector<std::type_index>();
             for (const auto typeEntry: fromArchetype->componentTypeMap) {
                 instance->componentTypeMap.insert_or_assign(typeEntry.first, typeEntry.second);
-                typesInArchetype.push_back(typeEntry.first);
             }
 
             // Assign the new generic component to all maps and lists so the new archetype will be different from the old one.
             instance->componentTypeMap.insert_or_assign(typeid(T), newComponentIndex);
-            typesInArchetype.push_back(typeid(T));
 
             return std::make_optional<std::unique_ptr<Archetype>>(std::move(instance));
         };

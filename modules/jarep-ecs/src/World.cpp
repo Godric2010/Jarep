@@ -3,8 +3,9 @@
 //
 
 #include "World.hpp"
+#include "Component.hpp"
 
-class Test {
+class Test : public Component{
     public:
         Test(int i) {
             value = i;

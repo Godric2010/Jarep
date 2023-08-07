@@ -12,8 +12,9 @@
 #endif
 
 #include "../src/archetype.hpp"
+#include "Component.hpp"
 
-class ComponentA {
+class ComponentA : public Component{
 
     public:
         ComponentA() = default;
@@ -21,7 +22,7 @@ class ComponentA {
         ~ComponentA() = default;
 };
 
-class ComponentB {
+class ComponentB : public Component{
     public:
         ComponentB(int initialValue, std::string initialText) {
             value = initialValue;

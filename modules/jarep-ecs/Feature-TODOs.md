@@ -12,7 +12,7 @@
 
 ## EntityManager
 -[ ] create a new class entity manager
--[ ] the entity manager creates, deletes and keeps track of all entites 
+-[ ] the entity manager creates, deletes and keeps track of all entities 
 -[ ] it provides an array of unused entities for recycling
 -[ ] move the entity storing from the archetype into the entity manager so each entity knows its signature 
 -[ ] ensure functionality through unit tests 

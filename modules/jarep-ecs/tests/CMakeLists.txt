@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.25)
 add_executable(JAREP_ECS_Tests
         archetypetests.cpp
         entitygeneratortests.cpp
-        )
+        componentmanagertests.cpp
+)
 
 find_package(Catch2 REQUIRED)
 target_link_libraries(JAREP_ECS_Tests PUBLIC JAREP_ECS Catch2::Catch2WithMain)
