@@ -37,6 +37,8 @@ class ComponentManager {
 				return;
 			}
 
+			if(componentBitMap.contains(std::type_index(typeid(T)))) return;
+
 			componentBitMap.insert_or_assign(std::type_index(typeid(T)), Signature(nextComponentType));
 			++nextComponentType;
 		}

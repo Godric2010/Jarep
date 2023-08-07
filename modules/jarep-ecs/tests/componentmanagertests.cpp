@@ -88,7 +88,17 @@ TEST_CASE(
 }
 
 TEST_CASE("ComponentManager - Try to register the same Component multiple times") {
-	REQUIRE(1 != 1);
+
+	ComponentManager componentManager;
+	componentManager.registerComponent<ComponentA>();
+	componentManager.registerComponent<ComponentA>();
+
+	auto componentA = std::make_shared<ComponentA>();
+	componentA->value = 42;
+
+	auto componentACM = componentManager.addComponentToSignature(Signature(0), 0, componentA);
+	REQUIRE(componentACM.has_value());
+	REQUIRE(componentACM.value().first == componentASignature);
 }
 
 TEST_CASE("ComponentManager - Add multiple components and than remove one from") {
