@@ -13,7 +13,7 @@
 #include <memory>
 #include <optional>
 #include "componentInstanceCollection.hpp"
-#include "entity-generator.hpp"
+#include "entitymanager.hpp"
 #include "Component.hpp"
 
 /// The archetype contains all entities with their respected component instances.

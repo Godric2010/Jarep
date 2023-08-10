@@ -11,11 +11,11 @@
 -[ ] ensure that only deriving classes of system can be used for system actions 
 
 ## EntityManager
--[ ] create a new class entity manager
--[ ] the entity manager creates, deletes and keeps track of all entities 
--[ ] it provides an array of unused entities for recycling
--[ ] move the entity storing from the archetype into the entity manager so each entity knows its signature 
--[ ] ensure functionality through unit tests 
+-[x] create a new class entity manager
+-[x] the entity manager creates, deletes and keeps track of all entities 
+-[x] it provides an array of unused entities for recycling
+-[x] move the entity storing from the archetype into the entity manager so each entity knows its signature 
+-[x] ensure functionality through unit tests 
 
 ## ComponentManager
 -[x] create a new class component manager

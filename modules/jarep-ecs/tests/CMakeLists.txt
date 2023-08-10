@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 add_executable(JAREP_ECS_Tests
         archetypetests.cpp
-        entitygeneratortests.cpp
+        entitymanagertests.cpp
         componentmanagertests.cpp
 )
 

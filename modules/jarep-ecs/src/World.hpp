@@ -9,14 +9,14 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
-#include "entity-generator.hpp"
+#include "entitymanager.hpp"
 #include "archetype.hpp"
 
 
 class World {
     public:
         World() {
-            entityGenerator = new EntityGenerator();
+            entityGenerator = new EntityManager();
             entityLocationMap.clear();
             archetypes.clear();
 
@@ -54,7 +54,7 @@ class World {
 
 
     private:
-        EntityGenerator *entityGenerator;
+        EntityManager *entityGenerator;
         std::unordered_map<Entity, int> entityLocationMap;
         std::vector<Archetype> archetypes;
 

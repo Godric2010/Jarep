@@ -2,11 +2,11 @@ add_library(JAREP_ECS
         archetype.cpp
         archetype.hpp
         componentInstanceCollection.hpp
-        entity-generator.cpp
-        entity-generator.hpp
+        entitymanager.cpp
+        entitymanager.hpp
         World.cpp
         World.hpp
-        entity-generator.cpp Component.hpp
+        entitymanager.cpp Component.hpp
         System.hpp
         componentmanager.hpp
         signature.hpp)
