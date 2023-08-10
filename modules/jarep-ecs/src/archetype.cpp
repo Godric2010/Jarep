@@ -4,43 +4,43 @@
 
 #include "archetype.hpp"
 
-Archetype::Archetype(){
-     componentTypeMap = std::unordered_map<std::type_index, size_t>();
-     componentCollections = std::vector<std::unique_ptr<ComponentInstanceCollection>>();
+Archetype::Archetype() {
+	componentTypeMap = std::unordered_map<std::type_index, size_t>();
+	componentCollections = std::vector<std::unique_ptr<ComponentInstanceCollection>>();
 }
 
 Archetype::~Archetype() {
-    componentTypeMap.clear();
+	componentTypeMap.clear();
 }
 
 std::unique_ptr<Archetype> Archetype::createEmpty() {
-    return std::make_unique<Archetype>();
+	return std::make_unique<Archetype>();
 }
 
 void Archetype::removeComponentsAtEntityIndex(size_t entityIndex) {
 
-    for (const auto &componentCollection: componentCollections) {
-        componentCollection->removeAt(entityIndex);
-    }
+	for (const auto &componentCollection: componentCollections) {
+		componentCollection->removeAt(entityIndex);
+	}
 }
 
 std::optional<size_t> Archetype::migrateEntity(std::unique_ptr<Archetype> &from, const size_t &entityIndex) {
 
-    size_t newEntityIndex = componentCollections[0]->getCollectionLength();
+	size_t newEntityIndex = componentCollections[0]->getCollectionLength();
 
+	for (const auto &element: from->componentTypeMap) {
 
-    for (const auto &element: from->componentTypeMap) {
-
-        if (!componentTypeMap.contains(element.first)) {
-            continue;
-        }
-        if (componentCollections[element.second]->getCollectionLength() != newEntityIndex) return std::nullopt;
-
-        from->componentCollections[element.second]->migrate(entityIndex, *componentCollections[element.second]);
-    }
-
-
-    return std::make_optional(newEntityIndex);
+		if (!componentTypeMap.contains(element.first)) {
+			continue;
+		}
+		size_t componentCollectionIndex = componentTypeMap[element.first];
+		if (componentCollections[componentCollectionIndex]->getCollectionLength() != newEntityIndex) {
+			return std::nullopt;
+		}
+		from->componentCollections[element.second]->migrate(entityIndex,
+		                                                    *componentCollections[componentCollectionIndex]);
+	}
+	return std::make_optional(newEntityIndex);
 }
 
 

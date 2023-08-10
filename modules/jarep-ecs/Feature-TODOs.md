@@ -24,7 +24,7 @@
 -[x] the component manager keeps track of all the archetypes and their respected signature 
 -[x] define the getComponent function
 -[x] define the getComponents function
--[ ] ensure functionality through unit tests
+-[x] ensure functionality through unit tests
  
 ## Signature 
 -[x] create a typedef for a signature

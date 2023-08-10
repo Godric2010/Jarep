@@ -58,11 +58,9 @@ class ComponentManager {
 			auto newSignature = oldSignature | componentBitMap[typeid(T)];
 			std::optional<size_t> newEntityIndex;
 			if (archetypeSignatureMap.contains(newSignature)) {
-				std::cout << "Signature found! " << newSignature << std::endl;
                 newEntityIndex = archetypeSignatureMap[newSignature]->migrateEntity(archetypeSignatureMap[oldSignature],
                                                                                     entityIndex);
 			} else {
-				std::cout << "No Signature found! " << newSignature << std::endl;
 				auto newArchetype = Archetype::createFromAdd<T>(archetypeSignatureMap[oldSignature]).value();
 				newEntityIndex = newArchetype->migrateEntity(archetypeSignatureMap[oldSignature], entityIndex);
 				archetypeSignatureMap.insert_or_assign(newSignature, std::move(newArchetype));
@@ -92,7 +90,7 @@ class ComponentManager {
 				newEntityIndex = archetypeSignatureMap[newSignature]->migrateEntity(archetypeSignatureMap[oldSignature],
 				                                                                    entityIndex);
 			} else {
-				auto newArchetype = Archetype::createFromRemove<T>(archetypeSignatureMap[oldSignature]).value();
+				auto newArchetype =  Archetype::createFromRemove<T>(archetypeSignatureMap[oldSignature]).value();
 				newEntityIndex = newArchetype->migrateEntity(archetypeSignatureMap[oldSignature], entityIndex);
 				archetypeSignatureMap.insert_or_assign(newSignature, std::move(newArchetype));
 			}
