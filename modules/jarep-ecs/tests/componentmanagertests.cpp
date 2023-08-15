@@ -9,7 +9,7 @@
 
 #include <memory>
 #include <tuple>
-#include "../src/Component.hpp"
+#include "../src/component.hpp"
 #include "../src/componentmanager.hpp"
 #include "../src/signature.hpp"
 

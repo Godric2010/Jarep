@@ -34,6 +34,7 @@ std::optional<Entity> EntityManager::createEntity() {
 	}
 
 	entitySignatureMap.insert_or_assign(newEntity, Signature(0));
+	entityArchetypeIndexMap.insert_or_assign(newEntity, 0);
 	return std::make_optional(newEntity);
 }
 
@@ -44,7 +45,7 @@ void EntityManager::removeEntity(Entity entity) {
 	entitySignatureMap.erase(entity);
 }
 
-bool EntityManager::isAlive(Entity entity) {
+bool EntityManager::isAlive(Entity entity) const{
 	if (entity >= nextId) {
 		throw std::runtime_error("Requesting alive status for uninitialized entities is forbidden!");
 	}
@@ -58,11 +59,17 @@ bool EntityManager::isAlive(Entity entity) {
 	return true;
 }
 
-void EntityManager::assignNewSignature(Entity entity, Signature signature) {
+void EntityManager::assignNewSignature(const Entity entity, const Signature signature, const size_t archetypeIndex) {
 	entitySignatureMap.at(entity) = signature;
+	entityArchetypeIndexMap.at(entity) = archetypeIndex;
 }
 
-std::optional<Signature> EntityManager::getSignature(Entity entity) {
+std::optional<Signature> EntityManager::getSignature(const Entity entity) const {
 	if(!isAlive(entity)) return std::nullopt;
-	return entitySignatureMap[entity];
+	return entitySignatureMap.at(entity);
+}
+
+std::optional<size_t> EntityManager::getArchetypeIndex(const Entity entity)const {
+	if(!isAlive(entity)) return std::nullopt;
+	return entityArchetypeIndexMap.at(entity);
 }

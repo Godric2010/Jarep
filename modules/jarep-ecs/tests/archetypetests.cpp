@@ -12,7 +12,7 @@
 #endif
 
 #include "../src/archetype.hpp"
-#include "Component.hpp"
+#include "component.hpp"
 
 class ComponentA : public Component{
 

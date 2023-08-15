@@ -13,7 +13,7 @@
 #include <vector>
 #include <iostream>
 #include "signature.hpp"
-#include "Component.hpp"
+#include "component.hpp"
 #include "archetype.hpp"
 
 class ComponentManager {
@@ -29,7 +29,7 @@ class ComponentManager {
 
 		~ComponentManager() = default;
 
-		/// Register a component for usage in the ecs system. Each component must be registered before the first usage.
+		/// Register a component for usage in the ecs System. Each component must be registered before the first usage.
 		/// \tparam T The component type to register. Must be a deriving class of Component
 		template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>
 		void registerComponent() {
@@ -41,6 +41,13 @@ class ComponentManager {
 
 			componentBitMap.insert_or_assign(std::type_index(typeid(T)), Signature(nextComponentType));
 			++nextComponentType;
+		}
+
+		/// Check if a component is already registered.
+		/// \param typeIndex The type index to check for registration.
+		/// \return True if the component is already registered.
+		bool isComponentRegistred(std::type_index typeIndex){
+			return componentBitMap.contains(typeIndex);
 		}
 
 		/// Add a component to a signature

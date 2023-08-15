@@ -8,7 +8,7 @@
 -[ ] ensure that only deriving classes of component can be used for component actions 
 -[ ] define the registerSystem function
 -[ ] define the unregisterSystem function
--[ ] ensure that only deriving classes of system can be used for system actions 
+-[ ] ensure that only deriving classes of System can be used for System actions 
 
 ## EntityManager
 -[x] create a new class entity manager
@@ -30,9 +30,9 @@
 -[x] create a typedef for a signature
 
 ## SystemManager
--[ ] create a new class system manager
--[ ] each system should be registered on creation in the system manager
--[ ] each system can be assigned with a signature to use 
--[ ] the system manager updates the entities available for each system by checking the entities signature
+-[ ] create a new class System manager
+-[ ] each System should be registered on creation in the System manager
+-[ ] each System can be assigned with a signature to use 
+-[ ] the System manager updates the entities available for each System by checking the entities signature
 -[ ] ensure functionality through unit tests
 

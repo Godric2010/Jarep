@@ -4,11 +4,11 @@ add_library(JAREP_ECS
         componentInstanceCollection.hpp
         entitymanager.cpp
         entitymanager.hpp
-        World.cpp
-        World.hpp
-        entitymanager.cpp Component.hpp
-        System.hpp
+        world.hpp
+        entitymanager.cpp component.hpp
+        system.hpp
         componentmanager.hpp
-        signature.hpp)
+        signature.hpp
+        systemmanager.hpp)
 
 target_include_directories(JAREP_ECS PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -14,7 +14,7 @@
 #include <optional>
 #include "componentInstanceCollection.hpp"
 #include "entitymanager.hpp"
-#include "Component.hpp"
+#include "component.hpp"
 
 /// The archetype contains all entities with their respected component instances.
 /// The implementation of the generic functions has to happen in the header to tackle linker issues when

@@ -30,19 +30,23 @@ class EntityManager {
 		/// Check if an entity is still alive.
 		/// \param entity The entity to check
 		/// \return True if the entity is alive, false otherwise.
-        bool isAlive(Entity entity);
+        bool isAlive(Entity entity) const;
 
 		/// Assign a new signature to an entity
 		/// \param entity The entity the new signature shall be assigned to.
 		/// \param signature The new signature that shall be assigned to the entity.
-		void assignNewSignature(Entity entity, Signature signature);
+		/// \param archetypeIndex The new index this entity has in the archetype reference.
+		void assignNewSignature(Entity entity, Signature signature, size_t archetypeIndex);
 
-		std::optional<Signature> getSignature(Entity entity);
+		std::optional<Signature> getSignature(Entity entity) const;
+
+		std::optional<size_t> getArchetypeIndex(Entity entity) const;
 
     private:
         size_t nextId;
         std::queue<Entity> deadEntities;
 		std::unordered_map<Entity, Signature> entitySignatureMap;
+		std::unordered_map<Entity, size_t> entityArchetypeIndexMap;
 };
 
 

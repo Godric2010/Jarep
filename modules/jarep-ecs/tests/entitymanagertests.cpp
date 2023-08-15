@@ -66,7 +66,7 @@ TEST_CASE("Entity Manager - Assign new Signature - Signature is available as lon
 
 	auto signature = Signature(21);
 
-	entityManager->assignNewSignature(entity01, signature);
+	entityManager->assignNewSignature(entity01, signature, 0);
 	REQUIRE(entityManager->getSignature(entity01) == signature);
 
 	entityManager->removeEntity(entity01);
