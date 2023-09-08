@@ -4,40 +4,50 @@
 #include <utility>
 
 #else
+
 #include <catch2/catch.hpp>
+
 #endif
 
 #include "../src/world.hpp"
-#include "../src/system.hpp"
-#include "../src/component.hpp"
 #include <vector>
 #include <typeindex>
+#include <memory>
+#include <optional>
 
-class MyTestComponent: public Component{
+class MyTestComponent : public Component {
 	public:
-		MyTestComponent() : Component(){
+		MyTestComponent() : Component() {
 			myTestValue = 0;
 		}
+
 		~MyTestComponent() = default;
 
 		int myTestValue{};
 };
 
-class MyTestSystem : public System{
+class MyTestSystem : public System {
 
 	public:
-		MyTestSystem(std::vector<std::type_index> requiredComponentTypes) : System(std::move(requiredComponentTypes)){}
+		MyTestSystem() : System() {};
+
 		~MyTestSystem() override = default;
 
 	protected:
-		void update() override{
+		void update() override {
 
+			auto entity = getEntities()[0];
+			auto myTestComponent = getComponent<MyTestComponent>(entity);
+			if (!myTestComponent.has_value()) {
+				std::cout << "Component is missing!" << std::endl;
+			}
+			myTestComponent.value()->myTestValue++;
+			std::cout << "My Test Component new value: " << myTestComponent.value()->myTestValue << std::endl;
 		}
 };
 
 
-
-TEST_CASE("world - Set test name here"){
+TEST_CASE("World - Set test name here") {
 
 	auto world = std::make_unique<World>();
 
@@ -47,6 +57,10 @@ TEST_CASE("world - Set test name here"){
 	auto myEntity = world->createNewEntity();
 	world->addComponent<MyTestComponent>(myEntity);
 	world->registerSystem<MyTestSystem>(myTestSystemRequiredComponents);
+
+	for (int i = 0; i < 10; ++i) {
+		world->tick();
+	}
 
 	REQUIRE(1 == 1);
 } 

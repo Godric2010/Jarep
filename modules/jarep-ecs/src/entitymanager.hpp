@@ -15,22 +15,23 @@
 typedef size_t Entity;
 
 class EntityManager {
-    public:
-        EntityManager();
-        ~EntityManager();
+	public:
+		EntityManager();
+
+		~EntityManager();
 
 		/// Create a new entity index
 		/// \return A new entity index if the creation was successful. Nullopt otherwise.
-        std::optional<Entity> createEntity();
+		std::optional<Entity> createEntity();
 
 		/// Remove an entity
 		/// \param entity The entity to remove.
-        void removeEntity(Entity entity);
+		void removeEntity(Entity entity);
 
 		/// Check if an entity is still alive.
 		/// \param entity The entity to check
 		/// \return True if the entity is alive, false otherwise.
-        bool isAlive(Entity entity) const;
+		bool isAlive(Entity entity) const;
 
 		/// Assign a new signature to an entity
 		/// \param entity The entity the new signature shall be assigned to.
@@ -42,9 +43,17 @@ class EntityManager {
 
 		std::optional<size_t> getArchetypeIndex(Entity entity) const;
 
-    private:
-        size_t nextId;
-        std::queue<Entity> deadEntities;
+		std::vector<Entity> getAllActiveEntities() {
+			std::vector<Entity> keys;
+			for (const auto &pair: entityArchetypeIndexMap) {
+				keys.push_back(pair.first);
+			}
+			return keys;
+		}
+
+	private:
+		size_t nextId;
+		std::queue<Entity> deadEntities;
 		std::unordered_map<Entity, Signature> entitySignatureMap;
 		std::unordered_map<Entity, size_t> entityArchetypeIndexMap;
 };

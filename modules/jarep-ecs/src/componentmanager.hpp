@@ -10,6 +10,7 @@
 #include <typeindex>
 #include <type_traits>
 #include <tuple>
+#include <utility>
 #include <vector>
 #include <iostream>
 #include "signature.hpp"
@@ -37,7 +38,7 @@ class ComponentManager {
 				return;
 			}
 
-			if(componentBitMap.contains(std::type_index(typeid(T)))) return;
+			if (componentBitMap.contains(std::type_index(typeid(T)))) return;
 
 			componentBitMap.insert_or_assign(std::type_index(typeid(T)), Signature(nextComponentType));
 			++nextComponentType;
@@ -46,7 +47,7 @@ class ComponentManager {
 		/// Check if a component is already registered.
 		/// \param typeIndex The type index to check for registration.
 		/// \return True if the component is already registered.
-		bool isComponentRegistred(std::type_index typeIndex){
+		bool isComponentRegistred(std::type_index typeIndex) {
 			return componentBitMap.contains(typeIndex);
 		}
 
@@ -65,8 +66,8 @@ class ComponentManager {
 			auto newSignature = oldSignature | componentBitMap[typeid(T)];
 			std::optional<size_t> newEntityIndex;
 			if (archetypeSignatureMap.contains(newSignature)) {
-                newEntityIndex = archetypeSignatureMap[newSignature]->migrateEntity(archetypeSignatureMap[oldSignature],
-                                                                                    entityIndex);
+				newEntityIndex = archetypeSignatureMap[newSignature]->migrateEntity(archetypeSignatureMap[oldSignature],
+				                                                                    entityIndex);
 			} else {
 				auto newArchetype = Archetype::createFromAdd<T>(archetypeSignatureMap[oldSignature]).value();
 				newEntityIndex = newArchetype->migrateEntity(archetypeSignatureMap[oldSignature], entityIndex);
@@ -97,7 +98,7 @@ class ComponentManager {
 				newEntityIndex = archetypeSignatureMap[newSignature]->migrateEntity(archetypeSignatureMap[oldSignature],
 				                                                                    entityIndex);
 			} else {
-				auto newArchetype =  Archetype::createFromRemove<T>(archetypeSignatureMap[oldSignature]).value();
+				auto newArchetype = Archetype::createFromRemove<T>(archetypeSignatureMap[oldSignature]).value();
 				newEntityIndex = newArchetype->migrateEntity(archetypeSignatureMap[oldSignature], entityIndex);
 				archetypeSignatureMap.insert_or_assign(newSignature, std::move(newArchetype));
 			}
@@ -115,7 +116,26 @@ class ComponentManager {
 		/// \return Optional shared pointer to the component instance.
 		template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>
 		std::optional<std::shared_ptr<T>> getComponent(Signature signature, size_t entityIndex) {
-			return archetypeSignatureMap[signature]->getComponent<T>(entityIndex);
+
+			if(!archetypeSignatureMap.contains(signature))
+				return std::nullopt;
+
+			return archetypeSignatureMap.at(signature)->getComponent<T>(entityIndex);
+		}
+
+
+		/// Get the instance of a component
+		/// \param archetypeSignature The archetypeSignature of the archetype, this component is stored in.
+		/// \param entityIndex The index of the entity in the archetype.
+		/// \param requiredComponent The type index of the requested component.
+		/// \return Optional shared pointer to the component instance.
+		template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>
+		std::optional<std::shared_ptr<T>> getComponent(Signature archetypeSignature, size_t entityIndex, std::type_index requiredComponent) {
+
+			if(!archetypeSignatureMap.contains(archetypeSignature))
+				return std::nullopt;
+
+			return archetypeSignatureMap.at(archetypeSignature)->getComponent<T>(entityIndex, requiredComponent);
 		}
 
 
@@ -147,12 +167,46 @@ class ComponentManager {
 		}
 
 
+		std::optional<Signature> getCombinedSignatureOfTypes(std::vector<std::type_index> typeIndices) {
+			Signature resultSignature;
+
+			for (const auto &typeIndex: typeIndices) {
+
+				auto signatureResult = getSignatureOfType(typeIndex);
+				if(!signatureResult.has_value()) return std::nullopt;
+
+				resultSignature |= signatureResult.value();
+			}
+			return std::make_optional(resultSignature);
+		}
+
+
 	private:
 		std::unordered_map<Signature, std::unique_ptr<Archetype>> archetypeSignatureMap;
 
 		std::unordered_map<std::type_index, Signature> componentBitMap;
 		std::size_t nextComponentType;
+
+		std::optional<Signature> getSignatureOfType(std::type_index typeIndex) {
+			if (componentBitMap.contains(typeIndex)) {
+				return std::make_optional(componentBitMap.at(typeIndex));
+			}
+			return std::nullopt;
+		}
 };
 
+class GetComponentsFunc{
+
+	private:
+		std::shared_ptr<ComponentManager> componentManager;
+
+	public:
+		explicit GetComponentsFunc(std::shared_ptr<ComponentManager> cm) : componentManager(std::move(cm)){}
+
+		template<typename T>
+		std::optional<std::shared_ptr<T>> operator()(Signature  signature, size_t entityIndex) const{
+			return componentManager->getComponent<T>(signature, entityIndex, typeid(T));
+		}
+};
 
 #endif //JAREP_COMPONENTMANAGER_HPP

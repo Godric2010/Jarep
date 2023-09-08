@@ -7,13 +7,13 @@
 
 
 #include <iostream>
+#include <utility>
 #include <vector>
 #include <memory>
 #include <unordered_map>
 #include "entitymanager.hpp"
 #include "componentmanager.hpp"
 #include "systemmanager.hpp"
-
 
 class World {
 	public:
@@ -41,11 +41,16 @@ class World {
 				componentManager->registerComponent<T>();
 			}
 
-			auto newSignature = componentManager->addComponentToSignature(entityManager->getSignature(entity), entityManager->getArchetypeIndex(entity), std::make_shared<T>());
-			if(!newSignature.hasValue()) return;
+			auto entity_signature = entityManager->getSignature(entity);
+			if(!entity_signature.has_value()) return;
 
-			entityManager->assignNewSignature(newSignature.value().item1, newSignature.value().item2);
+			auto entity_index_in_archetype = entityManager->getArchetypeIndex(entity);
+			if(!entity_index_in_archetype.has_value()) return;
 
+			auto newSignature = componentManager->addComponentToSignature(entity_signature.value(), entity_index_in_archetype.value(), std::make_shared<T>());
+			if(!newSignature.has_value()) return;
+
+			entityManager->assignNewSignature(entity, newSignature.value().first, newSignature.value().second);
 
 		}
 
@@ -56,7 +61,20 @@ class World {
 
 		template<class T, class = typename std::enable_if<std::is_base_of<System, T>::value>::type>
 		void registerSystem(std::vector<std::type_index> requiredComponents) {
-			systemManager->registerSystem<T>(requiredComponents);
+
+			auto systemSignatureResult = componentManager->getCombinedSignatureOfTypes(std::move(requiredComponents));
+			if(!systemSignatureResult.has_value()) return;
+
+
+			auto getComponentsFunc = std::make_shared<GetComponentsFunc>(this->componentManager);
+			auto systemIndexResult = systemManager->registerSystem<T>(systemSignatureResult.value(), getComponentsFunc);
+
+			if(!systemIndexResult.has_value()) return;
+
+			auto allEntities = entityManager->getAllActiveEntities();
+			auto entitiesContainingSignature = getAllEntitiesThatHaveThisSignature(allEntities, systemSignatureResult.value());
+
+			systemManager->updateSystemData(systemIndexResult.value(), entitiesContainingSignature);
 
 		}
 
@@ -65,11 +83,34 @@ class World {
 
 		}
 
+		void tick(){
+			systemManager->update();
+		}
+
 
 	private:
 		std::unique_ptr<EntityManager> entityManager;
-		std::unique_ptr<ComponentManager> componentManager;
+		std::shared_ptr<ComponentManager> componentManager;
 		std::unique_ptr<SystemManager> systemManager;
+
+		std::unordered_map<Entity, std::tuple<Signature, size_t>> getAllEntitiesThatHaveThisSignature(const std::vector<Entity>& entitiesToCheck, Signature requestedSignature){
+
+			std::unordered_map<Entity, std::tuple<Signature, size_t>> entitiesContainingSignature;
+			for (const auto &entity: entitiesToCheck) {
+				auto entitySignatureResult = entityManager->getSignature(entity);
+				auto entityArchetypeIndexResult = entityManager->getArchetypeIndex(entity);
+				if(!entitySignatureResult.has_value() || !entityArchetypeIndexResult.has_value()) continue;
+				auto entitySignature = entitySignatureResult.value();
+				auto entityArchetypeIndex = entityArchetypeIndexResult.value();
+
+				if((entitySignature & requestedSignature) != requestedSignature) continue;
+
+				auto signatureIndexTuple = std::make_tuple(entitySignature, entityArchetypeIndex);
+				entitiesContainingSignature.insert_or_assign(entity, signatureIndexTuple);
+			}
+			return entitiesContainingSignature;
+		}
+
 
 };
 

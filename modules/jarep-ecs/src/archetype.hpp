@@ -53,13 +53,14 @@ class Archetype {
 			instance->componentCollections.push_back(std::move(typeErasedCollection));
 
 			// Iterate over the existing type-map and copy it, as well as collecting all types from the old archetype.
-			instance->componentTypeMap = std::unordered_map<std::type_index, size_t>();
+			//instance->componentTypeMap = std::unordered_map<std::type_index, size_t>();
 			for (const auto typeEntry: fromArchetype->componentTypeMap) {
 				instance->componentTypeMap.insert_or_assign(typeEntry.first, typeEntry.second);
 			}
 
 			// Assign the new generic component to all maps and lists so the new archetype will be different from the old one.
-			instance->componentTypeMap.insert_or_assign(typeid(T), newComponentIndex);
+			auto typeIDOfT = std::type_index(typeid(T));
+			instance->componentTypeMap[typeIDOfT] = newComponentIndex;
 
 			return std::make_optional<std::unique_ptr<Archetype>>(std::move(instance));
 		};
@@ -109,7 +110,7 @@ class Archetype {
 		/// \return True if the archetype contains the component T, otherwise returns false.
 		template<class T>
 		bool containsType() {
-			const std::type_info &typeId = typeid(T);
+			const std::type_index typeId = std::type_index(typeid(T));
 			if (componentTypeMap.count(typeId)) {
 				return true;
 			}
@@ -140,7 +141,31 @@ class Archetype {
 		template<class T>
 		std::optional<std::shared_ptr<T>> getComponent(size_t index) {
 
-			size_t component_index = componentTypeMap.at(typeid(T));
+			auto typeId = std::type_index(typeid(T));
+			return getComponent<T>(index, typeId);
+		}
+
+		/// Get the instance of a component by the index of the entity in this archetype.
+		/// \tparam T -> The type of the component
+		/// \param index -> The index of the entity in this component
+		/// \return Pointer to the components instance
+		template<class T>
+		std::optional<std::shared_ptr<T>> getComponent(size_t index, std::type_index typeId) {
+			bool foundComponentType = false;
+			for (const auto &pair: componentTypeMap) {
+				const auto &typeIndex = pair.first;
+				if (typeIndex.hash_code() == typeId.hash_code()) {
+					foundComponentType = true;
+					break;
+				}
+			}
+			// Check if the component is part of the component type map.
+			if (!foundComponentType) {
+				std::cout << "Component type map does not contain " << typeId.name() << std::endl;
+				return std::nullopt;
+			}
+
+			size_t component_index = componentTypeMap.at(typeId);
 			auto &componentCollection = componentCollections.at(component_index);
 			auto &target_collection = std::any_cast<std::reference_wrapper<std::vector<std::shared_ptr<T>>>>(
 					componentCollection->as_any()).get();

@@ -6,31 +6,51 @@
 #define JAREP_SYSTEM_HPP
 
 #include <memory>
+#include <utility>
 #include <vector>
 #include <typeindex>
-#include "componentmanager.hpp"
+#include <unordered_map>
+#include <functional>
+#include <tuple>
 #include "systemmanager.hpp"
+#include "componentmanager.hpp"
 
 class System{
 
 		friend class SystemManager;
 	public:
-        System(std::vector<std::type_index> requiredComponentTypes){
-			requiredComponents = requiredComponentTypes;
-		}
-        virtual ~System() = default;
+
+        System()= default;
+		virtual ~System() = default;
 
 	protected:
 
-		std::vector<Entity> entities;
-
 		virtual void update() = 0;
+
+		template<typename T>
+		std::optional<std::shared_ptr<T>> getComponent(Entity entity){
+			auto componentRef = entityComponentReferenceMap.at(entity);
+
+			auto componentResult = getComponents->operator()<T>(std::get<0>(componentRef), std::get<1>(componentRef));
+			if(!componentResult.has_value())
+				return std::nullopt;
+
+			auto component = std::dynamic_pointer_cast<T>(componentResult.value());
+			return component ? std::make_optional(component) : std::nullopt;
+		}
+
+		std::vector<Entity> getEntities(){
+			std::vector<Entity> entities;
+			for (const auto &pair: entityComponentReferenceMap) {
+				entities.push_back(pair.first);
+			}
+			return entities;
+		}
 
 
 	private:
-
-		std::vector<std::type_index> requiredComponents;
-
+		std::unordered_map<Entity, std::tuple<Signature, size_t>> entityComponentReferenceMap;
+		std::shared_ptr<GetComponentsFunc> getComponents;
 };
 
 #endif //JAREP_SYSTEM_HPP
