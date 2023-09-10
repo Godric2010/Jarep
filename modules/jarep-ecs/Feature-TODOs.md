@@ -33,6 +33,6 @@
 -[x] create a new class System manager
 -[x] each System should be registered on creation in the System manager
 -[x] each System can be assigned with a signature to use 
--[ ] the System manager updates the entities available for each System by checking the entities signature
--[ ] ensure functionality through unit tests
+-[x] the System manager updates the entities available for each System by checking the entities signature
+-[x] ensure functionality through unit tests
 
