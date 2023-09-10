@@ -30,9 +30,9 @@
 -[x] create a typedef for a signature
 
 ## SystemManager
--[ ] create a new class System manager
--[ ] each System should be registered on creation in the System manager
--[ ] each System can be assigned with a signature to use 
+-[x] create a new class System manager
+-[x] each System should be registered on creation in the System manager
+-[x] each System can be assigned with a signature to use 
 -[ ] the System manager updates the entities available for each System by checking the entities signature
 -[ ] ensure functionality through unit tests
 

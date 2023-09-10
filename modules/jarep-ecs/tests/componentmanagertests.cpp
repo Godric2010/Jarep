@@ -101,7 +101,7 @@ TEST_CASE("ComponentManager - Try to register the same Component multiple times"
 	REQUIRE(componentACM.value().first == componentASignature);
 }
 
-TEST_CASE("ComponentManager - Add multiple components and than remove one from") {
+TEST_CASE("ComponentManager - Add multiple components and than remove one from","[.]") {
 
 	ComponentManager componentManager;
 	componentManager.registerComponent<ComponentA>();

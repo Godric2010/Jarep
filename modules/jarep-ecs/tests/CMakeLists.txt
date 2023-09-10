@@ -5,6 +5,7 @@ add_executable(JAREP_ECS_Tests
         entitymanagertests.cpp
         componentmanagertests.cpp
         worldtests.cpp
+        systemmanagertests.cpp
 )
 
 find_package(Catch2 REQUIRED)
