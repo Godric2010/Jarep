@@ -40,6 +40,8 @@ class SystemManager {
 			return std::make_optional(std::type_index(typeid(T)));
 		}
 
+		/// Unregister a system from the manager. It will excluded from being updated in all future update calls until it gets registered again.
+		/// \tparam T The type of system to unregister.
 		template<class T, class = typename std::enable_if<std::is_base_of<System, T>::value>::type>
 		void unregisterSystem() {
 
@@ -49,12 +51,16 @@ class SystemManager {
 
 		}
 
+		/// Update all systems registered in this manager.
 		void update() {
 			for (auto &system: systemTypeIndexMap) {
 				system.second->update();
 			}
 		}
 
+		/// Update a system with new associated entities, signatures and their respected indices in the archetypes.
+		/// \param systemType The type of the system to update. Since all systems can only be registered once, this identifier is unique for one system.
+		/// \param entitiesWithAccessIds A map containing the entities with their respected Signature and archetype index available for this system.
 		void updateSystemData(std::type_index systemType,
 		                      std::unordered_map<Entity, std::tuple<Signature, size_t>> entitiesWithAccessIds) {
 
@@ -64,13 +70,16 @@ class SystemManager {
 
 		}
 
+		/// Get a system as a pointer
+		/// \param systemTypeIndex The type index of the requested system.
+		/// \return Optional pointer to the system, depending on its existence in the manager.
 		std::optional<System*> getSystem(std::type_index systemTypeIndex){
 			if(!isSystemRegistred(systemTypeIndex)) return std::nullopt;
 			return std::make_optional<System*>(systemTypeIndexMap[systemTypeIndex].get());
 		}
 
 
-		void setSystemExecutionOrder();
+//		void setSystemExecutionOrder();
 
 	private:
 		std::unordered_map<std::type_index, std::unique_ptr<System>> systemTypeIndexMap;
