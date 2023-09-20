@@ -33,8 +33,6 @@ std::optional<Entity> EntityManager::createEntity() {
 		nextId += 1;
 	}
 
-	entitySignatureMap.insert_or_assign(newEntity, Signature(0));
-	entityArchetypeIndexMap.insert_or_assign(newEntity, 0);
 	return std::make_optional(newEntity);
 }
 
@@ -60,16 +58,18 @@ bool EntityManager::isAlive(Entity entity) const{
 }
 
 void EntityManager::assignNewSignature(const Entity entity, const Signature signature, const size_t archetypeIndex) {
-	entitySignatureMap.at(entity) = signature;
-	entityArchetypeIndexMap.at(entity) = archetypeIndex;
+	entitySignatureMap[entity] = signature;
+	entityArchetypeIndexMap[entity] = archetypeIndex;
 }
 
 std::optional<Signature> EntityManager::getSignature(const Entity entity) const {
 	if(!isAlive(entity)) return std::nullopt;
+	if(!entitySignatureMap.contains(entity)) return std::nullopt;
 	return entitySignatureMap.at(entity);
 }
 
 std::optional<size_t> EntityManager::getArchetypeIndex(const Entity entity)const {
 	if(!isAlive(entity)) return std::nullopt;
+	if(!entityArchetypeIndexMap.contains(entity)) return std::nullopt;
 	return entityArchetypeIndexMap.at(entity);
 }

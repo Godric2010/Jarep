@@ -15,7 +15,6 @@ TEST_CASE("Entity Manager - Add new entity - Entity is 0") {
     auto newEntity = eg->createEntity();
     REQUIRE(newEntity.has_value());
     REQUIRE(newEntity.value() == 0);
-	REQUIRE(eg->getSignature(newEntity.value()) == Signature(0));
 }
 
 TEST_CASE("Entity Manager - Add two entities, remove one and add one again")
@@ -73,5 +72,5 @@ TEST_CASE("Entity Manager - Assign new Signature - Signature is available as lon
 	REQUIRE(entityManager->getSignature(entity01) == std::nullopt);
 
 	auto entity02 = entityManager->createEntity().value();
-	REQUIRE(entityManager->getSignature(entity02) == Signature(0));
+	REQUIRE_FALSE(entityManager->getSignature(entity02).has_value() );
 }

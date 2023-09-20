@@ -15,8 +15,11 @@
 #include "componentmanager.hpp"
 #include "systemmanager.hpp"
 
+/// The world class is the top instance of the the JAREP-ECS. It manages the entity-, component- and system manager instances and
+/// provides the necessary interfaces to interact with components and systems from outside the ecs.
 class World {
 	public:
+
 		World() {
 			entityManager = std::make_unique<EntityManager>();
 			componentManager = std::make_unique<ComponentManager>();
@@ -25,11 +28,30 @@ class World {
 
 		~World() = default;
 
-		Entity createNewEntity() {
-			return entityManager->createEntity().value();
+		/// Create a new entity with no components attached.
+		/// \return An empty entity instance if the creation was successful. Nullopt otherwise
+		std::optional<Entity> createNewEntity() {
+			auto newEntityResult = entityManager->createEntity();
+			if(!newEntityResult.has_value()) return std::nullopt;
+			auto newEntity = newEntityResult.value();
+			const int archetypeIndex = 0;
+			entityManager->assignNewSignature(newEntity, Signature(0), archetypeIndex);
+			return std::make_optional(newEntity);
 		}
 
+		/// Remove an entity. All component instances will be destroyed in the process.
+		/// \param entity The entity to destroy.
 		void removeEntity(Entity entity) {
+
+			auto entitySignature = entityManager->getSignature(entity);
+			auto entityArchetypeIndex = entityManager->getArchetypeIndex(entity);
+
+			if(!entitySignature.has_value() || !entityArchetypeIndex.has_value())
+				return;
+
+			componentManager->removeEntityComponents(entitySignature.value(), entityArchetypeIndex.value());
+			systemManager->removeEntityFromSystems(entity);
+
 			entityManager->removeEntity(entity);
 
 		}
@@ -37,44 +59,50 @@ class World {
 		template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>
 		void addComponent(const Entity entity) {
 
-			if(!componentManager->isComponentRegistred(typeid(T))){
+			if (!componentManager->isComponentRegistred(typeid(T))) {
 				componentManager->registerComponent<T>();
 			}
 
 			auto entity_signature = entityManager->getSignature(entity);
-			if(!entity_signature.has_value()) return;
+			if (!entity_signature.has_value()) return;
 
 			auto entity_index_in_archetype = entityManager->getArchetypeIndex(entity);
-			if(!entity_index_in_archetype.has_value()) return;
+			if (!entity_index_in_archetype.has_value()) return;
 
-			auto newSignature = componentManager->addComponentToSignature(entity_signature.value(), entity_index_in_archetype.value(), std::make_shared<T>());
-			if(!newSignature.has_value()) return;
+			auto newSignature = componentManager->addComponentToSignature(entity_signature.value(),
+			                                                              entity_index_in_archetype.value(),
+			                                                              std::make_shared<T>());
+			if (!newSignature.has_value()) return;
 
 			entityManager->assignNewSignature(entity, newSignature.value().first, newSignature.value().second);
 
+			// TODO: Update systems so that each system holds the new entity that needs this component.
 		}
 
 		template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>
 		void removeComponent(Entity entity) {
-
+			// TODO: Update archetype
+			// TODO: update entity manager
+			// TODO: update systems.
 		}
 
 		template<class T, class = typename std::enable_if<std::is_base_of<System, T>::value>::type>
 		void registerSystem(std::vector<std::type_index> requiredComponents) {
 
 			auto systemSignatureResult = componentManager->getCombinedSignatureOfTypes(std::move(requiredComponents));
-			if(!systemSignatureResult.has_value()) return;
+			if (!systemSignatureResult.has_value()) return;
 
 
 			auto getComponentsFunc = std::make_shared<GetComponentsFunc>(this->componentManager);
 			auto systemIndexResult = systemManager->registerSystem<T>(systemSignatureResult.value(), getComponentsFunc);
 
-			if(!systemIndexResult.has_value()) return;
+			if (!systemIndexResult.has_value()) return;
 
 			auto allEntities = entityManager->getAllActiveEntities();
-			auto entitiesContainingSignature = getAllEntitiesThatHaveThisSignature(allEntities, systemSignatureResult.value());
+			auto entitiesContainingSignature = getAllEntitiesThatHaveThisSignature(allEntities,
+			                                                                       systemSignatureResult.value());
 
-			systemManager->updateSystemData(systemIndexResult.value(), entitiesContainingSignature);
+			systemManager->setSystemData(systemIndexResult.value(), entitiesContainingSignature);
 
 		}
 
@@ -83,7 +111,7 @@ class World {
 
 		}
 
-		void tick(){
+		void tick() {
 			systemManager->update();
 		}
 
@@ -93,17 +121,18 @@ class World {
 		std::shared_ptr<ComponentManager> componentManager;
 		std::unique_ptr<SystemManager> systemManager;
 
-		std::unordered_map<Entity, std::tuple<Signature, size_t>> getAllEntitiesThatHaveThisSignature(const std::vector<Entity>& entitiesToCheck, Signature requestedSignature){
+		std::unordered_map<Entity, std::tuple<Signature, size_t>>
+		getAllEntitiesThatHaveThisSignature(const std::vector<Entity> &entitiesToCheck, Signature requestedSignature) {
 
 			std::unordered_map<Entity, std::tuple<Signature, size_t>> entitiesContainingSignature;
 			for (const auto &entity: entitiesToCheck) {
 				auto entitySignatureResult = entityManager->getSignature(entity);
 				auto entityArchetypeIndexResult = entityManager->getArchetypeIndex(entity);
-				if(!entitySignatureResult.has_value() || !entityArchetypeIndexResult.has_value()) continue;
+				if (!entitySignatureResult.has_value() || !entityArchetypeIndexResult.has_value()) continue;
 				auto entitySignature = entitySignatureResult.value();
 				auto entityArchetypeIndex = entityArchetypeIndexResult.value();
 
-				if((entitySignature & requestedSignature) != requestedSignature) continue;
+				if ((entitySignature & requestedSignature) != requestedSignature) continue;
 
 				auto signatureIndexTuple = std::make_tuple(entitySignature, entityArchetypeIndex);
 				entitiesContainingSignature.insert_or_assign(entity, signatureIndexTuple);

@@ -89,7 +89,7 @@ TEST_CASE("System Manager") {
 	SECTION("Update system data of valid system - New system data is set"){
 		auto newTestData = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
 		newTestData[Entity(12)] = std::make_tuple(Signature(1), 1);
-		systemManager->updateSystemData(typeid(TestSystemB), newTestData);
+		systemManager->setSystemData(typeid(TestSystemB), newTestData);
 		auto result = systemManager->getSystem(typeid(TestSystemB));
 		REQUIRE(result.has_value());
 		auto testSystem = dynamic_cast<TestSystemB *>(result.value());
@@ -100,7 +100,7 @@ TEST_CASE("System Manager") {
 	SECTION("Update system data of not registered system - Nothing happens"){
 		auto newTestData = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
 		newTestData[Entity(12)] = std::make_tuple(Signature(1), 1);
-		systemManager->updateSystemData(typeid(TestSystemA), newTestData);
+		systemManager->setSystemData(typeid(TestSystemA), newTestData);
 		auto result = systemManager->getSystem(typeid(TestSystemA));
 		REQUIRE_FALSE(result.has_value());
 

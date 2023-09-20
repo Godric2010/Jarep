@@ -61,13 +61,28 @@ class SystemManager {
 		/// Update a system with new associated entities, signatures and their respected indices in the archetypes.
 		/// \param systemType The type of the system to update. Since all systems can only be registered once, this identifier is unique for one system.
 		/// \param entitiesWithAccessIds A map containing the entities with their respected Signature and archetype index available for this system.
-		void updateSystemData(std::type_index systemType,
+		void setSystemData(std::type_index systemType,
 		                      std::unordered_map<Entity, std::tuple<Signature, size_t>> entitiesWithAccessIds) {
 
 			if (!systemTypeIndexMap.contains(systemType)) return;
+
+			for(auto& value_pair : entitiesWithAccessIds){
+				assignedEntitySystemMap[value_pair.first].push_back(systemType);
+			}
+
+
 			systemTypeIndexMap.at(systemType)->entityComponentReferenceMap = std::move(entitiesWithAccessIds);
 
 
+		}
+
+		/// Remove an entity from all systems that are associated with this one.
+		/// \param entity The entity to remove from all systems.
+		void removeEntityFromSystems(Entity& entity){
+			for(auto& system_type : assignedEntitySystemMap[entity]){
+				systemTypeIndexMap[system_type]->entityComponentReferenceMap.erase(entity);
+			}
+			assignedEntitySystemMap.erase(entity);
 		}
 
 		/// Get a system as a pointer
@@ -84,6 +99,8 @@ class SystemManager {
 	private:
 		std::unordered_map<std::type_index, std::unique_ptr<System>> systemTypeIndexMap;
 		std::unordered_map<std::type_index, Signature> systemSignatureMap;
+
+		std::unordered_map<Entity, std::vector<std::type_index>> assignedEntitySystemMap;
 //		std::vector<System> lateUpdateSystems;
 //		std::vector<System> renderSystems;
 

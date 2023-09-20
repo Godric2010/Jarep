@@ -63,4 +63,9 @@ TEST_CASE("World - Set test name here") {
 	}
 
 	REQUIRE(1 == 1);
-} 
+}
+
+TEST_CASE("World - Entities"){
+	auto world = std::make_unique<World>();
+
+}
