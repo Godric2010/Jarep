@@ -206,5 +206,67 @@ TEST_CASE("World - Remove Entities") {
 		REQUIRE(WorldFriendAccessor::isEntitySignatureAndIndexCorrect(world, entityC, 30));
 		REQUIRE(WorldFriendAccessor::doesSystemReferesToEntity(world, entityC));
 	}
+}
+
+TEST_CASE("World - Add Component"){
+
+	auto world = std::make_shared<World>();
+
+	SECTION("Add component - Entity, component and system manager get updated"){
+		REQUIRE(false);
+	}
+
+	SECTION("Add same component twice to same entity - Only once component gets assigned to entity and system"){
+		REQUIRE(false);
+	}
+
+	SECTION("Add component to invalid entity - No component gets added to anything"){
+		REQUIRE(false);
+	}
+}
+
+TEST_CASE("World - Remove Component"){
+	auto world = std::make_shared<World>();
+
+	SECTION("Remove component - Entity, component and system manager get updated"){
+		REQUIRE(false);
+	}
+
+	SECTION("Remove component from invalid entity - No component will be removed"){
+		REQUIRE(false);
+	}
+
+	SECTION("Remove invalid component from entity - No component will be removed"){
+		REQUIRE(false);
+	}
+
+}
+
+TEST_CASE("World - Add System"){
+	auto world = std::make_shared<World>();
+
+	SECTION("Add system first - Registration works with no issues"){
+		REQUIRE(false);
+	}
+
+	SECTION("Add system last - Entities and components get registered correctly on the system"){
+		REQUIRE(false);
+	}
+
+	SECTION("Add system twice - System gets only registered once"){
+		REQUIRE(false);
+	}
+}
+
+TEST_CASE("World - Remove System"){
+	auto world = std::make_shared<World>();
+
+	SECTION("Remove system - Entities and Components get removed from associations"){
+		REQUIRE(false);
+	}
+
+	SECTION("Remove system twice - Second call does not break the ecs"){
+		REQUIRE(false);
+	}
 
 }
