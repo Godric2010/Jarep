@@ -26,7 +26,7 @@ std::optional<Entity> EntityManager::createEntity() {
 		deadEntities.pop();
 	} else {
 		newEntity = nextId;
-		if (nextId == SIZE_MAX) {
+		if (nextId == std::numeric_limits<unsigned int>::max()) {
 			printf("Exceeded the maximum entities!");
 			return std::nullopt;
 		}

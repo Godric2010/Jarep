@@ -193,6 +193,8 @@ class ComponentManager {
 			}
 			return std::nullopt;
 		}
+
+		friend class WorldFriendAccessor;
 };
 
 class GetComponentsFunc{

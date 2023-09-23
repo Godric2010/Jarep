@@ -7,14 +7,17 @@
 
 #include <iostream>
 #include <queue>
+#include <limits>
 #include <unordered_map>
 #include <unordered_set>
 #include <optional>
 #include "signature.hpp"
 
+
 typedef size_t Entity;
 
 class EntityManager {
+
 	public:
 		EntityManager();
 
@@ -56,6 +59,9 @@ class EntityManager {
 		std::queue<Entity> deadEntities;
 		std::unordered_map<Entity, Signature> entitySignatureMap;
 		std::unordered_map<Entity, size_t> entityArchetypeIndexMap;
+
+		friend class EntityManagerTestFriend;
+		friend class WorldFriendAccessor;
 };
 
 

@@ -108,6 +108,8 @@ class SystemManager {
 			return systemTypeIndexMap.contains(systemTypeID);
 		}
 
+		friend class WorldFriendAccessor;
+
 };
 
 #endif //JAREP_SYSTEMMANAGER_HPP

@@ -1,7 +1,7 @@
 # TODOs for the ECS
 
 ## World
--[ ] define the add entity function
+-[x] define the add entity function
 -[ ] define the remove entity function
 -[ ] define the addComponent fucntion
 -[ ] define the removeComponent function

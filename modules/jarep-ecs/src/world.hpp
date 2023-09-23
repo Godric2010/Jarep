@@ -33,6 +33,7 @@ class World {
 		std::optional<Entity> createNewEntity() {
 			auto newEntityResult = entityManager->createEntity();
 			if(!newEntityResult.has_value()) return std::nullopt;
+
 			auto newEntity = newEntityResult.value();
 			const int archetypeIndex = 0;
 			entityManager->assignNewSignature(newEntity, Signature(0), archetypeIndex);
@@ -140,7 +141,7 @@ class World {
 			return entitiesContainingSignature;
 		}
 
-
+		friend class WorldFriendAccessor;
 };
 
 
