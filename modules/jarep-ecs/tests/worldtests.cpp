@@ -174,25 +174,6 @@ class WorldFriendAccessor {
 		}
 };
 
-
-TEST_CASE("World - Set test name here") {
-
-	auto world = std::make_unique<World>();
-
-	auto myTestSystemRequiredComponents = std::vector<std::type_index>();
-	myTestSystemRequiredComponents.emplace_back(typeid(MyTestComponent));
-
-	auto myEntity = world->createNewEntity().value();
-	world->addComponent<MyTestComponent>(myEntity);
-	world->registerSystem<MyTestSystem>(myTestSystemRequiredComponents);
-
-	for (int i = 0; i < 10; ++i) {
-		world->tick();
-	}
-
-	REQUIRE(1 == 1);
-}
-
 TEST_CASE("World - Add Entities") {
 	auto world = std::make_shared<World>();
 
