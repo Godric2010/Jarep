@@ -33,7 +33,7 @@ class MyTestSystem : public System {
 
 		~MyTestSystem() override = default;
 
-		std::unordered_map<Entity, std::optional<std::shared_ptr<MyTestComponent>>> getEntityWithComponentReference(){
+		std::unordered_map<Entity, std::optional<std::shared_ptr<MyTestComponent>>> getEntityWithComponentReference() {
 			auto map = std::unordered_map<Entity, std::optional<std::shared_ptr<MyTestComponent>>>();
 			for (const auto &entity: getEntities()) {
 				map[entity] = getComponent<MyTestComponent>(entity);
@@ -87,8 +87,13 @@ class WorldFriendAccessor {
 			return false;
 		}
 
-		static void setTestComponentValue(std::shared_ptr<World>& world, int newValue){
-			world->componentManager->archetypeSignatureMap[Signature(1)]->getComponent<MyTestComponent>(0).value()->myTestValue = newValue;
+		static void registerTestComponent(std::shared_ptr<World>& world){
+			world->componentManager->registerComponent<MyTestComponent>();
+		}
+
+		static void setTestComponentValue(std::shared_ptr<World> &world, int newValue) {
+			world->componentManager->archetypeSignatureMap[Signature(1)]->getComponent<MyTestComponent>(
+					0).value()->myTestValue = newValue;
 		}
 
 		static bool
@@ -241,7 +246,7 @@ TEST_CASE("World - Add Component") {
 
 		REQUIRE(WorldFriendAccessor::hasEntityExpectedValues(world, entityA, true, Signature(1), 0));
 
-		MyTestSystem* system = WorldFriendAccessor::getTestSystem(world);
+		MyTestSystem *system = WorldFriendAccessor::getTestSystem(world);
 		auto entityComponentRefs = system->getEntityWithComponentReference();
 		auto componentOfEntityA = entityComponentRefs[entityA];
 		REQUIRE(componentOfEntityA.has_value());
@@ -292,15 +297,53 @@ TEST_CASE("World - Add System") {
 	auto world = std::make_shared<World>();
 
 	SECTION("Add system first - Registration works with no issues") {
-		REQUIRE(false);
+
+		auto requiredComponents = std::vector<std::type_index>();
+		requiredComponents.emplace_back(typeid(MyTestComponent));
+
+		WorldFriendAccessor::registerTestComponent(world);
+
+		REQUIRE_NOTHROW(world->registerSystem<MyTestSystem>(requiredComponents));
+
+		auto testSystem = WorldFriendAccessor::getTestSystem(world);
+		auto entityComponentRefs = testSystem->getEntityWithComponentReference();
+		REQUIRE(entityComponentRefs.empty());
+	}
+
+	SECTION("Add system first - Registration but the required components are not registered") {
+		auto requiredComponents = std::vector<std::type_index>();
+		requiredComponents.emplace_back(typeid(MyTestComponent));
+		REQUIRE_THROWS(world->registerSystem<MyTestSystem>(requiredComponents));
 	}
 
 	SECTION("Add system last - Entities and components get registered correctly on the system") {
-		REQUIRE(false);
+
+		auto entity = WorldFriendAccessor::createEmptyEntity(world);
+		auto component = std::make_shared<MyTestComponent>();
+		component->myTestValue = 42;
+		WorldFriendAccessor::addTestComponentToEntity(world, entity, component);
+
+		auto requiredComponents = std::vector<std::type_index>();
+		requiredComponents.emplace_back(typeid(MyTestComponent));
+		REQUIRE_NOTHROW(world->registerSystem<MyTestSystem>(requiredComponents));
+
+		auto testSystem = WorldFriendAccessor::getTestSystem(world);
+		auto entityComponentRefs = testSystem->getEntityWithComponentReference();
+		REQUIRE(entityComponentRefs.contains(entity));
+		REQUIRE(entityComponentRefs[entity].value()->myTestValue == 42);
 	}
 
 	SECTION("Add system twice - System gets only registered once") {
-		REQUIRE(false);
+		auto entity = WorldFriendAccessor::createEmptyEntity(world);
+		auto component = std::make_shared<MyTestComponent>();
+		component->myTestValue = 42;
+		WorldFriendAccessor::addTestComponentToEntity(world, entity, component);
+
+		auto requiredComponents = std::vector<std::type_index>();
+		requiredComponents.emplace_back(typeid(MyTestComponent));
+		REQUIRE(world->registerSystem<MyTestSystem>(requiredComponents));
+
+		REQUIRE_FALSE(world->registerSystem<MyTestSystem>(requiredComponents));
 	}
 }
 

@@ -94,23 +94,23 @@ class World {
 		}
 
 		template<class T, class = typename std::enable_if<std::is_base_of<System, T>::value>::type>
-		void registerSystem(std::vector<std::type_index> requiredComponents) {
+		bool registerSystem(std::vector<std::type_index> requiredComponents) {
 
 			auto systemSignatureResult = componentManager->getCombinedSignatureOfTypes(std::move(requiredComponents));
-			if (!systemSignatureResult.has_value()) return;
+			if (!systemSignatureResult.has_value()) throw std::exception();
 
 
 			auto getComponentsFunc = std::make_shared<GetComponentsFunc>(this->componentManager);
 			auto systemIndexResult = systemManager->registerSystem<T>(systemSignatureResult.value(), getComponentsFunc);
 
-			if (!systemIndexResult.has_value()) return;
+			if (!systemIndexResult.has_value()) return false;
 
 			auto allEntities = entityManager->getAllActiveEntities();
 			auto entitiesContainingSignature = getAllEntitiesThatHaveThisSignature(allEntities,
 			                                                                       systemSignatureResult.value());
 
 			systemManager->setSystemData(systemIndexResult.value(), entitiesContainingSignature);
-
+			return true;
 		}
 
 		template<class T, class = typename std::enable_if<std::is_base_of<System, T>::value>::type>
