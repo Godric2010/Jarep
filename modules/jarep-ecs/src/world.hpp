@@ -75,9 +75,15 @@ class World {
 			                                                              std::make_shared<T>());
 			if (!newSignature.has_value()) return;
 
-			entityManager->assignNewSignature(entity, newSignature.value().first, newSignature.value().second);
+			auto newSignatureValue = newSignature.value().first;
+			auto newArchetypeIndexValue = newSignature.value().second;
+			entityManager->assignNewSignature(entity, newSignatureValue, newArchetypeIndexValue);
 
-			// TODO: Update systems so that each system holds the new entity that needs this component.
+			auto newEntityAccessors = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
+			newEntityAccessors[entity] = std::make_tuple(newSignatureValue, newArchetypeIndexValue);
+			for(const auto& systemId : systemManager->getSystemsContainingSignature(entity_signature.value())){
+				systemManager->setSystemData(systemId,  newEntityAccessors);
+			}
 		}
 
 		template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>

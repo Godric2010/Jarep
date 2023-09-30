@@ -33,7 +33,7 @@ class SystemManager {
 
 			// Create the system instance and prepare it.
 			std::unique_ptr<System> system = std::make_unique<T>();
-			system->getComponents = std::move(getComponentsFunc);
+			system->getComponentFunc = std::move(getComponentsFunc);
 
 			systemTypeIndexMap.insert_or_assign(typeid(T), std::move(system));
 			systemSignatureMap.insert_or_assign(typeid(T), systemSignature);
@@ -62,7 +62,7 @@ class SystemManager {
 		/// \param systemType The type of the system to update. Since all systems can only be registered once, this identifier is unique for one system.
 		/// \param entitiesWithAccessIds A map containing the entities with their respected Signature and archetype index available for this system.
 		void setSystemData(std::type_index systemType,
-		                      std::unordered_map<Entity, std::tuple<Signature, size_t>> entitiesWithAccessIds) {
+		                      const std::unordered_map<Entity, std::tuple<Signature, size_t>>& entitiesWithAccessIds) {
 
 			if (!systemTypeIndexMap.contains(systemType)) return;
 
@@ -70,11 +70,12 @@ class SystemManager {
 				assignedEntitySystemMap[value_pair.first].push_back(systemType);
 			}
 
-
-			systemTypeIndexMap.at(systemType)->entityComponentReferenceMap = std::move(entitiesWithAccessIds);
-
-
+			for(const auto& entityAccessIds: entitiesWithAccessIds){
+				systemTypeIndexMap[systemType]->entityComponentReferenceMap[entityAccessIds.first] = entityAccessIds.second;
+			}
 		}
+
+
 
 		/// Remove an entity from all systems that are associated with this one.
 		/// \param entity The entity to remove from all systems.
@@ -93,6 +94,14 @@ class SystemManager {
 			return std::make_optional<System*>(systemTypeIndexMap[systemTypeIndex].get());
 		}
 
+		std::vector<std::type_index> getSystemsContainingSignature(Signature signature){
+			auto systemIds = std::vector<std::type_index>();
+			for(const auto& systemSignature: systemSignatureMap){
+				if((signature & systemSignature.second) != signature)continue;
+				systemIds.push_back(systemSignature.first);
+			}
+			return systemIds;
+		}
 
 //		void setSystemExecutionOrder();
 
