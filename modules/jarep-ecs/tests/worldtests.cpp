@@ -87,7 +87,7 @@ class WorldFriendAccessor {
 			return false;
 		}
 
-		static void registerTestComponent(std::shared_ptr<World>& world){
+		static void registerTestComponent(std::shared_ptr<World> &world) {
 			world->componentManager->registerComponent<MyTestComponent>();
 		}
 
@@ -142,6 +142,15 @@ class WorldFriendAccessor {
 			System &system = *world->systemManager->systemTypeIndexMap[typeid(MyTestSystem)].get();
 			auto *mySystem = dynamic_cast<MyTestSystem *>(&system);
 			return mySystem;
+		}
+
+		static bool isTestSystemNotRegistered(std::shared_ptr<World> &world) {
+			if (world->systemManager->isSystemRegistred(typeid(MyTestSystem))) {
+				return false;
+			}
+
+			return world->systemManager->assignedEntitySystemMap.empty() &&
+			       world->systemManager->systemSignatureMap.empty();
 		}
 
 		static void addTestComponentToEntity(std::shared_ptr<World> &world, Entity &entity,
@@ -349,13 +358,20 @@ TEST_CASE("World - Add System") {
 
 TEST_CASE("World - Remove System") {
 	auto world = std::make_shared<World>();
+	auto entity = WorldFriendAccessor::createEmptyEntity(world);
+	auto component = std::make_shared<MyTestComponent>();
+	component->myTestValue = 42;
+	WorldFriendAccessor::addTestComponentToEntity(world, entity, component);
+	WorldFriendAccessor::createTestSystem(world);
 
 	SECTION("Remove system - Entities and Components get removed from associations") {
-		REQUIRE(false);
+
+		world->deregisterSystem<MyTestSystem>();
+		REQUIRE(WorldFriendAccessor::isTestSystemNotRegistered(world));
 	}
 
 	SECTION("Remove system twice - Second call does not break the ecs") {
-		REQUIRE(false);
+		REQUIRE_NOTHROW(world->deregisterSystem<MyTestSystem>());
 	}
 
 }

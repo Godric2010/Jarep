@@ -46,8 +46,22 @@ class SystemManager {
 		void unregisterSystem() {
 
 			if (!systemTypeIndexMap.contains(typeid(T))) return;
+
+			auto entities = systemTypeIndexMap[typeid(T)]->getEntities();
+
 			systemTypeIndexMap.erase(typeid(T));
 			systemSignatureMap.erase(typeid(T));
+
+			for(const auto entity: entities){
+				for(auto systemType: assignedEntitySystemMap[entity]){
+					if(systemType == typeid(T)){
+						auto vec = assignedEntitySystemMap[entity];
+						vec.erase(std::remove(vec.begin(), vec.end(), systemType), vec.end());
+						assignedEntitySystemMap[entity] = vec;
+					}
+				}
+			}
+
 
 		}
 

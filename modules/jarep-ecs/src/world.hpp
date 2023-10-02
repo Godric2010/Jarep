@@ -115,6 +115,7 @@ class World {
 
 		template<class T, class = typename std::enable_if<std::is_base_of<System, T>::value>::type>
 		void deregisterSystem() {
+			systemManager->unregisterSystem<T>();
 
 		}
 
