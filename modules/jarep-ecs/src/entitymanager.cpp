@@ -39,8 +39,26 @@ std::optional<Entity> EntityManager::createEntity() {
 void EntityManager::removeEntity(Entity entity) {
 
 	if (!isAlive(entity)) return;
+
+	// Collect the signature and removed entity index of the entity that shall be removed for later usage.
+	Signature entitySignature = entitySignatureMap[entity];
+	size_t removedEntityIndex= entityArchetypeIndexMap[entity];
+
+	// Remove the entity from all lists and mark the entity as dead. Now the entity does not exist anymore.
 	deadEntities.push(entity);
 	entitySignatureMap.erase(entity);
+	entityArchetypeIndexMap.erase(entity);
+
+	// Collect all entities that are also assigned to this signature and therefore the same archetype.
+	auto entitiesWithSameSignature = getAllEntitiesOfSignature(entitySignature);
+
+	// Since the entities are stored in a list inside the archetype, removing one causes their indices inside the list to decrease by one.
+	// Therefore, we need to check which entities had a higher index in the archetype than the removed on and decrease their index by one.
+	// If this is not done, the entities will refere to the wrong components or even cause an out-of-bounds exception.
+	for (const Entity sameSignature: entitiesWithSameSignature) {
+		if(entityArchetypeIndexMap[sameSignature] > removedEntityIndex)
+			entityArchetypeIndexMap[sameSignature]--;
+	}
 }
 
 bool EntityManager::isAlive(Entity entity) const{
@@ -72,4 +90,13 @@ std::optional<size_t> EntityManager::getArchetypeIndex(const Entity entity)const
 	if(!isAlive(entity)) return std::nullopt;
 	if(!entityArchetypeIndexMap.contains(entity)) return std::nullopt;
 	return entityArchetypeIndexMap.at(entity);
+}
+
+std::vector<Entity> EntityManager::getAllEntitiesOfSignature(Signature signature)const {
+	auto entitiesWithSignature = std::vector<Entity>();
+	for(const auto& entitySignaturePair: entitySignatureMap){
+		if(entitySignaturePair.second == signature)
+			entitiesWithSignature.push_back(entitySignaturePair.first);
+	}
+	return entitiesWithSignature;
 }

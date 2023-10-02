@@ -60,6 +60,8 @@ class EntityManager {
 		std::unordered_map<Entity, Signature> entitySignatureMap;
 		std::unordered_map<Entity, size_t> entityArchetypeIndexMap;
 
+		std::vector<Entity> getAllEntitiesOfSignature(Signature signature) const;
+
 		friend class EntityManagerTestFriend;
 		friend class WorldFriendAccessor;
 };
