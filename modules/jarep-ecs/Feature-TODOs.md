@@ -3,11 +3,11 @@
 ## World
 -[x] define the add entity function and test it
 -[x] define the remove entity function and test it
--[ ] define the addComponent function and test it
--[ ] define the removeComponent function and test it
+-[x] define the addComponent function and test it
+-[x] define the removeComponent function and test it
 -[x] ensure that only deriving classes of component can be used for component actions 
--[ ] define the registerSystem function and test it
--[ ] define the unregisterSystem function and test it
+-[x] define the registerSystem function and test it
+-[x] define the unregisterSystem function and test it
 -[x] ensure that only deriving classes of System can be used for System actions 
 
 ## EntityManager

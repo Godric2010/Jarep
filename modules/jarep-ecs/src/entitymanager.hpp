@@ -12,9 +12,7 @@
 #include <unordered_set>
 #include <optional>
 #include "signature.hpp"
-
-
-typedef size_t Entity;
+#include "entity.hpp"
 
 class EntityManager {
 
