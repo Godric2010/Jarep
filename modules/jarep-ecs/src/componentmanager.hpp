@@ -93,7 +93,7 @@ class ComponentManager {
 				return std::nullopt;
 			}
 
-			if ((oldSignature & componentBitMap[typeid(T)]) != 0) return std::nullopt;
+			if ((oldSignature & componentBitMap[typeid(T)]) != oldSignature) return std::nullopt;
 
 			auto newSignature = oldSignature & ~componentBitMap[typeid(T)];
 			if (newSignature == Signature(0)) {

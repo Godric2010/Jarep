@@ -83,7 +83,7 @@ class World {
 			auto newEntityAccessors = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
 			newEntityAccessors[entity] = std::make_tuple(newSignature, newArchetypeIndex);
 			for (const auto &systemId: systemManager->getSystemsContainingSignature(oldSignature.value())) {
-				systemManager->setSystemData(systemId, newEntityAccessors);
+				systemManager->addEntitiesToSystem(systemId, newEntityAccessors);
 			}
 		}
 
@@ -104,11 +104,7 @@ class World {
 			size_t newArchetypeIndex = newEntityData.value().second;
 			entityManager->assignNewSignature(entity, newSignature, newArchetypeIndex);
 
-			auto newEntityAccessors = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
-			newEntityAccessors[entity] = std::make_tuple(newSignature, newArchetypeIndex);
-			for (const auto &systemId: systemManager->getSystemsContainingSignature(oldSignature.value())) {
-				systemManager->setSystemData(systemId, newEntityAccessors);
-			}
+			systemManager->removeEntityFromSystem(entity, oldSignature.value());
 		}
 
 		template<class T, class = typename std::enable_if<std::is_base_of<System, T>::value>::type>
@@ -127,7 +123,7 @@ class World {
 			auto entitiesContainingSignature = getAllEntitiesThatHaveThisSignature(allEntities,
 			                                                                       systemSignatureResult.value());
 
-			systemManager->setSystemData(systemIndexResult.value(), entitiesContainingSignature);
+			systemManager->addEntitiesToSystem(systemIndexResult.value(), entitiesContainingSignature);
 			return true;
 		}
 

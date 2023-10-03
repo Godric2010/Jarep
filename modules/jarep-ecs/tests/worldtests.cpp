@@ -79,8 +79,11 @@ class WorldFriendAccessor {
 
 			if (!entitySignature.has_value() || !entityArchetypeIndex.has_value()) return false;
 
-			return aliveStatus == isAlive && entitySignature.value() == expectedSignature &&
-			       entityArchetypeIndex.value() == expectedArchetypeIndex;
+			auto signature = entitySignature.value();
+			auto archetypeIndex= entityArchetypeIndex.value();
+
+			return aliveStatus == isAlive && signature == expectedSignature &&
+			       archetypeIndex == expectedArchetypeIndex;
 		}
 
 		static bool doesSystemReferesToEntity(std::shared_ptr<World> &world, Entity &entity) {
@@ -152,7 +155,7 @@ class WorldFriendAccessor {
 		static void assignEntityToSystem(std::shared_ptr<World>& world, Entity entity){
 			auto map = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
 			map[entity] = std::make_tuple(Signature(1), 0);
-			world->systemManager->setSystemData(typeid(MyTestSystem), map);
+			world->systemManager->addEntitiesToSystem(typeid(MyTestSystem), map);
 		}
 
 		static MyTestSystem *getTestSystem(std::shared_ptr<World> &world) {
@@ -201,7 +204,7 @@ class WorldFriendAccessor {
 			auto map = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
 			map[entity] = std::make_tuple(world->entityManager->entitySignatureMap[entity],
 			                              world->entityManager->entityArchetypeIndexMap[entity]);
-			world->systemManager->setSystemData(typeid(MyTestSystem), map);
+			world->systemManager->addEntitiesToSystem(typeid(MyTestSystem), map);
 		}
 };
 

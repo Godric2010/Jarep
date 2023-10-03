@@ -75,8 +75,8 @@ class SystemManager {
 		/// Update a system with new associated entities, signatures and their respected indices in the archetypes.
 		/// \param systemType The type of the system to update. Since all systems can only be registered once, this identifier is unique for one system.
 		/// \param entitiesWithAccessIds A map containing the entities with their respected Signature and archetype index available for this system.
-		void setSystemData(std::type_index systemType,
-		                      const std::unordered_map<Entity, std::tuple<Signature, size_t>>& entitiesWithAccessIds) {
+		void addEntitiesToSystem(std::type_index systemType,
+		                         const std::unordered_map<Entity, std::tuple<Signature, size_t>>& entitiesWithAccessIds) {
 
 			if (!systemTypeIndexMap.contains(systemType)) return;
 
@@ -87,6 +87,16 @@ class SystemManager {
 			for(const auto& entityAccessIds: entitiesWithAccessIds){
 				systemTypeIndexMap[systemType]->entityComponentReferenceMap[entityAccessIds.first] = entityAccessIds.second;
 			}
+		}
+
+		void removeEntityFromSystem(Entity entityToRemove, Signature signatureOfSystem){
+
+			auto systemsAssociatedWithEntity = getSystemsContainingSignature(signatureOfSystem);
+
+			for(auto& systemId: systemsAssociatedWithEntity) {
+				systemTypeIndexMap[systemId]->entityComponentReferenceMap.erase(entityToRemove);
+			}
+			assignedEntitySystemMap.erase(entityToRemove);
 		}
 
 
