@@ -26,6 +26,17 @@ class MyTestComponent : public Component {
 		int myTestValue;
 };
 
+class MyInvalidTestComponent : public Component{
+
+	public :
+		MyInvalidTestComponent() : Component() {
+			myTestValue = 900;
+		}
+		~MyInvalidTestComponent() = default;
+
+		int myTestValue;
+};
+
 class MyTestSystem : public System {
 
 	public:
@@ -136,6 +147,12 @@ class WorldFriendAccessor {
 			world->systemManager->systemTypeIndexMap[typeid(MyTestSystem)] = std::move(system);
 			world->systemManager->systemSignatureMap[typeid(MyTestSystem)] = Signature(1);
 
+		}
+
+		static void assignEntityToSystem(std::shared_ptr<World>& world, Entity entity){
+			auto map = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
+			map[entity] = std::make_tuple(Signature(1), 0);
+			world->systemManager->setSystemData(typeid(MyTestSystem), map);
 		}
 
 		static MyTestSystem *getTestSystem(std::shared_ptr<World> &world) {
@@ -287,17 +304,44 @@ TEST_CASE("World - Add Component") {
 
 TEST_CASE("World - Remove Component") {
 	auto world = std::make_shared<World>();
+	auto entityA = WorldFriendAccessor::createEmptyEntity(world);
+	auto testComponentToRemove = std::make_shared<MyTestComponent>();
+	WorldFriendAccessor::addTestComponentToEntity(world, entityA, testComponentToRemove);
+	WorldFriendAccessor::createTestSystem(world);
+	WorldFriendAccessor::assignEntityToSystem(world, entityA);
 
 	SECTION("Remove component - Entity, component and system manager get updated") {
-		REQUIRE(false);
+
+		REQUIRE_NOTHROW(world->removeComponent<MyTestComponent>(entityA));
+
+		REQUIRE(WorldFriendAccessor::hasEntityExpectedValues(world,entityA,true, Signature(0), 0));
+		auto *system = const_cast<MyTestSystem *>(WorldFriendAccessor::getTestSystem(world));
+		auto entityComponentRefs = system->getEntityWithComponentReference();
+		auto componentOfEntityA = entityComponentRefs[entityA];
+		REQUIRE_FALSE(componentOfEntityA.has_value());
 	}
 
 	SECTION("Remove component from invalid entity - No component will be removed") {
-		REQUIRE(false);
+		auto invalidEntity = Entity(12);
+		REQUIRE_THROWS(world->removeComponent<MyTestComponent>(invalidEntity));
+
+		REQUIRE(WorldFriendAccessor::hasEntityExpectedValues(world,entityA,true, Signature(1), 0));
+		auto *system = const_cast<MyTestSystem *>(WorldFriendAccessor::getTestSystem(world));
+		auto entityComponentRefs = system->getEntityWithComponentReference();
+		auto componentOfEntityA = entityComponentRefs[entityA];
+		REQUIRE(componentOfEntityA.has_value());
 	}
 
 	SECTION("Remove invalid component from entity - No component will be removed") {
-		REQUIRE(false);
+		auto invalidComponent = std::make_shared<MyInvalidTestComponent>();
+
+		REQUIRE_NOTHROW(world->removeComponent<MyInvalidTestComponent>(entityA));
+
+		REQUIRE(WorldFriendAccessor::hasEntityExpectedValues(world,entityA,true, Signature(1), 0));
+		auto *system = const_cast<MyTestSystem *>(WorldFriendAccessor::getTestSystem(world));
+		auto entityComponentRefs = system->getEntityWithComponentReference();
+		auto componentOfEntityA = entityComponentRefs[entityA];
+		REQUIRE(componentOfEntityA.has_value());
 	}
 
 }

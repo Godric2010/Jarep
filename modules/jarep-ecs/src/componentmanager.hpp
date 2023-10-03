@@ -89,9 +89,17 @@ class ComponentManager {
 		std::optional<std::pair<Signature, size_t>>
 		removeComponentFromSignature(Signature oldSignature, size_t entityIndex) {
 
-			if (!archetypeSignatureMap.contains(oldSignature)) return std::nullopt;
+			if (!componentBitMap.contains(typeid(T)) || !archetypeSignatureMap.contains(oldSignature)) {
+				return std::nullopt;
+			}
+
+			if ((oldSignature & componentBitMap[typeid(T)]) != 0) return std::nullopt;
 
 			auto newSignature = oldSignature & ~componentBitMap[typeid(T)];
+			if (newSignature == Signature(0)) {
+				removeEntityComponents(oldSignature, entityIndex);
+				return std::make_optional(std::make_pair(newSignature, 0));
+			}
 
 			std::optional<size_t> newEntityIndex;
 			if (archetypeSignatureMap.contains(newSignature)) {
@@ -117,8 +125,9 @@ class ComponentManager {
 		template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>
 		std::optional<std::shared_ptr<T>> getComponent(Signature signature, size_t entityIndex) {
 
-			if(!archetypeSignatureMap.contains(signature))
+			if (!archetypeSignatureMap.contains(signature)) {
 				return std::nullopt;
+			}
 
 			return archetypeSignatureMap.at(signature)->getComponent<T>(entityIndex);
 		}
@@ -130,10 +139,12 @@ class ComponentManager {
 		/// \param requiredComponent The type index of the requested component.
 		/// \return Optional shared pointer to the component instance.
 		template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>
-		std::optional<std::shared_ptr<T>> getComponent(Signature archetypeSignature, size_t entityIndex, std::type_index requiredComponent) {
+		std::optional<std::shared_ptr<T>>
+		getComponent(Signature archetypeSignature, size_t entityIndex, std::type_index requiredComponent) {
 
-			if(!archetypeSignatureMap.contains(archetypeSignature))
+			if (!archetypeSignatureMap.contains(archetypeSignature)) {
 				return std::nullopt;
+			}
 
 			return archetypeSignatureMap.at(archetypeSignature)->getComponent<T>(entityIndex, requiredComponent);
 		}
@@ -173,7 +184,7 @@ class ComponentManager {
 			for (const auto &typeIndex: typeIndices) {
 
 				auto signatureResult = getSignatureOfType(typeIndex);
-				if(!signatureResult.has_value()) return std::nullopt;
+				if (!signatureResult.has_value()) return std::nullopt;
 
 				resultSignature |= signatureResult.value();
 			}
@@ -197,16 +208,16 @@ class ComponentManager {
 		friend class WorldFriendAccessor;
 };
 
-class GetComponentsFunc{
+class GetComponentsFunc {
 
 	private:
 		std::shared_ptr<ComponentManager> componentManager;
 
 	public:
-		explicit GetComponentsFunc(std::shared_ptr<ComponentManager> cm) : componentManager(std::move(cm)){}
+		explicit GetComponentsFunc(std::shared_ptr<ComponentManager> cm) : componentManager(std::move(cm)) {}
 
 		template<typename T>
-		std::optional<std::shared_ptr<T>> operator()(Signature  signature, size_t entityIndex) const{
+		std::optional<std::shared_ptr<T>> operator()(Signature signature, size_t entityIndex) const {
 			return componentManager->getComponent<T>(signature, entityIndex, typeid(T));
 		}
 };

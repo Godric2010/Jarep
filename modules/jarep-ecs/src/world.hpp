@@ -32,7 +32,7 @@ class World {
 		/// \return An empty entity instance if the creation was successful. Nullopt otherwise
 		std::optional<Entity> createNewEntity() {
 			auto newEntityResult = entityManager->createEntity();
-			if(!newEntityResult.has_value()) return std::nullopt;
+			if (!newEntityResult.has_value()) return std::nullopt;
 
 			auto newEntity = newEntityResult.value();
 			const int archetypeIndex = 0;
@@ -47,8 +47,9 @@ class World {
 			auto entitySignature = entityManager->getSignature(entity);
 			auto entityArchetypeIndex = entityManager->getArchetypeIndex(entity);
 
-			if(!entitySignature.has_value() || !entityArchetypeIndex.has_value())
+			if (!entitySignature.has_value() || !entityArchetypeIndex.has_value()) {
 				return;
+			}
 
 			componentManager->removeEntityComponents(entitySignature.value(), entityArchetypeIndex.value());
 			systemManager->removeEntityFromSystems(entity);
@@ -64,33 +65,50 @@ class World {
 				componentManager->registerComponent<T>();
 			}
 
-			auto entity_signature = entityManager->getSignature(entity);
-			if (!entity_signature.has_value()) return;
+			auto oldSignature = entityManager->getSignature(entity);
+			if (!oldSignature.has_value()) return;
 
-			auto entity_index_in_archetype = entityManager->getArchetypeIndex(entity);
-			if (!entity_index_in_archetype.has_value()) return;
+			auto oldArchetypeIndex = entityManager->getArchetypeIndex(entity);
+			if (!oldArchetypeIndex.has_value()) return;
 
-			auto newSignature = componentManager->addComponentToSignature(entity_signature.value(),
-			                                                              entity_index_in_archetype.value(),
-			                                                              std::make_shared<T>());
-			if (!newSignature.has_value()) return;
+			auto newEntityData = componentManager->addComponentToSignature(oldSignature.value(),
+			                                                               oldArchetypeIndex.value(),
+			                                                               std::make_shared<T>());
+			if (!newEntityData.has_value()) return;
 
-			auto newSignatureValue = newSignature.value().first;
-			auto newArchetypeIndexValue = newSignature.value().second;
-			entityManager->assignNewSignature(entity, newSignatureValue, newArchetypeIndexValue);
+			auto newSignature = newEntityData.value().first;
+			auto newArchetypeIndex = newEntityData.value().second;
+			entityManager->assignNewSignature(entity, newSignature, newArchetypeIndex);
 
 			auto newEntityAccessors = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
-			newEntityAccessors[entity] = std::make_tuple(newSignatureValue, newArchetypeIndexValue);
-			for(const auto& systemId : systemManager->getSystemsContainingSignature(entity_signature.value())){
-				systemManager->setSystemData(systemId,  newEntityAccessors);
+			newEntityAccessors[entity] = std::make_tuple(newSignature, newArchetypeIndex);
+			for (const auto &systemId: systemManager->getSystemsContainingSignature(oldSignature.value())) {
+				systemManager->setSystemData(systemId, newEntityAccessors);
 			}
 		}
 
 		template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>
 		void removeComponent(Entity entity) {
-			// TODO: Update archetype
-			// TODO: update entity manager
-			// TODO: update systems.
+
+			auto oldSignature = entityManager->getSignature(entity);
+			auto oldArchetypeIndex = entityManager->getArchetypeIndex(entity);
+
+			if (!oldSignature.has_value() || !oldArchetypeIndex.has_value()) {
+				return;
+			}
+
+			auto newEntityData = componentManager->removeComponentFromSignature<T>(oldSignature.value(), oldArchetypeIndex.value());
+			if (!newEntityData.has_value()) return;
+
+			Signature newSignature = newEntityData.value().first;
+			size_t newArchetypeIndex = newEntityData.value().second;
+			entityManager->assignNewSignature(entity, newSignature, newArchetypeIndex);
+
+			auto newEntityAccessors = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
+			newEntityAccessors[entity] = std::make_tuple(newSignature, newArchetypeIndex);
+			for (const auto &systemId: systemManager->getSystemsContainingSignature(oldSignature.value())) {
+				systemManager->setSystemData(systemId, newEntityAccessors);
+			}
 		}
 
 		template<class T, class = typename std::enable_if<std::is_base_of<System, T>::value>::type>
