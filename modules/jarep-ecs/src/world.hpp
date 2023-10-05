@@ -5,7 +5,6 @@
 #ifndef JAREP_WORLD_HPP
 #define JAREP_WORLD_HPP
 
-
 #include <iostream>
 #include <utility>
 #include <vector>
@@ -58,28 +57,41 @@ class World {
 
 		}
 
+		/// Add a component to an entity. The component will be initialized with default values and be linked to the entity passed in the parameter.
+		/// Furthermore all system that require this component type will be linked to the entity argument.
+		/// \tparam T The type of component to add. Must derive from Component.
+		/// \param entity The entity this component shall be referenced to.
 		template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>
 		void addComponent(const Entity entity) {
 
+			// Register the component if this is the first time it's been added to an entity.
 			if (!componentManager->isComponentRegistred(typeid(T))) {
 				componentManager->registerComponent<T>();
 			}
 
+			// Check if the provided entity is valid.
 			auto oldSignature = entityManager->getSignature(entity);
 			if (!oldSignature.has_value()) return;
 
 			auto oldArchetypeIndex = entityManager->getArchetypeIndex(entity);
 			if (!oldArchetypeIndex.has_value()) return;
 
+			// Assign the component to the entity and retrieve the new signature and archetype index of the entity.
+			// The Archetypes signature and the index at which the component instance is stored within the archetype are the
+			// identifiers, each component instance is linked to a single entity by.
 			auto newEntityData = componentManager->addComponentToSignature(oldSignature.value(),
 			                                                               oldArchetypeIndex.value(),
 			                                                               std::make_shared<T>());
+			// Check if the component was assigned correctly.
 			if (!newEntityData.has_value()) return;
 
+			// Assign the new signature and archetype index to the entity. Now the component instance is linked to the
+			// argument entity.
 			auto newSignature = newEntityData.value().first;
 			auto newArchetypeIndex = newEntityData.value().second;
 			entityManager->assignNewSignature(entity, newSignature, newArchetypeIndex);
 
+			// Collect all system which require the component type in their signature. The entity gets linked to these systems.
 			auto newEntityAccessors = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
 			newEntityAccessors[entity] = std::make_tuple(newSignature, newArchetypeIndex);
 			for (const auto &systemId: systemManager->getSystemsContainingSignature(oldSignature.value())) {
@@ -87,6 +99,10 @@ class World {
 			}
 		}
 
+		/// Remove an component from an entity. The instance of the component will be destroyed. Also the entity will be dereferenced from
+		/// all systems that require the given component type.
+		/// \tparam T The type of component to remove. Must derive of Component.
+		/// \param entity The entity the given component type belongs to.
 		template<class T, class = typename std::enable_if<std::is_base_of<Component, T>::value>::type>
 		void removeComponent(Entity entity) {
 
@@ -107,6 +123,11 @@ class World {
 			systemManager->removeEntityFromSystem(entity, oldSignature.value());
 		}
 
+		/// Register a system for updates during the update cycle. A new instance of the system will be created and existing components and entities that are
+		/// required will be linked in the process.
+		/// \tparam T The type of system to register. Must derive of System.
+		/// \param requiredComponents A collection of all component type indices that are required by the system.
+		/// \return True if the registration was successful, false if an error occurred.
 		template<class T, class = typename std::enable_if<std::is_base_of<System, T>::value>::type>
 		bool registerSystem(std::vector<std::type_index> requiredComponents) {
 
@@ -127,12 +148,15 @@ class World {
 			return true;
 		}
 
+		/// Deregister a system from the update loop. The system will no longer be updated on tick.
+		/// \tparam T The type of system to deregister. Must derive from System.
 		template<class T, class = typename std::enable_if<std::is_base_of<System, T>::value>::type>
 		void deregisterSystem() {
 			systemManager->unregisterSystem<T>();
 
 		}
 
+		/// Update all systems
 		void tick() {
 			systemManager->update();
 		}
