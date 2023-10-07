@@ -33,3 +33,5 @@
 
 /.idea
 /build
+/conanfile.py
+/conan_provider.cmake
