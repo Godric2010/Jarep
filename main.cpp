@@ -1,11 +1,12 @@
 #include <iostream>
 #include "world.hpp"
+#include "core.hpp"
 
 int main() {
 
-    std::cout << "Hello, World!" << std::endl;
-
-    auto world = new World();
-    world->createNewEntity();
+	auto core = Core::CoreManager();
+	core.Initialize();
+	core.Run();
+	core.Shutdown();
     return 0;
 }
