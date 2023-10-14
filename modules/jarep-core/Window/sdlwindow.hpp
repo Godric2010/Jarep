@@ -24,6 +24,7 @@ namespace Core::Window {
 
 		private:
 			SDL_Window* window;
+			Uint32 windowFlags;
 	};
 }
 
