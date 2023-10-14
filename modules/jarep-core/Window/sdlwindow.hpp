@@ -6,6 +6,7 @@
 #define JAREP_SDLWINDOW_HPP
 
 #include "IWindow.hpp"
+#include <SDL2/SDL.h>
 
 namespace Core::Window {
 
@@ -15,11 +16,14 @@ namespace Core::Window {
 
 			~SdlWindow() override = default;
 
-			void Init() override;
+			void Init(int width, int height) override;
 
 			void Update() override;
 
 			void Shutdown() override;
+
+		private:
+			SDL_Window* window;
 	};
 }
 

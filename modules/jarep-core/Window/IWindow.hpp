@@ -13,7 +13,7 @@ namespace Core::Window {
 		public:
 			virtual ~IWindow() = default;
 
-			virtual void Init() = 0;
+			virtual void Init(int width, int height) = 0;
 
 			virtual void Update() = 0;
 
