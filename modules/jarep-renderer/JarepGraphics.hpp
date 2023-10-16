@@ -21,7 +21,7 @@ namespace Graphics {
 
 			~JarepGraphics() = default;
 
-			void Initialize() {
+			void Initialize(void* nativeWindowHandle) {
 				switch (currentAPI) {
 					case API::Vulkan:
 						std::cout << "Using vulkan renderer!" << std::endl;

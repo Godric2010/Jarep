@@ -40,7 +40,7 @@ namespace Core::Window {
 
 		displayModes = getAvailableDisplayOpts();
 
-		renderer->Initialize();
+
 		window = SDL_CreateWindow(
 				"J.A.R.E.P",
 				SDL_WINDOWPOS_CENTERED,
@@ -48,7 +48,7 @@ namespace Core::Window {
 				windowWidth, height,
 				windowFlags
 		);
-
+		renderer->Initialize(getNativeWindowHandle());
 		if (window == nullptr) {
 			return;
 		}
@@ -72,9 +72,9 @@ namespace Core::Window {
 			while (SDL_PollEvent(&event)) {
 				if (event.type == SDL_QUIT) {
 					running = false;
-				}else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-						width = event.window.data1;
-						height = event.window.data2;
+				} else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+					width = event.window.data1;
+					height = event.window.data2;
 				} else if (event.type == SDL_KEYDOWN) {
 					switch (event.key.keysym.sym) {
 						case SDLK_f:
@@ -167,5 +167,31 @@ namespace Core::Window {
 
 		}
 		return std::nullopt;
+	}
+
+	void *SdlWindow::getNativeWindowHandle() {
+		SDL_SysWMinfo wmInfo;
+		SDL_VERSION(&wmInfo.version);
+		if (SDL_GetWindowWMInfo(window, &wmInfo) != SDL_TRUE) {
+			return nullptr;
+		}
+		#if defined(_WIN32)
+		return (void*)wmInfo.info.win.window;
+
+		#elif defined(__APPLE__) && defined(__MACH__)
+		return wmInfo.info.cocoa.window;
+
+		#elif defined(__linux__) || defined(__unix__)
+		// X11
+		#if defined(SDL_VIDEO_DRIVER_X11)
+		return (void *) wmInfo.info.x11.window;
+		// Wayland
+		#elif defined(SDL_VIDEO_DRIVER_WAYLAND)
+		return (void*)wmInfo.info.wl.surface;
+		#endif
+
+		#else
+		return nullptr; // Unsupported platform
+		#endif
 	}
 }
