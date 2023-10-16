@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include "JarepGraphics.hpp"
 
 namespace Core::Window {
 

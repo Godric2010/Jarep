@@ -1,5 +1,4 @@
 #include <iostream>
-#include "world.hpp"
 #include "core.hpp"
 
 int main() {

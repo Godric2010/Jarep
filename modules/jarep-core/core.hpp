@@ -10,6 +10,8 @@
 
 #include "Window/IWindow.hpp"
 #include "Window/sdlwindow.hpp"
+#include "JarepGraphics.hpp"
+
 
 namespace Core {
 	class CoreManager {

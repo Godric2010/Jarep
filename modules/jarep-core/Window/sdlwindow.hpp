@@ -41,6 +41,8 @@ namespace Core::Window {
 			int height;
 			static std::vector<DisplayOpts> getAvailableDisplayOpts();
 			std::optional<SDL_DisplayMode> getDisplayModeFromOpts();
+
+			std::unique_ptr<Graphics::JarepGraphics> renderer;
 	};
 }
 

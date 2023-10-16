@@ -30,14 +30,17 @@ namespace Core::Window {
 
 		#if defined(__APPLE__)
 		windowFlags = SDL_WINDOW_METAL;
+		renderer = std::make_unique<Graphics::JarepGraphics>(Graphics::JarepGraphics::API::Metal);
 		#else
 		windowFlags = SDL_WINDOW_VULKAN;
+		renderer = std::make_unique<Graphics::JarepGraphics>(Graphics::JarepGraphics::API::Vulkan);
 		#endif
 
 		windowFlags |= SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
 
 		displayModes = getAvailableDisplayOpts();
 
+		renderer->Initialize();
 		window = SDL_CreateWindow(
 				"J.A.R.E.P",
 				SDL_WINDOWPOS_CENTERED,
@@ -66,7 +69,6 @@ namespace Core::Window {
 				isDirty = false;
 			}
 
-
 			while (SDL_PollEvent(&event)) {
 				if (event.type == SDL_QUIT) {
 					running = false;
@@ -88,10 +90,13 @@ namespace Core::Window {
 					}
 				}
 			}
+
+			renderer->Render();
 		}
 	}
 
 	void SdlWindow::Shutdown() {
+		renderer->Shutdown();
 		SDL_Quit();
 	}
 
