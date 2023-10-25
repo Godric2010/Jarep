@@ -8,6 +8,7 @@
 #include <iostream>
 #include <memory>
 #include "IRenderer.hpp"
+#include "metal-api/metalapi.hpp"
 
 namespace Graphics {
 	class JarepGraphics {
@@ -27,6 +28,8 @@ namespace Graphics {
 						std::cout << "Using vulkan renderer!" << std::endl;
 						break;
 					case API::Metal:
+						auto metalAPI = Metal::MetalAPI();
+						metalAPI.CreateDevice();
 						std::cout << "Using metal renderer!" << std::endl;
 						break;
 				}
