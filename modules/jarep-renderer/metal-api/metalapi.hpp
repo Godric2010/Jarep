@@ -5,23 +5,36 @@
 #ifndef JAREP_METALAPI_HPP
 #define JAREP_METALAPI_HPP
 
+#include "IRenderer.hpp"
 namespace Graphics::Metal {
 
 	/// Pimpl of the metalAPI class to avoid objective-C++ code in a C++ class
+	struct MDevice;
+	struct MWindow;
 	struct MetalImpl;
 
-	class MetalAPI {
+	class MetalAPI : public IRenderer {
 		public:
 			MetalAPI();
 
-			~MetalAPI();
+			~MetalAPI() override;
 
-			void CreateDevice();
+			void CreateDevice() override;
+			void CreateSurface(void* nativeWindowHandle) override;
 			void CreateCommandQueue();
-			void CreateLibrary();
+			void LoadShaders();
+			void CreatePipeline();
+			void CreateVertexBuffer();
+			void CreateRenderPassDescriptor();
+			void CreateCommandBuffer();
+			void EncodeRenderingCommands();
+			void SubmitCommandBufferToQueue();
+			void PresentImage();
 
 		private:
-			MetalImpl* impl;
+
+			MDevice* device;
+			MWindow* window;
 	};
 
 }

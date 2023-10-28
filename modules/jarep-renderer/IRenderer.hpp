@@ -5,17 +5,22 @@
 #ifndef JAREP_IRENDERER_HPP
 #define JAREP_IRENDERER_HPP
 
+#include <iostream>
 namespace Graphics {
 
 	class IRenderer {
 		public:
 			virtual ~IRenderer() = default;
 
-			virtual int Initialize() = 0;
+			virtual void CreateDevice() = 0;
+			virtual void CreateSurface(void* nativeWindowHandle) = 0;
+			virtual void CreateVertexBuffer() = 0;
+			virtual void CreateShaders() = 0;
+			virtual void CreateCommandQueue() = 0;
+			virtual void CreateGraphicsPipeline() = 0;
+			virtual void RecordCommandBuffer() = 0;
+			virtual void Draw() = 0;
 
-			virtual void Render() = 0;
-
-			virtual void Shutdown() = 0;
 	};
 
 }

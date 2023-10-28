@@ -14,7 +14,7 @@ namespace Core {
 		auto windowOpts = window->GetAvailableDisplayOpts();
 		for(const auto& opt: windowOpts)
 		{
-			printf("%s", opt.as_string());
+//			printf("%s", opt.as_string());
 		}
 	}
 

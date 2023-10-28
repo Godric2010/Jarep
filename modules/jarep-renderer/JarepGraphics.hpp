@@ -22,17 +22,17 @@ namespace Graphics {
 
 			~JarepGraphics() = default;
 
-			void Initialize(void* nativeWindowHandle) {
-				switch (currentAPI) {
-					case API::Vulkan:
-						std::cout << "Using vulkan renderer!" << std::endl;
-						break;
-					case API::Metal:
-						auto metalAPI = Metal::MetalAPI();
-						metalAPI.CreateDevice();
-						std::cout << "Using metal renderer!" << std::endl;
-						break;
-				}
+			void Initialize(void *nativeWindowHandle) {
+
+				#if defined(__APPLE__) && defined(__MACH__)
+				renderAPI = std::make_shared<Metal::MetalAPI>(Metal::MetalAPI());
+				std::cout << "Using metal renderer!" << std::endl;
+				#else
+				std::cout << "Using vulkan renderer!" << std::endl;
+				#endif
+
+				renderAPI->CreateDevice();
+				renderAPI->CreateSurface(nativeWindowHandle);
 			}
 
 			void Render() {
