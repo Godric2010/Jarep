@@ -33,9 +33,14 @@ namespace Graphics {
 
 				renderAPI->CreateDevice();
 				renderAPI->CreateSurface(nativeWindowHandle);
+				renderAPI->CreateVertexBuffer();
+				renderAPI->CreateShaders();
+				renderAPI->CreateCommandQueue();
+				renderAPI->CreateGraphicsPipeline();
 			}
 
 			void Render() {
+				renderAPI->Draw();
 			}
 
 			void Shutdown() {
