@@ -22,7 +22,7 @@ namespace Graphics {
 
 			~JarepGraphics() = default;
 
-			void Initialize(void *nativeWindowHandle) {
+			void Initialize(void *nativeWindowHandle, int width, int height) {
 
 				#if defined(__APPLE__) && defined(__MACH__)
 				renderAPI = std::make_shared<Metal::MetalAPI>(Metal::MetalAPI());
@@ -32,7 +32,7 @@ namespace Graphics {
 				#endif
 
 				renderAPI->CreateDevice();
-				renderAPI->CreateSurface(nativeWindowHandle);
+				renderAPI->CreateSurface(nativeWindowHandle, width, height);
 				renderAPI->CreateVertexBuffer();
 				renderAPI->CreateShaders();
 				renderAPI->CreateCommandQueue();

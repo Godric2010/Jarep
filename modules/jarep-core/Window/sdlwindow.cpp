@@ -48,7 +48,7 @@ namespace Core::Window {
 				windowWidth, height,
 				windowFlags
 		);
-		renderer->Initialize(getNativeWindowHandle());
+		renderer->Initialize(getNativeWindowHandle(), windowWidth, windowHeight);
 		if (window == nullptr) {
 			return;
 		}

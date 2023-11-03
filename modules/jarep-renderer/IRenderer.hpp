@@ -13,7 +13,7 @@ namespace Graphics {
 			virtual ~IRenderer() = default;
 
 			virtual void CreateDevice() = 0;
-			virtual void CreateSurface(void* nativeWindowHandle) = 0;
+			virtual void CreateSurface(void* nativeWindowHandle, int surfaceWidth, int surfaceHeight) = 0;
 			virtual void CreateVertexBuffer() = 0;
 			virtual void CreateShaders() = 0;
 			virtual void CreateCommandQueue() = 0;

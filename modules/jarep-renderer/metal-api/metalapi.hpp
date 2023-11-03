@@ -5,18 +5,23 @@
 #ifndef JAREP_METALAPI_HPP
 #define JAREP_METALAPI_HPP
 
+
+//#define NS_PRIVATE_IMPLEMENTATION
+//#define MTL_PRIVATE_IMPLEMENTATION
+//#define MTK_PRIVATE_IMPLEMENTATION
+//#define CA_PRIVATE_IMPLEMENTATION
+
 #include "IRenderer.hpp"
+#include <Metal/Metal.hpp>
+#include <Foundation/Foundation.hpp>
+#include <QuartzCore/QuartzCore.hpp>
+#include <QuartzCore/CAMetalLayer.hpp>
+#include <AppKit/AppKit.hpp>
+#include <MetalKit/MetalKit.hpp>
+
+//#include <simd/simd.h>
 
 namespace Graphics::Metal {
-
-	/// Pimpl of the metalAPI class to avoid objective-C++ code in a C++ class
-	struct MDevice;
-	struct MWindow;
-	struct MLibrary;
-	struct MCommandQueue;
-	struct MCommandBuffer;
-	struct MRenderPipeline;
-	struct MBuffer;
 
 	class MetalAPI : public IRenderer {
 		public:
@@ -26,7 +31,7 @@ namespace Graphics::Metal {
 
 			void CreateDevice() override;
 
-			void CreateSurface(void *nativeWindowHandle) override;
+			void CreateSurface(void *nativeWindowHandle, int surfaceWidth, int surfaceHeight) override;
 
 			void CreateVertexBuffer() override;
 
@@ -41,16 +46,14 @@ namespace Graphics::Metal {
 			void Draw() override;
 
 		private:
-
-			MDevice *device;
-			MWindow *window;
-			MLibrary *library;
-			MCommandQueue *cmdQueue;
-			MCommandBuffer *cmdBuffer;
-			MRenderPipeline *pipeline;
-			MBuffer* buffer;
-
-
+			NS::Window* window;
+			MTK::View* surface;
+			CA::MetalLayer* metalLayer;
+			MTL::Device *device;
+			MTL::CommandQueue *commandQueue;
+			MTL::RenderPipelineState *renderPipelineState;
+			MTL::Buffer *vertexPositionBuffer;
+			MTL::Buffer *vertexColorBuffer;
 	};
 
 }
