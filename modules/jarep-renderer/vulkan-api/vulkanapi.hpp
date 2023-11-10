@@ -30,6 +30,7 @@ namespace Graphics::Vulkan {
 
 
 	struct QueueFamilyIndices;
+	struct SwapChainSupportDetails;
 
 	class VulkanAPI : public IRenderer {
 		public:
@@ -64,6 +65,11 @@ namespace Graphics::Vulkan {
 			VkQueue graphicsQueue;
 			VkQueue presentQueue;
 			VkSurfaceKHR surface;
+			VkExtent2D surfaceExtent;
+			VkSwapchainKHR swapchain;
+			std::vector<VkImage> swapChainImages;
+			VkFormat swapchainImageFormat;
+			std::vector<VkImageView> swapchainImageViews;
 
 			const std::vector<const char *> deviceExtensions = {
 					VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -79,7 +85,17 @@ namespace Graphics::Vulkan {
 
 			void createLogicalDevice(VkPhysicalDevice physicalDevice);
 
+			SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
+			void createSwapChain();
+
+			void createImageViews();
+
+			[[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
+
+			static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
+
+			static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
 	};
 }
 
