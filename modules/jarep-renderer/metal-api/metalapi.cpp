@@ -1,7 +1,7 @@
 //
 // Created by Sebastian Borsch on 24.10.23.
 //
-
+#if defined(__APPLE__)
 #include "metalapi.hpp"
 
 namespace Graphics::Metal {
@@ -19,10 +19,10 @@ namespace Graphics::Metal {
 		device = MTL::CreateSystemDefaultDevice();
 	}
 
-	void MetalAPI::CreateSurface(void *nativeWindowHandle, int surfaceWidth, int surfaceHeight) {
-		window = reinterpret_cast<NS::Window*>(nativeWindowHandle);
+	void MetalAPI::CreateSurface(NativeWindowHandleProvider nativeWindowHandle) {
+		window = reinterpret_cast<NS::Window*>(nativeWindowHandle.getNativeWindowHandle());
 
-		CGRect surfaceRect = CGRectMake(0,0, surfaceWidth, surfaceHeight);
+		CGRect surfaceRect = CGRectMake(0,0, nativeWindowHandle.getWindowWidth(), nativeWindowHandle.getWindowHeight());
 
 		surface = MTK::View::alloc()->init(surfaceRect, device);
 		surface->setDevice(device);
@@ -64,6 +64,5 @@ namespace Graphics::Metal {
 
 		pool->release();
 	}
-
-
 }
+#endif

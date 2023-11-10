@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
 
 
-set(SOURCE_FILES JarepGraphics.cpp)
+set(SOURCE_FILES JarepGraphics.cpp
+        NativeWindowHandleProvider.hpp)
 
 if(APPLE)
     list(APPEND SOURCE_FILES metal-api/metalapi.cpp)
@@ -17,7 +18,7 @@ if(APPLE)
     target_link_libraries(JAREP_RENDERER PUBLIC METAL_CPP)
 elseif (UNIX OR WIN32)
     find_package(Vulkan REQUIRED)
-    target_link_libraries(JAREP_RENDERER PRIVATE Vulkan::Vulkan)
+    target_link_libraries(JAREP_RENDERER PUBLIC Vulkan::Vulkan)
 endif ()
 
 

@@ -5,6 +5,7 @@
 #ifndef JAREP_METALAPI_HPP
 #define JAREP_METALAPI_HPP
 
+#if defined(__APPLE__)
 
 //#define NS_PRIVATE_IMPLEMENTATION
 //#define MTL_PRIVATE_IMPLEMENTATION
@@ -31,7 +32,7 @@ namespace Graphics::Metal {
 
 			void CreateDevice() override;
 
-			void CreateSurface(void *nativeWindowHandle, int surfaceWidth, int surfaceHeight) override;
+			void CreateSurface(NativeWindowHandleProvider nativeWindowHandle) override;
 
 			void CreateVertexBuffer() override;
 
@@ -57,4 +58,5 @@ namespace Graphics::Metal {
 	};
 
 }
+#endif
 #endif //JAREP_METALAPI_HPP

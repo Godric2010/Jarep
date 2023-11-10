@@ -4,8 +4,10 @@
 
 #include "sdlwindow.hpp"
 
-namespace Core::Window {
+#include <X11/Xlib.h>
+#include <X11/Xlib-xcb.h>
 
+namespace Core::Window {
 	SdlWindow::SdlWindow() {
 		window = nullptr;
 		displayModes = std::vector<DisplayOpts>();
@@ -20,7 +22,7 @@ namespace Core::Window {
 		window = nullptr;
 	}
 
-	void SdlWindow::Init(int windowWidth, int windowHeight) {
+	void SdlWindow::Init(const int windowWidth, const int windowHeight) {
 		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 			return;
 		}
@@ -28,13 +30,12 @@ namespace Core::Window {
 		width = windowWidth;
 		height = windowHeight;
 
-		#if defined(__APPLE__)
+#if defined(__APPLE__)
 		windowFlags = SDL_WINDOW_METAL;
-		renderer = std::make_unique<Graphics::JarepGraphics>(Graphics::JarepGraphics::API::Metal);
-		#else
+#else
 		windowFlags = SDL_WINDOW_VULKAN;
-		renderer = std::make_unique<Graphics::JarepGraphics>(Graphics::JarepGraphics::API::Vulkan);
-		#endif
+#endif
+
 
 		windowFlags |= SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
 
@@ -48,7 +49,18 @@ namespace Core::Window {
 				windowWidth, height,
 				windowFlags
 		);
-		renderer->Initialize(getNativeWindowHandle(), windowWidth, windowHeight);
+
+		std::vector<const char *> graphicsExtensions;
+#if defined(__APPLE__)
+		graphicsExtensions = std::vector<const char*>();
+#else
+		graphicsExtensions = getVulkanWindowExtensionsCStr();
+#endif
+		renderer = std::make_unique<Graphics::JarepGraphics>(graphicsExtensions);
+
+		const auto nativeWindowHandleProvider = getNativeWindowHandle(windowWidth, windowHeight);
+		if (nativeWindowHandleProvider.has_value() == false) throw std::exception();
+		renderer->Initialize(nativeWindowHandleProvider.value());
 		if (window == nullptr) {
 			return;
 		}
@@ -59,7 +71,6 @@ namespace Core::Window {
 		SDL_Event event;
 
 		while (running) {
-
 			if (isDirty) {
 				auto newDisplayMode = getDisplayModeFromOpts();
 				if (newDisplayMode.has_value()) {
@@ -105,7 +116,6 @@ namespace Core::Window {
 	}
 
 	void SdlWindow::SetDisplayOpts(int displayIndex, int resolutionIndex, int refreshRateIndex) {
-
 		for (int optIndex = 0; optIndex < displayModes.size(); ++optIndex) {
 			if (displayModes[optIndex].Index != displayIndex)continue;
 			displayModes[optIndex].SelectResolutionAndRefreshRate(resolutionIndex, refreshRateIndex);
@@ -117,12 +127,10 @@ namespace Core::Window {
 
 
 	std::vector<DisplayOpts> SdlWindow::getAvailableDisplayOpts() {
-
 		auto displaysWithOptions = std::vector<DisplayOpts>();
 
 		int displaysFound = SDL_GetNumVideoDisplays();
 		for (int displayIndex = 0; displayIndex < displaysFound; ++displayIndex) {
-
 			DisplayOpts displayOpts;
 			displayOpts.Index = displayIndex;
 			const char *name = SDL_GetDisplayName(displayIndex);
@@ -142,9 +150,9 @@ namespace Core::Window {
 				uniqueRefreshRates.insert(mode.refresh_rate);
 			}
 
-			displayOpts.Resolutions = std::vector<std::pair<int, int>>(uniqueResolutions.begin(),
-			                                                           uniqueResolutions.end());
-			displayOpts.RefreshRates = std::vector<int>(uniqueRefreshRates.begin(), uniqueRefreshRates.end());
+			displayOpts.Resolutions = std::vector(uniqueResolutions.begin(),
+			                                      uniqueResolutions.end());
+			displayOpts.RefreshRates = std::vector(uniqueRefreshRates.begin(), uniqueRefreshRates.end());
 			displaysWithOptions.push_back(displayOpts);
 		}
 		return displaysWithOptions;
@@ -164,34 +172,54 @@ namespace Core::Window {
 			    mode.h == targetResolution.second) {
 				return std::make_optional(mode);
 			}
-
 		}
 		return std::nullopt;
 	}
 
-	void *SdlWindow::getNativeWindowHandle() {
+	std::optional<Graphics::NativeWindowHandleProvider *>
+	SdlWindow::getNativeWindowHandle(int sizeWidth, int sizeHeight) const {
 		SDL_SysWMinfo wmInfo;
 		SDL_VERSION(&wmInfo.version);
 		if (SDL_GetWindowWMInfo(window, &wmInfo) != SDL_TRUE) {
-			return nullptr;
+			return std::nullopt;
 		}
-		#if defined(_WIN32)
-		return (void*)wmInfo.info.win.window;
-
-		#elif defined(__APPLE__) && defined(__MACH__)
-		return wmInfo.info.cocoa.window;
-
-		#elif defined(__linux__) || defined(__unix__)
+#if defined(_WIN32)
+		auto xlibHandleProvider = Graphics::NativeWindowHandleProvider(reinterpret_cast<void *>( wmInfo.info.win.window),sizeWidth, sizeHeight, Graphics::Win32 );
+		return std::make_optional(xlibHandleProvider);
+#elif defined(__APPLE__) && defined(__MACH__)
+		auto xlibHandleProvider = Graphics::NativeWindowHandleProvider(reinterpret_cast<void *>( wmInfo.info.cocoa.window),sizeWidth, sizeHeight, Graphics::Cocoa );
+		return std::make_optional(xlibHandleProvider);
+#elif defined(__linux__) || defined(__unix__)
 		// X11
-		#if defined(SDL_VIDEO_DRIVER_X11)
-		return (void *) wmInfo.info.x11.window;
-		// Wayland
-		#elif defined(SDL_VIDEO_DRIVER_WAYLAND)
-		return (void*)wmInfo.info.wl.surface;
-		#endif
+#if defined(SDL_VIDEO_DRIVER_X11)
+		auto xlibHandleProvider = new Graphics::XlibWindowHandleProvider(wmInfo.info.x11.window,
+		                                                                 wmInfo.info.x11.display,
+		                                                                 sizeWidth, sizeHeight, Graphics::X11);
 
-		#else
-		return nullptr; // Unsupported platform
-		#endif
+
+		return std::make_optional(xlibHandleProvider);
+		// Wayland
+#elif defined(SDL_VIDEO_DRIVER_WAYLAND)
+		auto wlHandleProvider = Graphics::WaylandWindowHandleProvider(wmInfo.info.wl.surface, wmInfo.info.wl.display,
+		                                                              sizeWidth, sizeWidth, Graphics::Wayland);
+		return std::make_optional(wlHandleProvider);
+#endif
+
+#else
+		return std::nullopt; // Unsupported platform
+#endif
+	}
+
+	std::vector<const char *> SdlWindow::getVulkanWindowExtensionsCStr() const {
+		unsigned int extensionCount = 0;
+		if (!SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, nullptr)) {
+			throw std::runtime_error("Could not get the number of vulkan extensions");
+		}
+
+		std::vector<const char *> sdlExtensions(extensionCount);
+		if (!SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, sdlExtensions.data())) {
+			throw std::runtime_error("Could not get the vulkan instance extensions.");
+		}
+		return sdlExtensions;
 	}
 }

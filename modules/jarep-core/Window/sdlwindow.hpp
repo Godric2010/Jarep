@@ -12,6 +12,8 @@
 #include <set>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
+#include <SDL_vulkan.h>
+#include <string>
 
 namespace Core::Window {
 
@@ -42,7 +44,9 @@ namespace Core::Window {
 			int height;
 			static std::vector<DisplayOpts> getAvailableDisplayOpts();
 			std::optional<SDL_DisplayMode> getDisplayModeFromOpts();
-			void* getNativeWindowHandle();
+			[[nodiscard]] std::optional<Graphics::NativeWindowHandleProvider* > getNativeWindowHandle(int sizeWidth, int sizeHeight) const;
+
+			[[nodiscard]] std::vector<const char*> getVulkanWindowExtensionsCStr() const;
 
 			std::unique_ptr<Graphics::JarepGraphics> renderer;
 	};
