@@ -18,80 +18,59 @@ fi
 #Define the directory where the shaders live in
 shaderDir="$(dirname "$0")/modules/jarep-renderer/shaders"
 
-echo "Searching for glslc executable..."
+find_executable(){
+  local executableName=$1
+  local executablePath
 
-keywords=("vulkan", "vulkan-sdk", "sdk")
+  case "$(uname)" in
+    "Linux")
+      executablePaths=$(find ~/vulkan-sdk -type f -executable -name "$executableName" 2>/dev/null)
+    ;;
+    "Darwin")
+      executablePaths=$(which "$executableName" 2>/dev/null)
+    ;;
+    "CYGWIN"*|"MINGW"*|"MSYS"*)
+      executablePaths=$(where "$executableName" 2>/dev/null)
+    ;;
+    *)
+      echo "Unsupported OS"
+      return 1
+    ;;
+    esac
 
-# Search for all instances of glslc in the filesystem
-glslcPaths=$(find / -type f -executable -name glslc 2>/dev/null)
+  executablesArray=()
+  while IFS= read -r line; do
+    executablesArray+=("$line")
+  done <<< "$executablePaths"
 
-# Convert the paths into an array
-readarray -t glslcArray <<< "$glslcPaths"
-
-# Filter paths based on keywords
-filteredPaths=()
-for path in "${glslcArray[@]}"; do
-    for keyword in "${keywords[@]}"; do
-        if [[ "$path" == *"$keyword"* ]]; then
-            filteredPaths+=("$path")
-            break # Breaks the inner loop if a keyword is found
-        fi
-    done
-done
-
-# Check the filtered results
-if [ ${#filteredPaths[@]} -eq 0 ]; then
-    echo "No glslc executable found."
+  if [ ${#executablesArray[@]} -eq 0 ]; then
+    echo "$executableName executable found."
     exit 1
-elif [ ${#filteredPaths[@]} -eq 1 ]; then
-    # Only one matching glslc found
-    glslcPath=${filteredPaths[0]}
-else
+  elif [ ${#executablesArray[@]} -eq 1 ]; then
+    executablePath=${executablesArray[0]}
+  else
     # Multiple matching glslc executables found
     echo "Multiple glslc executables found:"
-    for path in "${filteredPaths[@]}"; do
+    for path in "${executablesArray[@]}"; do
         echo " - $path"
     done
-    exit 1
-    # Additional logic to select one executable can be added here
-fi
+    executablePath=${executablesArray[0]}
+  fi
+
+  echo "$executablePath"
+  return 0
+}
+
+echo "Searching for glslc executable..."
+
+# Search for all instances of glslc in the filesystem
+#glslcPaths=$(find / -type f -executable -name glslc 2>/dev/null)
+glslcPath=$(find_executable "glslc")
 
 echo "glslc executable found."
 echo "Searching for spirv-cross executable..."
 # Search for all instances of spirv-cross in the filesystem
-spirvCrossPaths=$(find / -type f -executable -name spirv-cross 2>/dev/null)
-
-# Convert the paths into an array
-readarray -t spirvCrossArray <<< "$spirvCrossPaths"
-
-# Filter paths based on keywords
-filteredSpirvCrossPaths=()
-for path in "${spirvCrossArray[@]}"; do
-    for keyword in "${keywords[@]}"; do
-        if [[ "$path" == *"$keyword"* ]]; then
-            filteredSpirvCrossPaths+=("$path")
-            break # Breaks the inner loop if a keyword is found
-        fi
-    done
-done
-
-# Check the filtered results
-if [ ${#filteredSpirvCrossPaths[@]} -eq 0 ]; then
-    echo "No spirv-cross executable found."
-    canCompileToMetal=false
-elif [ ${#filteredSpirvCrossPaths[@]} -eq 1 ]; then
-    # Only one matching glslc found
-    spirvCrossPath=${filteredSpirvCrossPaths[0]}
-    canCompileToMetal=true
-else
-    # Multiple matching glslc executables found
-    echo "Multiple spirv-cross executables found:"
-    for path in "${spirvCrossArray[@]}"; do
-        echo " - $path"
-    done
-    canCompileToMetal=false
-    # Additional logic to select one executable can be added here
-fi
+spirvCrossPath=$(find_executable "spirv-cross")
 
 echo "Spirv-cross found ($spirvCrossPath)"
 
@@ -105,13 +84,9 @@ compile_shader(){
     spvOutputFile="$outputDir/${filename}_${extension}.spv"
     $glslcPath "$inputFile" -o "$spvOutputFile"
 
-
-   # Check if Metal shader compilation is possible
-   if [ "$canCompileToMetal" = true ]; then
-       # Convert the SPIR-V file to Metal shading language (.metal)
-       metalOutputFile="$outputDir/${filename}_${extension}.metal"
-       $spirvCrossPath "$spvOutputFile" --msl --output "$metalOutputFile"
-   fi
+    # Convert the SPIR-V file to Metal shading language (.metal)
+    metalOutputFile="$outputDir/${filename}_${extension}.metal"
+    $spirvCrossPath "$spvOutputFile" --msl --output "$metalOutputFile"
 }
 
 export -f compile_shader
