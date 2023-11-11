@@ -10,6 +10,7 @@
 #include <optional>
 #include <set>
 #include <vulkan/vulkan.hpp>
+#include <fstream>
 
 #if defined (__linux__)
 #define VK_USE_PLATFORM_XLIB_KHR
@@ -70,6 +71,16 @@ namespace Graphics::Vulkan {
 			std::vector<VkImage> swapChainImages;
 			VkFormat swapchainImageFormat;
 			std::vector<VkImageView> swapchainImageViews;
+			std::vector<VkShaderModule> shaderModules;
+			VkRenderPass renderPass;
+			VkPipelineLayout pipelineLayout;
+			VkPipeline graphicsPipeline;
+			std::vector<VkFramebuffer> swapchainFramebuffers;
+			VkCommandPool commandPool;
+			VkCommandBuffer commandBuffer;
+			VkSemaphore imageAvailableSemaphore;
+			VkSemaphore renderFinishedSemaphore;
+			VkFence inFlightFence;
 
 			const std::vector<const char *> deviceExtensions = {
 					VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -96,6 +107,20 @@ namespace Graphics::Vulkan {
 			static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
 
 			static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
+
+			std::vector<char> readFile(const std::string &filename);
+
+			VkShaderModule createShaderModule(const std::vector<char> &code);
+
+			void createRenderPass();
+
+			void createFramebuffers();
+
+			void createCommandBuffer();
+
+			void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+			void createSyncObjects();
 	};
 }
 
