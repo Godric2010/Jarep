@@ -15,10 +15,13 @@ namespace Graphics {
 		public:
 			virtual ~IRenderer() = default;
 
+			/// Get the physical device (GPU) for render processes.
 			virtual void RegisterPhysicalDevice() = 0;
 
+			/// Create a logical device to be able to perform operations on the GPU
 			virtual void CreateLogicalDevice() = 0;
 
+			/// Create a rendering surface for the given window handle
 			virtual void CreateSurface(NativeWindowHandleProvider *windowHandleProvider) = 0;
 
 			virtual void CreateVertexBuffer() = 0;
@@ -34,10 +37,6 @@ namespace Graphics {
 			virtual void Draw() = 0;
 
 			virtual void Shutdown() = 0;
-
 	};
-
 }
-
-
 #endif //JAREP_IRENDERER_HPP

@@ -7,11 +7,6 @@
 
 #if defined(__APPLE__)
 
-//#define NS_PRIVATE_IMPLEMENTATION
-//#define MTL_PRIVATE_IMPLEMENTATION
-//#define MTK_PRIVATE_IMPLEMENTATION
-//#define CA_PRIVATE_IMPLEMENTATION
-
 #include "IRenderer.hpp"
 #include <Metal/Metal.hpp>
 #include <Foundation/Foundation.hpp>
@@ -20,7 +15,6 @@
 #include <AppKit/AppKit.hpp>
 #include <MetalKit/MetalKit.hpp>
 
-//#include <simd/simd.h>
 
 namespace Graphics::Metal {
 
@@ -30,10 +24,13 @@ namespace Graphics::Metal {
 
 			~MetalAPI() override;
 
+			/// Create a logical device for metal means to link the MTLdevice with the surface and push this into the window settings.
 			void CreateLogicalDevice() override;
 
+			/// Create an MTLDevice and provide it for future usage
 			void RegisterPhysicalDevice() override;
 
+			/// Create a render surface but don't push it to the window, since the creation of the MTL Device occurs later
 			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle) override;
 
 			void CreateVertexBuffer() override;
