@@ -82,6 +82,8 @@ namespace Graphics::Vulkan {
 			std::vector<VkSemaphore> renderFinishedSemaphores;
 			std::vector<VkFence> inFlightFences;
 			uint32_t currentFrame = 0;
+			VkBuffer vertexBuffer;
+			VkDeviceMemory vertexBufferMemory;
 
 			const std::vector<const char *> deviceExtensions = {
 					VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -126,6 +128,12 @@ namespace Graphics::Vulkan {
 			void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 			void createSyncObjects();
+
+			static VkVertexInputBindingDescription getBindingDescription();
+
+			static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+
+			uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	};
 }
 

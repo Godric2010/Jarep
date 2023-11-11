@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.25)
 
 
 set(SOURCE_FILES JarepGraphics.cpp
-        NativeWindowHandleProvider.hpp)
+        NativeWindowHandleProvider.hpp
+        Vertex.hpp)
 
 if(APPLE)
     list(APPEND SOURCE_FILES metal-api/metalapi.cpp)
@@ -21,6 +22,8 @@ elseif (UNIX OR WIN32)
     target_link_libraries(JAREP_RENDERER PUBLIC Vulkan::Vulkan)
 endif ()
 
+find_package(glm)
+target_link_libraries(JAREP_RENDERER PUBLIC glm::glm)
 
 set(PublicHeaders JarepGraphics.hpp)
 set_target_properties(JAREP_RENDERER PROPERTIES PUBLIC_HEADERS "${PublicHeaders}")
