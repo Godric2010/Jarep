@@ -336,6 +336,7 @@ namespace Graphics::Vulkan {
 				return availableFormat;
 			}
 		}
+		return availableFormats[0];
 	}
 
 	VkPresentModeKHR VulkanAPI::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) {

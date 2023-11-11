@@ -15,3 +15,7 @@ add_subdirectory(modules)
 add_executable(${PROJECT_NAME} main.cpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE JAREP_CORE)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                    COMMAND ${CMAKE_SOURCE_DIR}/compileShaders.sh ARGS ${CMAKE_BINARY_DIR}
+                    COMMENT "Run shader compilation as post build step")
