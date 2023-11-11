@@ -77,14 +77,17 @@ namespace Graphics::Vulkan {
 			VkPipeline graphicsPipeline;
 			std::vector<VkFramebuffer> swapchainFramebuffers;
 			VkCommandPool commandPool;
-			VkCommandBuffer commandBuffer;
-			VkSemaphore imageAvailableSemaphore;
-			VkSemaphore renderFinishedSemaphore;
-			VkFence inFlightFence;
+			std::vector<VkCommandBuffer> commandBuffers;
+			std::vector<VkSemaphore> imageAvailableSemaphores;
+			std::vector<VkSemaphore> renderFinishedSemaphores;
+			std::vector<VkFence> inFlightFences;
+			uint32_t currentFrame = 0;
 
 			const std::vector<const char *> deviceExtensions = {
 					VK_KHR_SWAPCHAIN_EXTENSION_NAME
 			};
+
+			const int MAX_FRAMES_IN_FLIGHT = 2;
 
 			void createVulkanInstance(const std::vector<const char *> &extensionNames);
 
@@ -99,6 +102,8 @@ namespace Graphics::Vulkan {
 			SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
 			void createSwapChain();
+
+			void cleanupSwapchain();
 
 			void createImageViews();
 
@@ -116,7 +121,7 @@ namespace Graphics::Vulkan {
 
 			void createFramebuffers();
 
-			void createCommandBuffer();
+			void createCommandBuffers();
 
 			void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
