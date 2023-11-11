@@ -30,9 +30,11 @@ namespace Graphics::Metal {
 
 			~MetalAPI() override;
 
-			void CreateDevice() override;
+			void CreateLogicalDevice() override;
 
-			void CreateSurface(NativeWindowHandleProvider nativeWindowHandle) override;
+			void RegisterPhysicalDevice() override;
+
+			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle) override;
 
 			void CreateVertexBuffer() override;
 
@@ -46,10 +48,12 @@ namespace Graphics::Metal {
 
 			void Draw() override;
 
+			void Shutdown() override;
+
 		private:
-			NS::Window* window;
-			MTK::View* surface;
-			CA::MetalLayer* metalLayer;
+			NS::Window *window;
+			MTK::View *surface;
+			CA::MetalLayer *metalLayer;
 			MTL::Device *device;
 			MTL::CommandQueue *commandQueue;
 			MTL::RenderPipelineState *renderPipelineState;

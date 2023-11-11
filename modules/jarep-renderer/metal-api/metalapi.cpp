@@ -2,6 +2,7 @@
 // Created by Sebastian Borsch on 24.10.23.
 //
 #if defined(__APPLE__)
+
 #include "metalapi.hpp"
 
 namespace Graphics::Metal {
@@ -10,26 +11,29 @@ namespace Graphics::Metal {
 
 	}
 
-	MetalAPI::~MetalAPI(){
-//		commandQueue->release();
-//		device->release();
+	MetalAPI::~MetalAPI() {
+
 	}
 
-	void MetalAPI::CreateDevice() {
+	void MetalAPI::RegisterPhysicalDevice() {
 		device = MTL::CreateSystemDefaultDevice();
 	}
 
-	void MetalAPI::CreateSurface(NativeWindowHandleProvider nativeWindowHandle) {
-		window = reinterpret_cast<NS::Window*>(nativeWindowHandle.getNativeWindowHandle());
+	void MetalAPI::CreateLogicalDevice() {
+		surface->setDevice(device);
+		window->setContentView(surface);
+	}
 
-		CGRect surfaceRect = CGRectMake(0,0, nativeWindowHandle.getWindowWidth(), nativeWindowHandle.getWindowHeight());
+	void MetalAPI::CreateSurface(NativeWindowHandleProvider *nativeWindowHandle) {
+		window = reinterpret_cast<NS::Window *>(nativeWindowHandle->getNativeWindowHandle());
+
+		CGRect surfaceRect = CGRectMake(0, 0, nativeWindowHandle->getWindowWidth(),
+		                                nativeWindowHandle->getWindowHeight());
 
 		surface = MTK::View::alloc()->init(surfaceRect, device);
-		surface->setDevice(device);
+
 		surface->setColorPixelFormat(MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB);
 		surface->setClearColor(MTL::ClearColor::Make(0.0f, 0.0f, 0.0f, 1.0f));
-
-		window->setContentView(surface);
 		std::cout << "Creating a cocoa surface" << std::endl;
 	}
 
@@ -53,16 +57,23 @@ namespace Graphics::Metal {
 	}
 
 	void MetalAPI::Draw() {
-		NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+		NS::AutoreleasePool *pool = NS::AutoreleasePool::alloc()->init();
 
-		MTL::CommandBuffer* commandBuffer = commandQueue->commandBuffer();
-		MTL::RenderPassDescriptor* renderPassDescriptor = surface->currentRenderPassDescriptor();
-		MTL::RenderCommandEncoder* renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor );
+		MTL::CommandBuffer *commandBuffer = commandQueue->commandBuffer();
+		MTL::RenderPassDescriptor *renderPassDescriptor = surface->currentRenderPassDescriptor();
+		MTL::RenderCommandEncoder *renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor);
 		renderCommandEncoder->endEncoding();
-		commandBuffer->presentDrawable(surface->currentDrawable() );
+		commandBuffer->presentDrawable(surface->currentDrawable());
 		commandBuffer->commit();
 
 		pool->release();
 	}
+
+	void MetalAPI::Shutdown() {
+		commandQueue->release();
+		device->release();
+	}
+
+
 }
 #endif

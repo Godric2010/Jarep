@@ -4,8 +4,10 @@
 
 #include "sdlwindow.hpp"
 
+#if defined(__linux__)
 #include <X11/Xlib.h>
 #include <X11/Xlib-xcb.h>
+#endif
 
 namespace Core::Window {
 	SdlWindow::SdlWindow() {
@@ -59,7 +61,7 @@ namespace Core::Window {
 		renderer = std::make_unique<Graphics::JarepGraphics>(graphicsExtensions);
 
 		const auto nativeWindowHandleProvider = getNativeWindowHandle(windowWidth, windowHeight);
-		if (nativeWindowHandleProvider.has_value() == false) throw std::exception();
+		if (!nativeWindowHandleProvider.has_value()) throw std::exception();
 		renderer->Initialize(nativeWindowHandleProvider.value());
 		if (window == nullptr) {
 			return;
@@ -184,11 +186,11 @@ namespace Core::Window {
 			return std::nullopt;
 		}
 #if defined(_WIN32)
-		auto xlibHandleProvider = Graphics::NativeWindowHandleProvider(reinterpret_cast<void *>( wmInfo.info.win.window),sizeWidth, sizeHeight, Graphics::Win32 );
-		return std::make_optional(xlibHandleProvider);
+		auto nativeWindowHandleProvider = new Graphics::NativeWindowHandleProvider(reinterpret_cast<void *>( wmInfo.info.win.window),sizeWidth, sizeHeight, Graphics::Win32 );
+		return std::make_optional(nativeWindowHandleProvider);
 #elif defined(__APPLE__) && defined(__MACH__)
-		auto xlibHandleProvider = Graphics::NativeWindowHandleProvider(reinterpret_cast<void *>( wmInfo.info.cocoa.window),sizeWidth, sizeHeight, Graphics::Cocoa );
-		return std::make_optional(xlibHandleProvider);
+		auto nativeWindowHandleProvider = new Graphics::NativeWindowHandleProvider(reinterpret_cast<void *>( wmInfo.info.cocoa.window),sizeWidth, sizeHeight, Graphics::Cocoa );
+		return std::make_optional(nativeWindowHandleProvider);
 #elif defined(__linux__) || defined(__unix__)
 		// X11
 #if defined(SDL_VIDEO_DRIVER_X11)
