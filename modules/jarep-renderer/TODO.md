@@ -5,7 +5,7 @@ as well as the steps successfully done so far.
 
 -[ ] Display a basic triangle in metal
 -[ ] Display a basic triangle in vulkan
--[ ] Check if Physical and logical device creation can be merged into one in IRenderer
+-[ ] Check if Physical and logical device creation can be merged into one in JargAPI
 -[ ] Build shared interface for device and surface
 -[ ] Build shared interface for pipelines
 -[ ] Build shared interface for Buffers

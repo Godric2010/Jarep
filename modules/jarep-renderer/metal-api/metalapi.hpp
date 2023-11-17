@@ -15,6 +15,8 @@
 #include <AppKit/AppKit.hpp>
 #include <MetalKit/MetalKit.hpp>
 
+#include <simd/simd.h>
+#include <fstream>
 
 namespace Graphics::Metal {
 
@@ -31,7 +33,7 @@ namespace Graphics::Metal {
 			void RegisterPhysicalDevice() override;
 
 			/// Create a render surface but don't push it to the window, since the creation of the MTL Device occurs later
-			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle) override;
+			void CreateSurface(NativeWindowHandleProvider* nativeWindowHandle) override;
 
 			void CreateVertexBuffer() override;
 
@@ -48,14 +50,23 @@ namespace Graphics::Metal {
 			void Shutdown() override;
 
 		private:
-			NS::Window *window;
-			MTK::View *surface;
-			CA::MetalLayer *metalLayer;
-			MTL::Device *device;
-			MTL::CommandQueue *commandQueue;
-			MTL::RenderPipelineState *renderPipelineState;
-			MTL::Buffer *vertexPositionBuffer;
-			MTL::Buffer *vertexColorBuffer;
+			NS::Window* window;
+			MTK::View* surface;
+			CA::MetalLayer* metalLayer;
+			MTL::Device* device;
+//			CA::MetalDrawable* metalDrawable;
+
+			MTL::Library*vertShaderLibrary;
+			MTL::Library* fragShaderLibrary;
+			MTL::CommandQueue* commandQueue;
+			MTL::CommandBuffer* commandBuffer;
+			MTL::RenderPipelineState* renderPSO;
+			MTL::Buffer* triangleVertexBuffer;
+//			MTL::RenderPassDescriptor* renderPassDescriptor;
+
+			std::string readFile(const std::string& filename);
+
+			void encodeRenderCommand(MTL::RenderCommandEncoder* renderCommandEncoder);
 	};
 
 }

@@ -38,7 +38,7 @@ namespace Graphics {
 			}
 
 			void Render() {
-				renderAPI->Draw();
+			//	renderAPI->Draw();
 			}
 
 			void Shutdown() {
