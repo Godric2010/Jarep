@@ -4,6 +4,7 @@
 #if defined(__APPLE__)
 
 #include "metalapi.hpp"
+#include "Vertex.hpp"
 
 namespace Graphics::Metal {
 #pragma region MetalAPI {
