@@ -1,20 +1,177 @@
 //
 // Created by Sebastian Borsch on 24.10.23.
 //
+#include <iostream>
+#include <utility>
+
 #if defined(__APPLE__)
 
 #include "metalapi.hpp"
 #include "Vertex.hpp"
 
 namespace Graphics::Metal {
+
+#pragma region MetalBackend{
+
+	MetalBackend::MetalBackend() = default;
+
+	MetalBackend::~MetalBackend() = default;
+
+	std::shared_ptr<JarSurface> MetalBackend::CreateSurface(NativeWindowHandleProvider *windowHandleProvider) {
+		auto metalSurface = std::make_shared<MetalSurface>();
+		metalSurface->CreateFromNativeWindowProvider(windowHandleProvider);
+		return metalSurface;
+	}
+
+	std::shared_ptr<JarDevice> MetalBackend::CreateDevice(std::shared_ptr<JarSurface> &surface) {
+		auto metalDevice = std::make_shared<MetalDevice>();
+		metalDevice->Initialize();
+
+		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface> &>(surface);
+		metalSurface->FinalizeSurface(metalDevice->getDevice().value());
+
+		return metalDevice;
+	}
+
+
+#pragma endregion MetalBackend }
+
+#pragma region MetalSurface{
+
+	MetalSurface::MetalSurface() = default;
+
+	MetalSurface::~MetalSurface() = default;
+
+
+	bool MetalSurface::CreateFromNativeWindowProvider(NativeWindowHandleProvider *windowHandleProvider) {
+		window = static_cast<NS::Window *>(windowHandleProvider->getNativeWindowHandle());
+
+
+		surfaceRect = CGRectMake(0, 0, windowHandleProvider->getWindowWidth(),
+		                         windowHandleProvider->getWindowHeight());
+		return true;
+	}
+
+	void MetalSurface::Update() {
+	}
+
+	JarRenderPass *MetalSurface::CreateRenderPass() {
+		if (contentView == nullptr) {
+			throw std::runtime_error("Surface has not been initialized!");
+		}
+		drawable = layer->nextDrawable();
+		MTL::RenderPassDescriptor *renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();;
+		MTL::RenderPassColorAttachmentDescriptor *cd = renderPassDescriptor->colorAttachments()->object(0);
+		cd->setTexture(drawable->texture());
+		cd->setLoadAction(MTL::LoadActionClear);
+		cd->setClearColor(MTL::ClearColor(0.0, 1.0, 0.0, 1.0));
+		cd->setStoreAction(MTL::StoreActionStore);
+
+		return new MetalRenderPass(renderPassDescriptor);
+	}
+
+
+	void MetalSurface::FinalizeSurface(MTL::Device *device) {
+
+		Graphics::Metal::SDLSurfaceAdapter::CreateViewAndMetalLayer(surfaceRect, &contentView, &layer);
+
+		if(contentView == nullptr)
+			throw std::runtime_error("Expected NS::View* to be not nullptr!");
+
+		if(layer == nullptr)
+			throw std::runtime_error("Expected metal layer not to be nullptr");
+
+		layer->setDevice(device);
+		layer->setPixelFormat(MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB);
+
+//		view = MTK::View::alloc()->init(surfaceRect, device);
+//
+//		view->setColorPixelFormat(MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB);
+//		view->setClearColor(MTL::ClearColor::Make(1.0f, 1.0f, 0.0f, 1.0f));
+//		view->setDevice(device);
+		window->setContentView(contentView);
+	}
+
+
+#pragma endregion MetalSurface }
+
+#pragma region MetalDevice {
+
+	MetalDevice::~MetalDevice() {
+	};
+
+	void MetalDevice::Initialize() {
+		_device = std::make_optional(MTL::CreateSystemDefaultDevice());
+	}
+
+	std::optional<MTL::Device *> MetalDevice::getDevice() const {
+		return _device;
+	}
+
+	void MetalDevice::Release() {
+		if (!_device.has_value()) return;
+		_device.value()->release();
+	}
+
+	std::shared_ptr<JarCommandQueue> MetalDevice::CreateCommandQueue() {
+		const auto cmdQueue = _device.value()->newCommandQueue();
+		const auto metalQueue = std::make_shared<MetalCommandQueue>(cmdQueue);
+		return metalQueue;
+	}
+
+#pragma endregion MetalDevice }
+
+#pragma region MetalCommandQueue {
+
+	MetalCommandQueue::~MetalCommandQueue() {
+	}
+
+	JarCommandBuffer *MetalCommandQueue::getNextCommandBuffer() {
+		return new MetalCommandBuffer(queue->commandBuffer());
+	}
+
+	void MetalCommandQueue::Release() {
+		queue->release();
+	}
+
+#pragma endregion MetalComandQueue }
+
+#pragma region MetalCommandBuffer {
+
+	MetalCommandBuffer::~MetalCommandBuffer() = default;
+
+	void MetalCommandBuffer::StartRecording(JarRenderPass *renderPass) {
+		const auto metalRenderPass = reinterpret_cast<MetalRenderPass *>(renderPass);
+		encoder = buffer->renderCommandEncoder(metalRenderPass->getRenderPassDesc());
+	}
+
+	void MetalCommandBuffer::EndRecording() {
+		encoder->endEncoding();
+	}
+
+	void MetalCommandBuffer::Present(std::shared_ptr<JarSurface> &surface) {
+		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface> &>(surface);
+		buffer->presentDrawable(metalSurface->getDrawable());
+		buffer->commit();
+	}
+
+
+#pragma endregion MetalCommandBuffer }
+
+#pragma region MetalRenderPass{
+
+	MetalRenderPass::~MetalRenderPass() {
+	}
+
+
+#pragma endregion MetalRenderPass }
+
 #pragma region MetalAPI {
 
 	MetalAPI::MetalAPI() {
-
 	}
 
 	MetalAPI::~MetalAPI() {
-
 	}
 
 	void MetalAPI::RegisterPhysicalDevice() {
@@ -78,7 +235,6 @@ namespace Graphics::Metal {
 	}
 
 	void MetalAPI::CreateGraphicsPipeline() {
-
 		MTL::Function *vertexShader = vertShaderLibrary->newFunction(
 				NS::String::string("main0", NS::ASCIIStringEncoding));
 		assert(vertexShader);
@@ -113,29 +269,28 @@ namespace Graphics::Metal {
 		}
 		renderPipelineDescriptor->release();
 
-//		MTL::RenderPassDescriptor *rpd = MTL::RenderPassDescriptor::alloc()->init();
-//		MTL::RenderPassColorAttachmentDescriptor *cd = rpd->colorAttachments()->object(0);
-//		cd->setTexture(metalDrawable->texture());
-//		cd->setLoadAction(MTL::LoadActionClear);
-//		cd->setClearColor(MTL::ClearColor(0.0, 0.0, 0.0, 1.0));
-//		cd->setStoreAction(MTL::StoreActionStore);
-//		renderPassDescriptor = rpd;
+		//		MTL::RenderPassDescriptor *rpd = MTL::RenderPassDescriptor::alloc()->init();
+		//		MTL::RenderPassColorAttachmentDescriptor *cd = rpd->colorAttachments()->object(0);
+		//		cd->setTexture(metalDrawable->texture());
+		//		cd->setLoadAction(MTL::LoadActionClear);
+		//		cd->setClearColor(MTL::ClearColor(0.0, 0.0, 0.0, 1.0));
+		//		cd->setStoreAction(MTL::StoreActionStore);
+		//		renderPassDescriptor = rpd;
 	}
 
 	void MetalAPI::RecordCommandBuffer() {
 	}
 
 	void MetalAPI::Draw() {
-
 		NS::AutoreleasePool *pool = NS::AutoreleasePool::alloc()->init();
 
-//		metalDrawable = surface->currentDrawable();
+		//		metalDrawable = surface->currentDrawable();
 		commandBuffer = commandQueue->commandBuffer();
 		MTL::RenderCommandEncoder *renderCommandEncoder = commandBuffer->renderCommandEncoder(
 				surface->currentRenderPassDescriptor());
-//		renderCommandEncoder->setRenderPipelineState(renderPSO);
-//		renderCommandEncoder->setVertexBuffer(triangleVertexBuffer, 0, 0);
-//		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
+		//		renderCommandEncoder->setRenderPipelineState(renderPSO);
+		//		renderCommandEncoder->setVertexBuffer(triangleVertexBuffer, 0, 0);
+		//		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 		renderCommandEncoder->endEncoding();
 
 		commandBuffer->presentDrawable(surface->currentDrawable());

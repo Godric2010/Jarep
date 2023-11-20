@@ -15,39 +15,49 @@
 namespace Graphics {
 	class JarepGraphics {
 		public:
-			JarepGraphics(const std::vector<const char *> &extensionNames) : extensionNames(extensionNames) {
-#if defined(__APPLE__) && defined(__MACH__)
-				renderAPI = std::make_shared<Metal::MetalAPI>(Metal::MetalAPI());
-				std::cout << "Using metal renderer!" << std::endl;
-#else
-				renderAPI = std::make_shared<Vulkan::VulkanAPI>(Vulkan::VulkanAPI(extensionNames));
-				std::cout << "Using vulkan renderer!" << std::endl;
-#endif
-			}
-
+			JarepGraphics(const std::vector<const char *> &extensionNames);
 			~JarepGraphics() = default;
 
 			void Initialize(NativeWindowHandleProvider *nativeWindowHandle) {
-				renderAPI->CreateSurface(nativeWindowHandle);
-				renderAPI->RegisterPhysicalDevice();
-				renderAPI->CreateLogicalDevice();
-				renderAPI->CreateVertexBuffer();
-				renderAPI->CreateShaders();
-				renderAPI->CreateCommandQueue();
-				renderAPI->CreateGraphicsPipeline();
+
+				surface = backend->CreateSurface(nativeWindowHandle);
+				device = backend->CreateDevice(surface);
+				queue = device->CreateCommandQueue();
+
+				// renderAPI->CreateSurface(nativeWindowHandle);
+				// renderAPI->RegisterPhysicalDevice();
+				// renderAPI->CreateLogicalDevice();
+				// renderAPI->CreateVertexBuffer();
+				// renderAPI->CreateShaders();
+				// renderAPI->CreateCommandQueue();
+				// renderAPI->CreateGraphicsPipeline();
 			}
 
 			void Render() {
+				const auto commandBuffer = queue->getNextCommandBuffer();
+				const auto renderPassDesc = surface->CreateRenderPass();
+				commandBuffer->StartRecording(renderPassDesc);
+
+
+				commandBuffer->EndRecording();
+				commandBuffer->Present(surface);
+
 			//	renderAPI->Draw();
 			}
 
 			void Shutdown() {
+				queue->Release();
+				device->Release();
 				std::cout << "Shutdown renderer" << std::endl;
 			}
 
 		private:
-			std::vector<const char *> extensionNames;
+			std::vector<const char *> extensions;
 			std::shared_ptr<IRenderer> renderAPI;
+			std::shared_ptr<Backend> backend;
+			std::shared_ptr<JarSurface> surface;
+			std::shared_ptr<JarDevice> device;
+			std::shared_ptr<JarCommandQueue> queue;
 	};
 }
 #endif //JAREP_JAREPGRAPHICS_HPP

@@ -3,7 +3,10 @@ cmake_minimum_required(VERSION 3.25)
 
 set(SOURCE_FILES JarepGraphics.cpp
         NativeWindowHandleProvider.hpp
-        Vertex.hpp)
+        Vertex.hpp
+        metal-api/sdlsurfaceadapter.mm
+        metal-api/sdlsurfaceadapter.hpp
+)
 
 if(APPLE)
     list(APPEND SOURCE_FILES metal-api/metalapi.cpp)

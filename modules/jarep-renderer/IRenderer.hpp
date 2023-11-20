@@ -5,11 +5,63 @@
 #ifndef JAREP_IRENDERER_HPP
 #define JAREP_IRENDERER_HPP
 
-#include <iostream>
-
 #include "NativeWindowHandleProvider.hpp"
 
 namespace Graphics {
+	class JarRenderPass {
+		public:
+			virtual ~JarRenderPass() = default;
+	};
+
+	class JarSurface {
+		public:
+			virtual ~JarSurface() = default;
+
+			virtual void Update() = 0;
+
+			virtual JarRenderPass* CreateRenderPass() = 0;
+	};
+
+
+	class JarCommandBuffer {
+		public:
+			virtual ~JarCommandBuffer() = default;
+
+			virtual void StartRecording(JarRenderPass* renderPass) = 0;
+
+			virtual void EndRecording() = 0;
+
+			virtual void Present(std::shared_ptr<JarSurface>&surface) = 0;
+	};
+
+
+	class JarCommandQueue {
+		public:
+			virtual ~JarCommandQueue() = default;
+
+			virtual JarCommandBuffer* getNextCommandBuffer() = 0;
+
+			virtual void Release() = 0;
+	};
+
+	class JarDevice {
+		public:
+			virtual ~JarDevice() = default;
+
+			virtual void Release() = 0;
+
+			virtual std::shared_ptr<JarCommandQueue> CreateCommandQueue() = 0;
+	};
+
+	class Backend {
+		public:
+			virtual ~Backend() = default;
+
+			virtual std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* windowHandleProvider) = 0;
+
+			virtual std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>&surface) = 0;
+	};
+
 
 	class IRenderer {
 		public:
@@ -22,7 +74,7 @@ namespace Graphics {
 			virtual void CreateLogicalDevice() = 0;
 
 			/// Create a rendering surface for the given window handle
-			virtual void CreateSurface(NativeWindowHandleProvider *windowHandleProvider) = 0;
+			virtual void CreateSurface(NativeWindowHandleProvider* windowHandleProvider) = 0;
 
 			virtual void CreateVertexBuffer() = 0;
 
