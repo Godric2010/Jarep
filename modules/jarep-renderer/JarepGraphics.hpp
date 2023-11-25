@@ -11,6 +11,7 @@
 #include "NativeWindowHandleProvider.hpp"
 #include "metal-api/metalapi.hpp"
 #include "vulkan-api/vulkanapi.hpp"
+#include "Vertex.hpp"
 
 namespace Graphics {
 	class JarepGraphics {
@@ -23,6 +24,15 @@ namespace Graphics {
 				surface = backend->CreateSurface(nativeWindowHandle);
 				device = backend->CreateDevice(surface);
 				queue = device->CreateCommandQueue();
+
+				const std::vector<Vertex> vertices = {
+						{{0.0f,  -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+						{{0.5f,  0.5f,  0.0f}, {0.0f, 1.0f, 0.0f}},
+						{{-0.5f, 0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}}
+				};
+
+				const size_t vertexDataSize = vertices.size() * sizeof(Vertex);
+				auto testBuffer = device->CreateBuffer(vertexDataSize, vertices.data());
 
 				// renderAPI->CreateSurface(nativeWindowHandle);
 				// renderAPI->RegisterPhysicalDevice();

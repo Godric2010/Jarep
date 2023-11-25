@@ -19,7 +19,7 @@ namespace Graphics {
 
 			virtual void Update() = 0;
 
-			virtual JarRenderPass* CreateRenderPass() = 0;
+			virtual JarRenderPass *CreateRenderPass() = 0;
 	};
 
 
@@ -27,11 +27,11 @@ namespace Graphics {
 		public:
 			virtual ~JarCommandBuffer() = default;
 
-			virtual void StartRecording(JarRenderPass* renderPass) = 0;
+			virtual void StartRecording(JarRenderPass *renderPass) = 0;
 
 			virtual void EndRecording() = 0;
 
-			virtual void Present(std::shared_ptr<JarSurface>&surface) = 0;
+			virtual void Present(std::shared_ptr<JarSurface> &surface) = 0;
 	};
 
 
@@ -39,9 +39,14 @@ namespace Graphics {
 		public:
 			virtual ~JarCommandQueue() = default;
 
-			virtual JarCommandBuffer* getNextCommandBuffer() = 0;
+			virtual JarCommandBuffer *getNextCommandBuffer() = 0;
 
 			virtual void Release() = 0;
+	};
+
+	class JarBuffer {
+		public:
+			virtual ~JarBuffer() = default;
 	};
 
 	class JarDevice {
@@ -51,17 +56,19 @@ namespace Graphics {
 			virtual void Release() = 0;
 
 			virtual std::shared_ptr<JarCommandQueue> CreateCommandQueue() = 0;
+
+			virtual JarBuffer *CreateBuffer(size_t bufferSize, const void *data) = 0;
 	};
+
 
 	class Backend {
 		public:
 			virtual ~Backend() = default;
 
-			virtual std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* windowHandleProvider) = 0;
+			virtual std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *windowHandleProvider) = 0;
 
-			virtual std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>&surface) = 0;
+			virtual std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) = 0;
 	};
-
 
 	class IRenderer {
 		public:
@@ -74,7 +81,7 @@ namespace Graphics {
 			virtual void CreateLogicalDevice() = 0;
 
 			/// Create a rendering surface for the given window handle
-			virtual void CreateSurface(NativeWindowHandleProvider* windowHandleProvider) = 0;
+			virtual void CreateSurface(NativeWindowHandleProvider *windowHandleProvider) = 0;
 
 			virtual void CreateVertexBuffer() = 0;
 

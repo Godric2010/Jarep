@@ -75,10 +75,10 @@ namespace Graphics::Metal {
 
 		Graphics::Metal::SDLSurfaceAdapter::CreateViewAndMetalLayer(surfaceRect, &contentView, &layer);
 
-		if(contentView == nullptr)
+		if (contentView == nullptr)
 			throw std::runtime_error("Expected NS::View* to be not nullptr!");
 
-		if(layer == nullptr)
+		if (layer == nullptr)
 			throw std::runtime_error("Expected metal layer not to be nullptr");
 
 		layer->setDevice(device);
@@ -117,6 +117,12 @@ namespace Graphics::Metal {
 		const auto cmdQueue = _device.value()->newCommandQueue();
 		const auto metalQueue = std::make_shared<MetalCommandQueue>(cmdQueue);
 		return metalQueue;
+	}
+
+	JarBuffer *MetalDevice::CreateBuffer(size_t bufferSize, const void *data) {
+		auto metalBuffer = new MetalBuffer();
+		metalBuffer->CreateBuffer(bufferSize, data, _device.value());
+		return metalBuffer;
 	}
 
 #pragma endregion MetalDevice }
@@ -165,6 +171,23 @@ namespace Graphics::Metal {
 
 
 #pragma endregion MetalRenderPass }
+
+#pragma region MetalBuffer{
+
+	MetalBuffer::~MetalBuffer() = default;
+
+	void MetalBuffer::CreateBuffer(size_t size, const void *data, MTL::Device *metalDevice) {
+		buffer = metalDevice->newBuffer(size, MTL::ResourceStorageModeManaged);
+		memcpy(buffer->contents(), data, size);
+		buffer->didModifyRange(NS::Range::Make(0, buffer->length()));
+	}
+
+	std::optional<MTL::Buffer *> MetalBuffer::getBuffer() {
+		if (buffer == nullptr) return std::nullopt;
+		return std::make_optional(buffer);
+	}
+
+#pragma endregion MetalBuffer }
 
 #pragma region MetalAPI {
 
@@ -334,5 +357,6 @@ namespace Graphics::Metal {
 	}
 
 #pragma endregion MetalAPI }
+
 }
 #endif

@@ -28,71 +28,71 @@ namespace Graphics::Metal {
 
 			~MetalSurface() override;
 
-			bool CreateFromNativeWindowProvider(NativeWindowHandleProvider* windowHandleProvider);
+			bool CreateFromNativeWindowProvider(NativeWindowHandleProvider *windowHandleProvider);
 
 			void Update() override;
 
-			JarRenderPass* CreateRenderPass() override;
+			JarRenderPass *CreateRenderPass() override;
 
-			void FinalizeSurface(MTL::Device* device);
+			void FinalizeSurface(MTL::Device *device);
 
-			[[nodiscard]] CA::MetalDrawable* getDrawable() const { return drawable; }
+			[[nodiscard]] CA::MetalDrawable *getDrawable() const { return drawable; }
 
 		private:
-			MTK::View* view;
-			NS::View* contentView;
-			NS::Window* window;
+			MTK::View *view;
+			NS::View *contentView;
+			NS::Window *window;
 			CGRect surfaceRect;
-			CA::MetalLayer* layer;
+			CA::MetalLayer *layer;
 			CA::MetalDrawable *drawable;
 
 	};
 
 	class MetalRenderPass final : public JarRenderPass {
 		public:
-			explicit MetalRenderPass(MTL::RenderPassDescriptor* rpd) : renderPassDesc(rpd) {
+			explicit MetalRenderPass(MTL::RenderPassDescriptor *rpd) : renderPassDesc(rpd) {
 			}
 
 			~MetalRenderPass() override;
 
-			[[nodiscard]] MTL::RenderPassDescriptor* getRenderPassDesc() const { return renderPassDesc; }
+			[[nodiscard]] MTL::RenderPassDescriptor *getRenderPassDesc() const { return renderPassDesc; }
 
 		private:
-			MTL::RenderPassDescriptor* renderPassDesc;
+			MTL::RenderPassDescriptor *renderPassDesc;
 	};
 
 	class MetalCommandBuffer final : public JarCommandBuffer {
 		public:
-			explicit MetalCommandBuffer(MTL::CommandBuffer* cmdBuffer) : buffer(cmdBuffer) {
+			explicit MetalCommandBuffer(MTL::CommandBuffer *cmdBuffer) : buffer(cmdBuffer) {
 				encoder = nullptr;
 			}
 
 			~MetalCommandBuffer() override;
 
-			void StartRecording(JarRenderPass* renderPass) override;
+			void StartRecording(JarRenderPass *renderPass) override;
 
 			void EndRecording() override;
 
-			void Present(std::shared_ptr<JarSurface>&surface) override;
+			void Present(std::shared_ptr<JarSurface> &surface) override;
 
 		private:
-			MTL::CommandBuffer* buffer;
-			MTL::RenderCommandEncoder* encoder;
+			MTL::CommandBuffer *buffer;
+			MTL::RenderCommandEncoder *encoder;
 	};
 
 	class MetalCommandQueue final : public JarCommandQueue {
 		public:
-			MetalCommandQueue(MTL::CommandQueue* cmdQueue) : queue(cmdQueue) {
+			MetalCommandQueue(MTL::CommandQueue *cmdQueue) : queue(cmdQueue) {
 			}
 
 			~MetalCommandQueue() override;
 
-			JarCommandBuffer* getNextCommandBuffer() override;
+			JarCommandBuffer *getNextCommandBuffer() override;
 
 			void Release() override;
 
 		private:
-			MTL::CommandQueue* queue;
+			MTL::CommandQueue *queue;
 	};
 
 	class MetalDevice final : public JarDevice {
@@ -107,12 +107,27 @@ namespace Graphics::Metal {
 
 			std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
 
+			JarBuffer *CreateBuffer(size_t bufferSize, const void *data) override;
+
 			[[nodiscard]] std::optional<MTL::Device *> getDevice() const;
 
 		private:
 			std::optional<MTL::Device *> _device;
 	};
 
+	class MetalBuffer final : public JarBuffer {
+		public:
+			MetalBuffer() = default;
+
+			~MetalBuffer() override;
+
+			void CreateBuffer(size_t size, const void *data, MTL::Device *metalDevice);
+
+			std::optional<MTL::Buffer *> getBuffer();
+
+		private:
+			MTL::Buffer *buffer;
+	};
 
 	class MetalBackend final : public Backend {
 		public:
@@ -120,9 +135,9 @@ namespace Graphics::Metal {
 
 			~MetalBackend() override;
 
-			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* windowHandleProvider) override;
+			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *windowHandleProvider) override;
 
-			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>&surface) override;
+			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) override;
 	};
 
 	class MetalAPI : public IRenderer {
@@ -138,7 +153,7 @@ namespace Graphics::Metal {
 			void RegisterPhysicalDevice() override;
 
 			/// Create a render surface but don't push it to the window, since the creation of the MTL Device occurs later
-			void CreateSurface(NativeWindowHandleProvider* nativeWindowHandle) override;
+			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle) override;
 
 			void CreateVertexBuffer() override;
 
@@ -155,23 +170,23 @@ namespace Graphics::Metal {
 			void Shutdown() override;
 
 		private:
-			NS::Window* window;
-			MTK::View* surface;
-			CA::MetalLayer* metalLayer;
-			MTL::Device* device;
+			NS::Window *window;
+			MTK::View *surface;
+			CA::MetalLayer *metalLayer;
+			MTL::Device *device;
 			//			CA::MetalDrawable* metalDrawable;
 
-			MTL::Library* vertShaderLibrary;
-			MTL::Library* fragShaderLibrary;
-			MTL::CommandQueue* commandQueue;
-			MTL::CommandBuffer* commandBuffer;
-			MTL::RenderPipelineState* renderPSO;
-			MTL::Buffer* triangleVertexBuffer;
+			MTL::Library *vertShaderLibrary;
+			MTL::Library *fragShaderLibrary;
+			MTL::CommandQueue *commandQueue;
+			MTL::CommandBuffer *commandBuffer;
+			MTL::RenderPipelineState *renderPSO;
+			MTL::Buffer *triangleVertexBuffer;
 			//			MTL::RenderPassDescriptor* renderPassDescriptor;
 
-			std::string readFile(const std::string&filename);
+			std::string readFile(const std::string &filename);
 
-			void encodeRenderCommand(MTL::RenderCommandEncoder* renderCommandEncoder);
+			void encodeRenderCommand(MTL::RenderCommandEncoder *renderCommandEncoder);
 	};
 }
 #endif
