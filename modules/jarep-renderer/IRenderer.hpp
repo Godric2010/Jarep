@@ -49,6 +49,12 @@ namespace Graphics {
 			virtual ~JarBuffer() = default;
 	};
 
+	class JarShaderModule {
+		public:
+			virtual ~JarShaderModule() = default;
+			virtual void Release() = 0;
+	};
+
 	class JarDevice {
 		public:
 			virtual ~JarDevice() = default;
@@ -58,6 +64,8 @@ namespace Graphics {
 			virtual std::shared_ptr<JarCommandQueue> CreateCommandQueue() = 0;
 
 			virtual JarBuffer *CreateBuffer(size_t bufferSize, const void *data) = 0;
+			virtual JarShaderModule* CreateShaderModule(std::string fileContent) = 0;
+
 	};
 
 

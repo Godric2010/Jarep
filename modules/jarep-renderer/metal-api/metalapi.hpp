@@ -109,6 +109,8 @@ namespace Graphics::Metal {
 
 			JarBuffer *CreateBuffer(size_t bufferSize, const void *data) override;
 
+			JarShaderModule* CreateShaderModule(std::string shaderContent) override;
+
 			[[nodiscard]] std::optional<MTL::Device *> getDevice() const;
 
 		private:
@@ -127,6 +129,19 @@ namespace Graphics::Metal {
 
 		private:
 			MTL::Buffer *buffer;
+	};
+
+	class MetalShaderLibrary final: public JarShaderModule{
+		public:
+			MetalShaderLibrary() = default;
+			~MetalShaderLibrary() override;
+
+			void CreateShaderLibrary(MTL::Device* device, std::string shaderContent);
+
+			void Release() override;
+
+		private:
+			MTL::Library* library;
 	};
 
 	class MetalBackend final : public Backend {

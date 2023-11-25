@@ -125,6 +125,12 @@ namespace Graphics::Metal {
 		return metalBuffer;
 	}
 
+	JarShaderModule *MetalDevice::CreateShaderModule(std::string shaderContent) {
+		auto shaderLib = new MetalShaderLibrary();
+		shaderLib->CreateShaderLibrary(_device.value(), shaderContent);
+		return shaderLib;
+	}
+
 #pragma endregion MetalDevice }
 
 #pragma region MetalCommandQueue {
@@ -188,6 +194,29 @@ namespace Graphics::Metal {
 	}
 
 #pragma endregion MetalBuffer }
+
+#pragma region MetalShader{
+
+	MetalShaderLibrary::~MetalShaderLibrary() = default;
+
+	void MetalShaderLibrary::CreateShaderLibrary(MTL::Device *device, std::string shaderContent) {
+
+		const NS::String *shaderStr = NS::String::string(shaderContent.c_str(), NS::UTF8StringEncoding);
+
+		NS::Error *error = nullptr;
+		library = device->newLibrary(shaderStr, nullptr, &error);
+		if (!library) {
+			throw std::runtime_error("Failed to load vertex shader library: " +
+			                         std::string(error->localizedDescription()->cString(NS::UTF8StringEncoding)));
+		}
+	}
+
+	void MetalShaderLibrary::Release() {
+		library->release();
+	}
+
+#pragma endregion }
+
 
 #pragma region MetalAPI {
 
