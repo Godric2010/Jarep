@@ -39,7 +39,6 @@ namespace Graphics::Metal {
 			[[nodiscard]] CA::MetalDrawable *getDrawable() const { return drawable; }
 
 		private:
-			MTK::View *view;
 			NS::View *contentView;
 			NS::Window *window;
 			CGRect surfaceRect;
@@ -72,6 +71,12 @@ namespace Graphics::Metal {
 			void StartRecording(JarRenderPass *renderPass) override;
 
 			void EndRecording() override;
+
+			void BindPipeline(JarPipeline *pipeline) override;
+
+			void BindVertexBuffer(JarBuffer *buffer) override;
+
+			void Draw() override;
 
 			void Present(std::shared_ptr<JarSurface> &surface) override;
 
@@ -109,7 +114,9 @@ namespace Graphics::Metal {
 
 			JarBuffer *CreateBuffer(size_t bufferSize, const void *data) override;
 
-			JarShaderModule* CreateShaderModule(std::string shaderContent) override;
+			JarShaderModule *CreateShaderModule(std::string shaderContent) override;
+
+			JarPipeline *CreatePipeline(JarShaderModule *vertexModule, JarShaderModule *fragmentModule) override;
 
 			[[nodiscard]] std::optional<MTL::Device *> getDevice() const;
 
@@ -131,17 +138,36 @@ namespace Graphics::Metal {
 			MTL::Buffer *buffer;
 	};
 
-	class MetalShaderLibrary final: public JarShaderModule{
+	class MetalShaderLibrary final : public JarShaderModule {
 		public:
 			MetalShaderLibrary() = default;
+
 			~MetalShaderLibrary() override;
 
-			void CreateShaderLibrary(MTL::Device* device, std::string shaderContent);
+			void CreateShaderLibrary(MTL::Device *device, std::string shaderContent);
 
 			void Release() override;
 
+			MTL::Library *getLibrary() { return library; }
+
 		private:
-			MTL::Library* library;
+			MTL::Library *library;
+	};
+
+	class MetalPipeline final : public JarPipeline {
+		public:
+			MetalPipeline() = default;
+
+			~MetalPipeline() override;
+
+			void CreatePipeline(MTL::Device *device, MTL::Library *vertexLib, MTL::Library *fragmentLib);
+
+			void Release() override;
+
+			MTL::RenderPipelineState *getPSO() { return pipelineState; }
+
+		private:
+			MTL::RenderPipelineState *pipelineState;
 	};
 
 	class MetalBackend final : public Backend {

@@ -64,7 +64,7 @@ namespace Graphics::Metal {
 		MTL::RenderPassColorAttachmentDescriptor *cd = renderPassDescriptor->colorAttachments()->object(0);
 		cd->setTexture(drawable->texture());
 		cd->setLoadAction(MTL::LoadActionClear);
-		cd->setClearColor(MTL::ClearColor(0.0, 1.0, 0.0, 1.0));
+		cd->setClearColor(MTL::ClearColor(0.0, 0.0, 0.0, 1.0));
 		cd->setStoreAction(MTL::StoreActionStore);
 
 		return new MetalRenderPass(renderPassDescriptor);
@@ -84,11 +84,6 @@ namespace Graphics::Metal {
 		layer->setDevice(device);
 		layer->setPixelFormat(MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB);
 
-//		view = MTK::View::alloc()->init(surfaceRect, device);
-//
-//		view->setColorPixelFormat(MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB);
-//		view->setClearColor(MTL::ClearColor::Make(1.0f, 1.0f, 0.0f, 1.0f));
-//		view->setDevice(device);
 		window->setContentView(contentView);
 	}
 
@@ -97,8 +92,7 @@ namespace Graphics::Metal {
 
 #pragma region MetalDevice {
 
-	MetalDevice::~MetalDevice() {
-	};
+	MetalDevice::~MetalDevice() = default;
 
 	void MetalDevice::Initialize() {
 		_device = std::make_optional(MTL::CreateSystemDefaultDevice());
@@ -131,6 +125,18 @@ namespace Graphics::Metal {
 		return shaderLib;
 	}
 
+	JarPipeline *MetalDevice::CreatePipeline(JarShaderModule *vertexModule, JarShaderModule *fragmentModule) {
+
+		auto *vertexShaderLib = reinterpret_cast<MetalShaderLibrary *>(vertexModule);
+		auto *fragmentShaderLib = reinterpret_cast<MetalShaderLibrary *>(fragmentModule);
+
+		auto pso = new MetalPipeline();
+		pso->CreatePipeline(_device.value(), vertexShaderLib->getLibrary(), fragmentShaderLib->getLibrary());
+
+		return pso;
+
+	}
+
 #pragma endregion MetalDevice }
 
 #pragma region MetalCommandQueue {
@@ -159,6 +165,22 @@ namespace Graphics::Metal {
 
 	void MetalCommandBuffer::EndRecording() {
 		encoder->endEncoding();
+	}
+
+	void MetalCommandBuffer::BindPipeline(Graphics::JarPipeline *pipeline) {
+		auto *metalPipeline = reinterpret_cast<MetalPipeline *>(pipeline);
+		encoder->setRenderPipelineState(metalPipeline->getPSO());
+	}
+
+	void MetalCommandBuffer::BindVertexBuffer(Graphics::JarBuffer *buffer) {
+		auto *metalBuffer = reinterpret_cast<MetalBuffer *>(buffer);
+		encoder->setVertexBuffer(metalBuffer->getBuffer().value(), 0, 0);
+
+	}
+
+	void MetalCommandBuffer::Draw() {
+		encoder->drawPrimitives(MTL::PrimitiveType::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
+
 	}
 
 	void MetalCommandBuffer::Present(std::shared_ptr<JarSurface> &surface) {
@@ -216,6 +238,52 @@ namespace Graphics::Metal {
 	}
 
 #pragma endregion }
+
+#pragma region MetalPipeline{
+
+	MetalPipeline::~MetalPipeline() = default;
+
+	void MetalPipeline::CreatePipeline(MTL::Device *device, MTL::Library *vertexLib, MTL::Library *fragmentLib) {
+		MTL::Function *vertexShader = vertexLib->newFunction(
+				NS::String::string("main0", NS::ASCIIStringEncoding));
+		assert(vertexShader);
+		MTL::Function *fragmentShader = fragmentLib->
+				newFunction(NS::String::string("main0", NS::ASCIIStringEncoding));
+		assert(fragmentShader);
+
+		auto vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
+		vertexDescriptor->attributes()->object(0)->setFormat(MTL::VertexFormat::VertexFormatFloat3);
+		vertexDescriptor->attributes()->object(0)->setOffset(0);
+		vertexDescriptor->attributes()->object(0)->setBufferIndex(0);
+
+		vertexDescriptor->attributes()->object(1)->setFormat(MTL::VertexFormat::VertexFormatFloat3);
+		vertexDescriptor->attributes()->object(1)->setOffset(sizeof(float) * 3);
+		vertexDescriptor->attributes()->object(1)->setBufferIndex(0);
+
+		vertexDescriptor->layouts()->object(0)->setStride(sizeof(float) * 6);
+		vertexDescriptor->layouts()->object(0)->setStepFunction(MTL::VertexStepFunctionPerVertex);
+
+		MTL::RenderPipelineDescriptor *renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+		renderPipelineDescriptor->setLabel(NS::String::string("Triangle rendering pipeline", NS::ASCIIStringEncoding));
+		renderPipelineDescriptor->setVertexFunction(vertexShader);
+		renderPipelineDescriptor->setFragmentFunction(fragmentShader);
+		renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(
+				MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB/*metalLayer->pixelFormat()*/);
+		renderPipelineDescriptor->setVertexDescriptor(vertexDescriptor);
+
+		NS::Error *error = nullptr;
+		pipelineState = device->newRenderPipelineState(renderPipelineDescriptor, &error);
+		if (!pipelineState) {
+			throw std::runtime_error("Failed to create render pipeline state object! " +
+			                         std::string(error->localizedDescription()->utf8String()));
+		}
+	}
+
+	void MetalPipeline::Release() {
+		pipelineState->release();
+	}
+
+#pragma endregion MetalPipeline }
 
 
 #pragma region MetalAPI {

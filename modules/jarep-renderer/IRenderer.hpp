@@ -23,6 +23,25 @@ namespace Graphics {
 	};
 
 
+	class JarBuffer {
+		public:
+			virtual ~JarBuffer() = default;
+	};
+
+	class JarShaderModule {
+		public:
+			virtual ~JarShaderModule() = default;
+
+			virtual void Release() = 0;
+	};
+
+	class JarPipeline {
+		public:
+			virtual ~JarPipeline() = default;
+
+			virtual void Release() = 0;
+	};
+
 	class JarCommandBuffer {
 		public:
 			virtual ~JarCommandBuffer() = default;
@@ -30,6 +49,12 @@ namespace Graphics {
 			virtual void StartRecording(JarRenderPass *renderPass) = 0;
 
 			virtual void EndRecording() = 0;
+
+			virtual void BindPipeline(JarPipeline *pipeline) = 0;
+
+			virtual void BindVertexBuffer(JarBuffer* buffer) = 0;
+
+			virtual void Draw() = 0;
 
 			virtual void Present(std::shared_ptr<JarSurface> &surface) = 0;
 	};
@@ -44,17 +69,6 @@ namespace Graphics {
 			virtual void Release() = 0;
 	};
 
-	class JarBuffer {
-		public:
-			virtual ~JarBuffer() = default;
-	};
-
-	class JarShaderModule {
-		public:
-			virtual ~JarShaderModule() = default;
-			virtual void Release() = 0;
-	};
-
 	class JarDevice {
 		public:
 			virtual ~JarDevice() = default;
@@ -64,7 +78,10 @@ namespace Graphics {
 			virtual std::shared_ptr<JarCommandQueue> CreateCommandQueue() = 0;
 
 			virtual JarBuffer *CreateBuffer(size_t bufferSize, const void *data) = 0;
-			virtual JarShaderModule* CreateShaderModule(std::string fileContent) = 0;
+
+			virtual JarShaderModule *CreateShaderModule(std::string fileContent) = 0;
+
+			virtual JarPipeline *CreatePipeline(JarShaderModule *vertexModule, JarShaderModule *fragmentModule) = 0;
 
 	};
 

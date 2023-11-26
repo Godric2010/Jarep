@@ -32,8 +32,10 @@ namespace Graphics {
 				};
 
 				const size_t vertexDataSize = vertices.size() * sizeof(Vertex);
-				auto testBuffer = device->CreateBuffer(vertexDataSize, vertices.data());
-				auto testShader = device->CreateShaderModule(readFile("shaders/triangle_vert.metal"));
+				vertexBuffer = device->CreateBuffer(vertexDataSize, vertices.data());
+				vertexShaderModule= device->CreateShaderModule(readFile("shaders/triangle_vert.metal"));
+				fragmentShaderModule= device->CreateShaderModule(readFile("shaders/triangle_frag.metal"));
+				pipeline = device->CreatePipeline(vertexShaderModule, fragmentShaderModule);
 
 				// renderAPI->CreateSurface(nativeWindowHandle);
 				// renderAPI->RegisterPhysicalDevice();
@@ -49,6 +51,9 @@ namespace Graphics {
 				const auto renderPassDesc = surface->CreateRenderPass();
 				commandBuffer->StartRecording(renderPassDesc);
 
+				commandBuffer->BindPipeline(pipeline);
+				commandBuffer->BindVertexBuffer(vertexBuffer);
+				commandBuffer->Draw();
 
 				commandBuffer->EndRecording();
 				commandBuffer->Present(surface);
@@ -57,6 +62,11 @@ namespace Graphics {
 			}
 
 			void Shutdown() {
+
+				pipeline->Release();
+				vertexShaderModule->Release();
+				fragmentShaderModule->Release();
+
 				queue->Release();
 				device->Release();
 				std::cout << "Shutdown renderer" << std::endl;
@@ -69,6 +79,10 @@ namespace Graphics {
 			std::shared_ptr<JarSurface> surface;
 			std::shared_ptr<JarDevice> device;
 			std::shared_ptr<JarCommandQueue> queue;
+			JarBuffer* vertexBuffer;
+			JarShaderModule* vertexShaderModule;
+			JarShaderModule* fragmentShaderModule;
+			JarPipeline* pipeline;
 
 			std::string readFile(const std::string &filename) {
 				std::ifstream file(filename, std::ios::ate | std::ios::binary);
