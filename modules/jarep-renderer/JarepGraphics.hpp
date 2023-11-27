@@ -17,6 +17,7 @@ namespace Graphics {
 	class JarepGraphics {
 		public:
 			JarepGraphics(const std::vector<const char *> &extensionNames);
+
 			~JarepGraphics() = default;
 
 			void Initialize(NativeWindowHandleProvider *nativeWindowHandle) {
@@ -33,17 +34,9 @@ namespace Graphics {
 
 				const size_t vertexDataSize = vertices.size() * sizeof(Vertex);
 				vertexBuffer = device->CreateBuffer(vertexDataSize, vertices.data());
-				vertexShaderModule= device->CreateShaderModule(readFile("shaders/triangle_vert.metal"));
-				fragmentShaderModule= device->CreateShaderModule(readFile("shaders/triangle_frag.metal"));
+				vertexShaderModule = device->CreateShaderModule(readFile("shaders/triangle_vert.metal"));
+				fragmentShaderModule = device->CreateShaderModule(readFile("shaders/triangle_frag.metal"));
 				pipeline = device->CreatePipeline(vertexShaderModule, fragmentShaderModule);
-
-				// renderAPI->CreateSurface(nativeWindowHandle);
-				// renderAPI->RegisterPhysicalDevice();
-				// renderAPI->CreateLogicalDevice();
-				// renderAPI->CreateVertexBuffer();
-				// renderAPI->CreateShaders();
-				// renderAPI->CreateCommandQueue();
-				// renderAPI->CreateGraphicsPipeline();
 			}
 
 			void Render() {
@@ -57,8 +50,6 @@ namespace Graphics {
 
 				commandBuffer->EndRecording();
 				commandBuffer->Present(surface);
-
-			//	renderAPI->Draw();
 			}
 
 			void Shutdown() {
@@ -74,15 +65,14 @@ namespace Graphics {
 
 		private:
 			std::vector<const char *> extensions;
-			std::shared_ptr<IRenderer> renderAPI;
 			std::shared_ptr<Backend> backend;
 			std::shared_ptr<JarSurface> surface;
 			std::shared_ptr<JarDevice> device;
 			std::shared_ptr<JarCommandQueue> queue;
-			JarBuffer* vertexBuffer;
-			JarShaderModule* vertexShaderModule;
-			JarShaderModule* fragmentShaderModule;
-			JarPipeline* pipeline;
+			std::shared_ptr<JarBuffer> vertexBuffer;
+			std::shared_ptr<JarShaderModule> vertexShaderModule;
+			std::shared_ptr<JarShaderModule> fragmentShaderModule;
+			std::shared_ptr<JarPipeline> pipeline;
 
 			std::string readFile(const std::string &filename) {
 				std::ifstream file(filename, std::ios::ate | std::ios::binary);

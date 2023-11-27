@@ -72,9 +72,9 @@ namespace Graphics::Metal {
 
 			void EndRecording() override;
 
-			void BindPipeline(JarPipeline *pipeline) override;
+			void BindPipeline(std::shared_ptr<JarPipeline> pipeline) override;
 
-			void BindVertexBuffer(JarBuffer *buffer) override;
+			void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
 
 			void Draw() override;
 
@@ -112,11 +112,12 @@ namespace Graphics::Metal {
 
 			std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
 
-			JarBuffer *CreateBuffer(size_t bufferSize, const void *data) override;
+			std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void *data) override;
 
-			JarShaderModule *CreateShaderModule(std::string shaderContent) override;
+			std::shared_ptr<JarShaderModule> CreateShaderModule(std::string shaderContent) override;
 
-			JarPipeline *CreatePipeline(JarShaderModule *vertexModule, JarShaderModule *fragmentModule) override;
+			std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
+			                                            std::shared_ptr<JarShaderModule> fragmentModule) override;
 
 			[[nodiscard]] std::optional<MTL::Device *> getDevice() const;
 
@@ -179,55 +180,6 @@ namespace Graphics::Metal {
 			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *windowHandleProvider) override;
 
 			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) override;
-	};
-
-	class MetalAPI : public IRenderer {
-		public:
-			MetalAPI();
-
-			~MetalAPI() override;
-
-			/// Create a logical device for metal means to link the MTLdevice with the surface and push this into the window settings.
-			void CreateLogicalDevice() override;
-
-			/// Create an MTLDevice and provide it for future usage
-			void RegisterPhysicalDevice() override;
-
-			/// Create a render surface but don't push it to the window, since the creation of the MTL Device occurs later
-			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle) override;
-
-			void CreateVertexBuffer() override;
-
-			void CreateShaders() override;
-
-			void CreateCommandQueue() override;
-
-			void CreateGraphicsPipeline() override;
-
-			void RecordCommandBuffer() override;
-
-			void Draw() override;
-
-			void Shutdown() override;
-
-		private:
-			NS::Window *window;
-			MTK::View *surface;
-			CA::MetalLayer *metalLayer;
-			MTL::Device *device;
-			//			CA::MetalDrawable* metalDrawable;
-
-			MTL::Library *vertShaderLibrary;
-			MTL::Library *fragShaderLibrary;
-			MTL::CommandQueue *commandQueue;
-			MTL::CommandBuffer *commandBuffer;
-			MTL::RenderPipelineState *renderPSO;
-			MTL::Buffer *triangleVertexBuffer;
-			//			MTL::RenderPassDescriptor* renderPassDescriptor;
-
-			std::string readFile(const std::string &filename);
-
-			void encodeRenderCommand(MTL::RenderCommandEncoder *renderCommandEncoder);
 	};
 }
 #endif

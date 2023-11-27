@@ -8,7 +8,6 @@ namespace Graphics {
 	JarepGraphics::JarepGraphics(const std::vector<const char *>&extensionNames) {
 		extensions = extensionNames;
 #if defined(__APPLE__) && defined(__MACH__)
-		renderAPI = std::make_shared<Metal::MetalAPI>(Metal::MetalAPI());
 		backend = std::make_shared<Metal::MetalBackend>(Metal::MetalBackend());
 		std::cout << "Using metal renderer!" << std::endl;
 #else
