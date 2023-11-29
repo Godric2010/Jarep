@@ -2,6 +2,7 @@
 // Created by Sebastian Borsch on 19.11.23.
 //
 
+#if defined(__APPLE__)
 #include "sdlsurfaceadapter.hpp"
 #import<AppKit/AppKit.h>
 #include "AppKit/AppKit.hpp"
@@ -27,3 +28,4 @@ namespace Graphics::Metal {
 	}
 
 }
+#endif

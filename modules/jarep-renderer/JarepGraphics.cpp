@@ -12,7 +12,7 @@ namespace Graphics {
 		backend = std::make_shared<Metal::MetalBackend>(Metal::MetalBackend());
 		std::cout << "Using metal renderer!" << std::endl;
 #else
-				renderAPI = std::make_shared<Vulkan::VulkanAPI>(Vulkan::VulkanAPI(extensionNames));
+//				renderAPI = std::make_shared<Vulkan::VulkanAPI>(Vulkan::VulkanAPI(extensionNames));
 				std::cout << "Using vulkan renderer!" << std::endl;
 #endif
 	}

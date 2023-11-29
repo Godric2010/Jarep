@@ -11,6 +11,7 @@
 #include <set>
 #include <vulkan/vulkan.hpp>
 #include <fstream>
+#include <iostream>
 
 #if defined (__linux__)
 #define VK_USE_PLATFORM_XLIB_KHR
@@ -33,31 +34,31 @@ namespace Graphics::Vulkan {
 	struct QueueFamilyIndices;
 	struct SwapChainSupportDetails;
 
-	class VulkanAPI : public IRenderer {
+	class VulkanAPI {
 		public:
 			VulkanAPI(const std::vector<const char *> &extensionNames);
 
-			~VulkanAPI() override;
+			~VulkanAPI() ;
 
-			void RegisterPhysicalDevice() override;
+			void RegisterPhysicalDevice() ;
 
-			void CreateLogicalDevice() override;
+			void CreateLogicalDevice() ;
 
-			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle) override;
+			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle) ;
 
-			void CreateVertexBuffer() override;
+			void CreateVertexBuffer() ;
 
-			void CreateShaders() override;
+			void CreateShaders() ;
 
-			void CreateCommandQueue() override;
+			void CreateCommandQueue() ;
 
-			void CreateGraphicsPipeline() override;
+			void CreateGraphicsPipeline() ;
 
-			void RecordCommandBuffer() override;
+			void RecordCommandBuffer() ;
 
-			void Draw() override;
+			void Draw() ;
 
-			void Shutdown() override;
+			void Shutdown() ;
 
 		private:
 			VkInstance instance;

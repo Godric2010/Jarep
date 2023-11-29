@@ -5,6 +5,7 @@
 #ifndef SDLSURFACEADAPTER_HPP
 #define SDLSURFACEADAPTER_HPP
 
+#if defined(__APPLE__)
 
 #include <AppKit/AppKit.hpp>
 #import "QuartzCore/CAMetalLayer.hpp"
@@ -20,4 +21,5 @@ namespace Graphics::Metal {
 			static void CreateViewAndMetalLayer(CGRect surfaceRect, NS::View** viewContent, CA::MetalLayer** metalLayer);
 	};
 }
+#endif
 #endif //SDLSURFACEADAPTER_HPP

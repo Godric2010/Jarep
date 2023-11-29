@@ -7,10 +7,12 @@
 
 #include <iostream>
 #include <memory>
+#include <filesystem>
+#include <vector>
 #include "IRenderer.hpp"
 #include "NativeWindowHandleProvider.hpp"
-#include "metal-api/metalapi.hpp"
-#include "vulkan-api/vulkanapi.hpp"
+// #include "metal-api/metalapi.hpp"
+// #include "vulkan-api/vulkanapi.hpp"
 #include "Vertex.hpp"
 
 namespace Graphics {
@@ -20,7 +22,7 @@ namespace Graphics {
 			~JarepGraphics() = default;
 
 			void Initialize(NativeWindowHandleProvider *nativeWindowHandle) {
-
+/*
 				surface = backend->CreateSurface(nativeWindowHandle);
 				device = backend->CreateDevice(surface);
 				queue = device->CreateCommandQueue();
@@ -36,17 +38,11 @@ namespace Graphics {
 				vertexShaderModule= device->CreateShaderModule(readFile("shaders/triangle_vert.metal"));
 				fragmentShaderModule= device->CreateShaderModule(readFile("shaders/triangle_frag.metal"));
 				pipeline = device->CreatePipeline(vertexShaderModule, fragmentShaderModule);
-
-				// renderAPI->CreateSurface(nativeWindowHandle);
-				// renderAPI->RegisterPhysicalDevice();
-				// renderAPI->CreateLogicalDevice();
-				// renderAPI->CreateVertexBuffer();
-				// renderAPI->CreateShaders();
-				// renderAPI->CreateCommandQueue();
-				// renderAPI->CreateGraphicsPipeline();
+				*/
 			}
 
 			void Render() {
+				/*
 				const auto commandBuffer = queue->getNextCommandBuffer();
 				const auto renderPassDesc = surface->CreateRenderPass();
 				commandBuffer->StartRecording(renderPassDesc);
@@ -57,25 +53,24 @@ namespace Graphics {
 
 				commandBuffer->EndRecording();
 				commandBuffer->Present(surface);
-
-			//	renderAPI->Draw();
+				 */
 			}
 
 			void Shutdown() {
-
+/*
 				pipeline->Release();
 				vertexShaderModule->Release();
 				fragmentShaderModule->Release();
 
 				queue->Release();
 				device->Release();
+				*/
 				std::cout << "Shutdown renderer" << std::endl;
 			}
 
 		private:
 			std::vector<const char *> extensions;
-			std::shared_ptr<IRenderer> renderAPI;
-			std::shared_ptr<Backend> backend;
+		/*	std::shared_ptr<Backend> backend;
 			std::shared_ptr<JarSurface> surface;
 			std::shared_ptr<JarDevice> device;
 			std::shared_ptr<JarCommandQueue> queue;
@@ -83,8 +78,9 @@ namespace Graphics {
 			JarShaderModule* vertexShaderModule;
 			JarShaderModule* fragmentShaderModule;
 			JarPipeline* pipeline;
+		 */
 
-			std::string readFile(const std::string &filename) {
+		/*	std::string readFile(const std::string &filename) {
 				std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
 				if (!std::filesystem::exists(filename)) {
@@ -105,6 +101,7 @@ namespace Graphics {
 				std::string bufferString(buffer.begin(), buffer.end());
 				return bufferString;
 			}
+		 */
 	};
 }
 #endif //JAREP_JAREPGRAPHICS_HPP
