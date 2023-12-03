@@ -6,13 +6,14 @@
 #define JAREP_IRENDERER_HPP
 
 #include "NativeWindowHandleProvider.hpp"
-
+#include <memory>
 namespace Graphics {
 	/*
 	class JarRenderPass {
 		public:
 			virtual ~JarRenderPass() = default;
 	};
+	 */
 
 	class JarSurface {
 		public:
@@ -20,10 +21,10 @@ namespace Graphics {
 
 			virtual void Update() = 0;
 
-			virtual JarRenderPass *CreateRenderPass() = 0;
+			//virtual JarRenderPass *CreateRenderPass() = 0;
 	};
 
-
+/*
 	class JarBuffer {
 		public:
 			virtual ~JarBuffer() = default;
@@ -69,8 +70,9 @@ namespace Graphics {
 
 			virtual void Release() = 0;
 	};
+	 */
 
-	class JarDevice {
+	/*class JarDevice {
 		public:
 			virtual ~JarDevice() = default;
 
@@ -84,7 +86,7 @@ namespace Graphics {
 
 			virtual JarPipeline *CreatePipeline(JarShaderModule *vertexModule, JarShaderModule *fragmentModule) = 0;
 
-	};
+	};*/
 
 
 	class Backend {
@@ -93,7 +95,7 @@ namespace Graphics {
 
 			virtual std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *windowHandleProvider) = 0;
 
-			virtual std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) = 0;
-	};*/
+			//virtual std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) = 0;
+	};
 }
 #endif //JAREP_IRENDERER_HPP

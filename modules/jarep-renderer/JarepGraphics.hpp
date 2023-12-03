@@ -11,8 +11,8 @@
 #include <vector>
 #include "IRenderer.hpp"
 #include "NativeWindowHandleProvider.hpp"
-// #include "metal-api/metalapi.hpp"
-// #include "vulkan-api/vulkanapi.hpp"
+#include "metal-api/metalapi.hpp"
+#include "vulkan-api/vulkanapi.hpp"
 #include "Vertex.hpp"
 
 namespace Graphics {
@@ -22,9 +22,9 @@ namespace Graphics {
 			~JarepGraphics() = default;
 
 			void Initialize(NativeWindowHandleProvider *nativeWindowHandle) {
-/*
+
 				surface = backend->CreateSurface(nativeWindowHandle);
-				device = backend->CreateDevice(surface);
+/*				device = backend->CreateDevice(surface);
 				queue = device->CreateCommandQueue();
 
 				const std::vector<Vertex> vertices = {
@@ -70,9 +70,9 @@ namespace Graphics {
 
 		private:
 			std::vector<const char *> extensions;
-		/*	std::shared_ptr<Backend> backend;
+			std::shared_ptr<Backend> backend;
 			std::shared_ptr<JarSurface> surface;
-			std::shared_ptr<JarDevice> device;
+		/*	std::shared_ptr<JarDevice> device;
 			std::shared_ptr<JarCommandQueue> queue;
 			JarBuffer* vertexBuffer;
 			JarShaderModule* vertexShaderModule;

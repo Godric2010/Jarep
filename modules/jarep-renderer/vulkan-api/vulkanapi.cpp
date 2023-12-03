@@ -7,6 +7,63 @@
 #include "Vertex.hpp"
 
 namespace Graphics::Vulkan {
+
+#pragma region VulkanBackend{
+
+	VulkanBackend::VulkanBackend(const std::vector<const char *> &extensions) {
+		extensionNames = extensions;
+		createInstance();
+	}
+
+	VulkanBackend::~VulkanBackend() = default;
+
+	std::shared_ptr<JarSurface> VulkanBackend::CreateSurface(
+			Graphics::NativeWindowHandleProvider *nativeWindowHandleProvider) {
+
+		VkExtent2D surfaceExtend = VkExtent2D();
+		surfaceExtend.width = nativeWindowHandleProvider->getWindowWidth();
+		surfaceExtend.height = nativeWindowHandleProvider->getWindowHeight();
+
+		VkSurfaceKHR surface = VulkanSurfaceAdapter::CreateSurfaceFromNativeHandle(nativeWindowHandleProvider, instance);
+
+		return std::make_shared<VulkanSurface>(surface, surfaceExtend);
+	}
+
+	void VulkanBackend::createInstance() {
+		VkApplicationInfo appInfo{};
+		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+		appInfo.pApplicationName = "JAREP";
+		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+		appInfo.pEngineName = "JAREP";
+		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+		appInfo.apiVersion = VK_API_VERSION_1_3;
+
+		VkInstanceCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensionNames.size());
+		createInfo.ppEnabledExtensionNames = extensionNames.data();
+		createInfo.pApplicationInfo = &appInfo;
+
+		if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+			throw std::runtime_error("failed to create instance!");
+	}
+
+#pragma endregion VulkanBackend }
+
+#pragma region VulkanSurface{
+
+	VulkanSurface::VulkanSurface(VkSurfaceKHR surface, VkExtent2D surfaceExtend) {
+		this->surface = surface;
+		this->surfaceExtent = surfaceExtend;
+	}
+
+	VulkanSurface::~VulkanSurface() = default;
+
+	void VulkanSurface::Update() {}
+
+#pragma endregion VulkanSurface }
+
+
 	struct QueueFamilyIndices {
 		std::optional<uint32_t> graphicsFamily;
 		std::optional<uint32_t> presentFamily;

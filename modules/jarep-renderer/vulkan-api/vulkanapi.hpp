@@ -12,6 +12,8 @@
 #include <vulkan/vulkan.hpp>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include "sdlsurfaceadapter.hpp"
 
 #if defined (__linux__)
 #define VK_USE_PLATFORM_XLIB_KHR
@@ -30,6 +32,44 @@
 
 namespace Graphics::Vulkan {
 
+#pragma region VulkanBackend{
+
+	class VulkanBackend final : public Backend {
+
+		public:
+			VulkanBackend(const std::vector<const char *> &extensions);
+
+			~VulkanBackend() override;
+
+			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *nativeWindowHandleProvider);
+
+		private:
+			std::vector<const char *> extensionNames;
+			VkInstance instance;
+
+			void createInstance();
+	};
+
+#pragma endregion VulkanBackend }
+
+#pragma region VulkanSurface{
+
+	class VulkanSurface final : public JarSurface {
+		public:
+			VulkanSurface(VkSurfaceKHR surface, VkExtent2D surfaceExtend);
+
+			~VulkanSurface() override;
+
+			void Update() override;
+
+		private:
+			VkSurfaceKHR surface;
+			VkExtent2D surfaceExtent;
+
+	};
+
+
+#pragma endregion VulkanSurface }
 
 	struct QueueFamilyIndices;
 	struct SwapChainSupportDetails;
@@ -38,27 +78,27 @@ namespace Graphics::Vulkan {
 		public:
 			VulkanAPI(const std::vector<const char *> &extensionNames);
 
-			~VulkanAPI() ;
+			~VulkanAPI();
 
-			void RegisterPhysicalDevice() ;
+			void RegisterPhysicalDevice();
 
-			void CreateLogicalDevice() ;
+			void CreateLogicalDevice();
 
-			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle) ;
+			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle);
 
-			void CreateVertexBuffer() ;
+			void CreateVertexBuffer();
 
-			void CreateShaders() ;
+			void CreateShaders();
 
-			void CreateCommandQueue() ;
+			void CreateCommandQueue();
 
-			void CreateGraphicsPipeline() ;
+			void CreateGraphicsPipeline();
 
-			void RecordCommandBuffer() ;
+			void RecordCommandBuffer();
 
-			void Draw() ;
+			void Draw();
 
-			void Shutdown() ;
+			void Shutdown();
 
 		private:
 			VkInstance instance;
