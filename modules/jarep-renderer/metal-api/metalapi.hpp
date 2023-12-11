@@ -78,7 +78,7 @@ namespace Graphics::Metal {
 
 			void Draw() override;
 
-			void Present(std::shared_ptr<JarSurface> &surface) override;
+			void Present(std::shared_ptr<JarSurface> &m_surface) override;
 
 		private:
 			MTL::CommandBuffer *buffer;
@@ -178,7 +178,7 @@ namespace Graphics::Metal {
 
 			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *windowHandleProvider) override;
 
-			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) override;
+			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &m_surface) override;
 	};
 
 	class MetalAPI : public IRenderer {
@@ -187,13 +187,13 @@ namespace Graphics::Metal {
 
 			~MetalAPI() override;
 
-			/// Create a logical device for metal means to link the MTLdevice with the surface and push this into the window settings.
+			/// Create a logical device for metal means to link the MTLdevice with the m_surface and push this into the window settings.
 			void CreateLogicalDevice() override;
 
 			/// Create an MTLDevice and provide it for future usage
 			void RegisterPhysicalDevice() override;
 
-			/// Create a render surface but don't push it to the window, since the creation of the MTL Device occurs later
+			/// Create a render m_surface but don't push it to the window, since the creation of the MTL Device occurs later
 			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle) override;
 
 			void CreateVertexBuffer() override;
@@ -212,7 +212,7 @@ namespace Graphics::Metal {
 
 		private:
 			NS::Window *window;
-			MTK::View *surface;
+			MTK::View *m_surface;
 			CA::MetalLayer *metalLayer;
 			MTL::Device *device;
 			//			CA::MetalDrawable* metalDrawable;

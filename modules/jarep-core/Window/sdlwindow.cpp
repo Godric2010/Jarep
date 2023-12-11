@@ -202,7 +202,7 @@ namespace Core::Window {
 		return std::make_optional(xlibHandleProvider);
 		// Wayland
 #elif defined(SDL_VIDEO_DRIVER_WAYLAND)
-		auto wlHandleProvider = Graphics::WaylandWindowHandleProvider(wmInfo.info.wl.surface, wmInfo.info.wl.display,
+		auto wlHandleProvider = Graphics::WaylandWindowHandleProvider(wmInfo.info.wl.m_surface, wmInfo.info.wl.display,
 		                                                              sizeWidth, sizeWidth, Graphics::Wayland);
 		return std::make_optional(wlHandleProvider);
 #endif

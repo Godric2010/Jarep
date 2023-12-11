@@ -43,6 +43,8 @@ namespace Graphics::Vulkan {
 
 			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *nativeWindowHandleProvider);
 
+			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) override;
+
 		private:
 			std::vector<const char *> extensionNames;
 			VkInstance instance;
@@ -54,6 +56,8 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanSurface{
 
+	struct SwapChainSupportDetails;
+
 	class VulkanSurface final : public JarSurface {
 		public:
 			VulkanSurface(VkSurfaceKHR surface, VkExtent2D surfaceExtend);
@@ -62,17 +66,70 @@ namespace Graphics::Vulkan {
 
 			void Update() override;
 
-		private:
-			VkSurfaceKHR surface;
-			VkExtent2D surfaceExtent;
+			JarRenderPass *CreateRenderPass() override;
 
+			VkSurfaceKHR getSurface() { return m_surface; }
+
+			VkExtent2D getSurfaceExtent() { return m_surfaceExtent; }
+
+			SwapChainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice);
+
+		private:
+			VkSurfaceKHR m_surface;
+			VkExtent2D m_surfaceExtent{};
 	};
 
 
 #pragma endregion VulkanSurface }
 
+#pragma region VulkanDevice{
+
+	class VulkanDevice final : public JarDevice {
+
+		public:
+			VulkanDevice();
+
+			~VulkanDevice() override;
+
+			void Release() override;
+
+			void CreatePhysicalDevice(VkInstance instance, std::shared_ptr<VulkanSurface> &surface);
+
+			void CreateLogicalDevice();
+
+			JarBuffer *CreateBuffer(size_t bufferSize, const void *data) override;
+
+			JarShaderModule *CreateShaderModule(std::string fileContent) override;
+
+			JarPipeline *CreatePipeline(JarShaderModule *vertexModule, JarShaderModule *fragmentModule) override;
+
+			std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
+
+		private:
+			VkPhysicalDevice m_physicalDevice;
+			VkDevice m_device;
+			std::optional<uint32_t> m_graphicsFamily;
+			std::optional<uint32_t> m_presentFamily;
+			VkQueue m_graphicsQueue;
+			VkQueue m_presentQueue;
+
+			const std::vector<const char *> deviceExtensions = {
+					VK_KHR_SWAPCHAIN_EXTENSION_NAME
+			};
+
+			bool isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface> &surface);
+
+			void findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface> &surface);
+
+			bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice);
+	};
+
+
+#pragma endregion VulkanDevice }
+
+
 	struct QueueFamilyIndices;
-	struct SwapChainSupportDetails;
+
 
 	class VulkanAPI {
 		public:

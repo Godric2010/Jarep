@@ -38,8 +38,8 @@ namespace Graphics::Vulkan {
 		createInfo.hwnd = reinterpret_cast<HWND>(nativeWindowHandleProvider.getNativeWindowHandle());
 		createInfo.hInstance = GetModuleHandle(nullptr);
 
-		if(vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface)) {
-			throw std::runtime_error("Failed to create Win32 surface");
+		if(vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &m_surface)) {
+			throw std::runtime_error("Failed to create Win32 m_surface");
 		}
 #endif
 		return surface;
@@ -75,7 +75,7 @@ namespace Graphics::Vulkan {
 		waylandCreateInfo.surface = waylandWindowHandle->getWindowHandle();
 
 		if (vkCreateWaylandSurfaceKHR(instance, &waylandCreateInfo, nullptr, &surface) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create Wayland surface.");
+			throw std::runtime_error("Failed to create Wayland m_surface.");
 		}
 #endif
 		return surface;

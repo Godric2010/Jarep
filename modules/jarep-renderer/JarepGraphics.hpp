@@ -24,7 +24,7 @@ namespace Graphics {
 			void Initialize(NativeWindowHandleProvider *nativeWindowHandle) {
 
 				surface = backend->CreateSurface(nativeWindowHandle);
-/*				device = backend->CreateDevice(surface);
+/*				device = backend->CreateDevice(m_surface);
 				queue = device->CreateCommandQueue();
 
 				const std::vector<Vertex> vertices = {
@@ -44,7 +44,7 @@ namespace Graphics {
 			void Render() {
 				/*
 				const auto commandBuffer = queue->getNextCommandBuffer();
-				const auto renderPassDesc = surface->CreateRenderPass();
+				const auto renderPassDesc = m_surface->CreateRenderPass();
 				commandBuffer->StartRecording(renderPassDesc);
 
 				commandBuffer->BindPipeline(pipeline);
@@ -52,7 +52,7 @@ namespace Graphics {
 				commandBuffer->Draw();
 
 				commandBuffer->EndRecording();
-				commandBuffer->Present(surface);
+				commandBuffer->Present(m_surface);
 				 */
 			}
 
