@@ -7,6 +7,8 @@
 
 #include <iostream>
 #include <memory>
+#include <filesystem>
+#include <vector>
 #include "IRenderer.hpp"
 #include "NativeWindowHandleProvider.hpp"
 #include "metal-api/metalapi.hpp"
@@ -23,7 +25,7 @@ namespace Graphics {
 			void Initialize(NativeWindowHandleProvider *nativeWindowHandle) {
 
 				surface = backend->CreateSurface(nativeWindowHandle);
-				device = backend->CreateDevice(surface);
+/*				device = backend->CreateDevice(m_surface);
 				queue = device->CreateCommandQueue();
 
 				const std::vector<Vertex> vertices = {
@@ -40,8 +42,9 @@ namespace Graphics {
 			}
 
 			void Render() {
+				/*
 				const auto commandBuffer = queue->getNextCommandBuffer();
-				const auto renderPassDesc = surface->CreateRenderPass();
+				const auto renderPassDesc = m_surface->CreateRenderPass();
 				commandBuffer->StartRecording(renderPassDesc);
 
 				commandBuffer->BindPipeline(pipeline);
@@ -53,13 +56,14 @@ namespace Graphics {
 			}
 
 			void Shutdown() {
-
+/*
 				pipeline->Release();
 				vertexShaderModule->Release();
 				fragmentShaderModule->Release();
 
 				queue->Release();
 				device->Release();
+				*/
 				std::cout << "Shutdown renderer" << std::endl;
 			}
 
@@ -67,14 +71,14 @@ namespace Graphics {
 			std::vector<const char *> extensions;
 			std::shared_ptr<Backend> backend;
 			std::shared_ptr<JarSurface> surface;
-			std::shared_ptr<JarDevice> device;
+		/*	std::shared_ptr<JarDevice> device;
 			std::shared_ptr<JarCommandQueue> queue;
 			std::shared_ptr<JarBuffer> vertexBuffer;
 			std::shared_ptr<JarShaderModule> vertexShaderModule;
 			std::shared_ptr<JarShaderModule> fragmentShaderModule;
 			std::shared_ptr<JarPipeline> pipeline;
 
-			std::string readFile(const std::string &filename) {
+		/*	std::string readFile(const std::string &filename) {
 				std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
 				if (!std::filesystem::exists(filename)) {
@@ -95,6 +99,7 @@ namespace Graphics {
 				std::string bufferString(buffer.begin(), buffer.end());
 				return bufferString;
 			}
+		 */
 	};
 }
 #endif //JAREP_JAREPGRAPHICS_HPP

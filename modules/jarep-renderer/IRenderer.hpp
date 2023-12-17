@@ -6,12 +6,14 @@
 #define JAREP_IRENDERER_HPP
 
 #include "NativeWindowHandleProvider.hpp"
-
+#include <memory>
 namespace Graphics {
+
 	class JarRenderPass {
 		public:
 			virtual ~JarRenderPass() = default;
 	};
+
 
 	class JarSurface {
 		public:
@@ -68,6 +70,7 @@ namespace Graphics {
 
 			virtual void Release() = 0;
 	};
+
 
 	class JarDevice {
 		public:

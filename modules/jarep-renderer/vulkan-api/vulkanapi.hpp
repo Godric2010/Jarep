@@ -11,6 +11,9 @@
 #include <set>
 #include <vulkan/vulkan.hpp>
 #include <fstream>
+#include <iostream>
+#include <memory>
+#include "sdlsurfaceadapter.hpp"
 
 #if defined (__linux__)
 #define VK_USE_PLATFORM_XLIB_KHR
@@ -29,35 +32,130 @@
 
 namespace Graphics::Vulkan {
 
+#pragma region VulkanBackend{
 
-	struct QueueFamilyIndices;
+	class VulkanBackend final : public Backend {
+
+		public:
+			VulkanBackend(const std::vector<const char *> &extensions);
+
+			~VulkanBackend() override;
+
+			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *nativeWindowHandleProvider);
+
+			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) override;
+
+		private:
+			std::vector<const char *> extensionNames;
+			VkInstance instance;
+
+			void createInstance();
+	};
+
+#pragma endregion VulkanBackend }
+
+#pragma region VulkanSurface{
+
 	struct SwapChainSupportDetails;
 
-	class VulkanAPI : public IRenderer {
+	class VulkanSurface final : public JarSurface {
+		public:
+			VulkanSurface(VkSurfaceKHR surface, VkExtent2D surfaceExtend);
+
+			~VulkanSurface() override;
+
+			void Update() override;
+
+			JarRenderPass *CreateRenderPass() override;
+
+			VkSurfaceKHR getSurface() { return m_surface; }
+
+			VkExtent2D getSurfaceExtent() { return m_surfaceExtent; }
+
+			SwapChainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice);
+
+		private:
+			VkSurfaceKHR m_surface;
+			VkExtent2D m_surfaceExtent{};
+	};
+
+
+#pragma endregion VulkanSurface }
+
+#pragma region VulkanDevice{
+
+	class VulkanDevice final : public JarDevice {
+
+		public:
+			VulkanDevice();
+
+			~VulkanDevice() override;
+
+			void Release() override;
+
+			void CreatePhysicalDevice(VkInstance instance, std::shared_ptr<VulkanSurface> &surface);
+
+			void CreateLogicalDevice();
+
+			JarBuffer *CreateBuffer(size_t bufferSize, const void *data) override;
+
+			JarShaderModule *CreateShaderModule(std::string fileContent) override;
+
+			JarPipeline *CreatePipeline(JarShaderModule *vertexModule, JarShaderModule *fragmentModule) override;
+
+			std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
+
+		private:
+			VkPhysicalDevice m_physicalDevice;
+			VkDevice m_device;
+			std::optional<uint32_t> m_graphicsFamily;
+			std::optional<uint32_t> m_presentFamily;
+			VkQueue m_graphicsQueue;
+			VkQueue m_presentQueue;
+
+			const std::vector<const char *> deviceExtensions = {
+					VK_KHR_SWAPCHAIN_EXTENSION_NAME
+			};
+
+			bool isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface> &surface);
+
+			void findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface> &surface);
+
+			bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice);
+	};
+
+
+#pragma endregion VulkanDevice }
+
+
+	struct QueueFamilyIndices;
+
+
+	class VulkanAPI {
 		public:
 			VulkanAPI(const std::vector<const char *> &extensionNames);
 
-			~VulkanAPI() override;
+			~VulkanAPI();
 
-			void RegisterPhysicalDevice() override;
+			void RegisterPhysicalDevice();
 
-			void CreateLogicalDevice() override;
+			void CreateLogicalDevice();
 
-			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle) override;
+			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle);
 
-			void CreateVertexBuffer() override;
+			void CreateVertexBuffer();
 
-			void CreateShaders() override;
+			void CreateShaders();
 
-			void CreateCommandQueue() override;
+			void CreateCommandQueue();
 
-			void CreateGraphicsPipeline() override;
+			void CreateGraphicsPipeline();
 
-			void RecordCommandBuffer() override;
+			void RecordCommandBuffer();
 
-			void Draw() override;
+			void Draw();
 
-			void Shutdown() override;
+			void Shutdown();
 
 		private:
 			VkInstance instance;

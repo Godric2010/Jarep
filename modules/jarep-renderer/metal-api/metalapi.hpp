@@ -78,7 +78,7 @@ namespace Graphics::Metal {
 
 			void Draw() override;
 
-			void Present(std::shared_ptr<JarSurface> &surface) override;
+			void Present(std::shared_ptr<JarSurface> &m_surface) override;
 
 		private:
 			MTL::CommandBuffer *buffer;
@@ -179,7 +179,7 @@ namespace Graphics::Metal {
 
 			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *windowHandleProvider) override;
 
-			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) override;
+			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &m_surface) override;
 	};
 }
 #endif

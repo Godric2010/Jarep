@@ -4,14 +4,14 @@ cmake_minimum_required(VERSION 3.25)
 set(SOURCE_FILES JarepGraphics.cpp
         NativeWindowHandleProvider.hpp
         Vertex.hpp
-        metal-api/sdlsurfaceadapter.mm
-        metal-api/sdlsurfaceadapter.hpp
+        vulkan-api/sdlsurfaceadapter.cpp
+        vulkan-api/sdlsurfaceadapter.hpp
 )
 
 if(APPLE)
-    list(APPEND SOURCE_FILES metal-api/metalapi.cpp)
+    list(APPEND SOURCE_FILES metal-api/metalapi.cpp metal-api/sdlsurfaceadapter.hpp metal-api/sdlsurfaceadapter.mm)
 elseif (UNIX OR WIN32)
-    list(APPEND SOURCE_FILES vulkan-api/vulkanapi.cpp)
+    list(APPEND SOURCE_FILES vulkan-api/vulkanapi.cpp vulkan-api/sdlsurfaceadapter.hpp vulkan-api/sdlsurfaceadapter.cpp)
 endif ()
 
 
