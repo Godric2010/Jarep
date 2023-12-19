@@ -10,229 +10,233 @@
 #include <optional>
 #include <set>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_core.h>
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <vector>
+#include <stdexcept>
 #include "sdlsurfaceadapter.hpp"
 
 #if defined (__linux__)
 #define VK_USE_PLATFORM_XLIB_KHR
-
 #include <vulkan/vulkan_xlib.h>
-
 #define VK_USE_PLATFORM_WAYLAND_KHR
-
 #include <vulkan/vulkan_wayland.h>
 
-#elif defined(__Win32)
+#elif defined(_WIN32)
 #define VK_USE_PLATFORM_WIN32_KHR
+#include <windows.h>
 #include <vulkan/vulkan_win32.h>
 #endif
 
 
-namespace Graphics::Vulkan {
-
+namespace Graphics::Vulkan
+{
 #pragma region VulkanBackend{
 
-	class VulkanBackend final : public Backend {
+    class VulkanBackend final : public Backend
+    {
+    public:
+        VulkanBackend(const std::vector<const char*>& extensions);
 
-		public:
-			VulkanBackend(const std::vector<const char *> &extensions);
+        ~VulkanBackend() override;
 
-			~VulkanBackend() override;
+        std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* nativeWindowHandleProvider) override;
 
-			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *nativeWindowHandleProvider);
+        //std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) override;
 
-			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) override;
+    private:
+        std::vector<const char*> extensionNames;
+        VkInstance instance;
 
-		private:
-			std::vector<const char *> extensionNames;
-			VkInstance instance;
-
-			void createInstance();
-	};
+        void createInstance();
+    };
 
 #pragma endregion VulkanBackend }
 
 #pragma region VulkanSurface{
 
-	struct SwapChainSupportDetails;
+    struct SwapChainSupportDetails;
 
-	class VulkanSurface final : public JarSurface {
-		public:
-			VulkanSurface(VkSurfaceKHR surface, VkExtent2D surfaceExtend);
+    class VulkanSurface final : public JarSurface
+    {
+    public:
+        VulkanSurface(VkSurfaceKHR surface, VkExtent2D surfaceExtend);
 
-			~VulkanSurface() override;
+        ~VulkanSurface() override;
 
-			void Update() override;
+        void Update() override;
 
-			JarRenderPass *CreateRenderPass() override;
+        //JarRenderPass* CreateRenderPass() override;
 
-			VkSurfaceKHR getSurface() { return m_surface; }
+        VkSurfaceKHR getSurface() { return m_surface; }
 
-			VkExtent2D getSurfaceExtent() { return m_surfaceExtent; }
+        VkExtent2D getSurfaceExtent() { return m_surfaceExtent; }
 
-			SwapChainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice);
+        SwapChainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice);
 
-		private:
-			VkSurfaceKHR m_surface;
-			VkExtent2D m_surfaceExtent{};
-	};
+    private:
+        VkSurfaceKHR m_surface;
+        VkExtent2D m_surfaceExtent{};
+    };
 
 
 #pragma endregion VulkanSurface }
+    /*
+    #pragma region VulkanDevice{
 
-#pragma region VulkanDevice{
+        class VulkanDevice final : public JarDevice {
 
-	class VulkanDevice final : public JarDevice {
+            public:
+                VulkanDevice();
 
-		public:
-			VulkanDevice();
+                ~VulkanDevice() override;
 
-			~VulkanDevice() override;
+                void Release() override;
 
-			void Release() override;
+                void CreatePhysicalDevice(VkInstance instance, std::shared_ptr<VulkanSurface> &surface);
 
-			void CreatePhysicalDevice(VkInstance instance, std::shared_ptr<VulkanSurface> &surface);
-
-			void CreateLogicalDevice();
-
-			JarBuffer *CreateBuffer(size_t bufferSize, const void *data) override;
-
-			JarShaderModule *CreateShaderModule(std::string fileContent) override;
-
-			JarPipeline *CreatePipeline(JarShaderModule *vertexModule, JarShaderModule *fragmentModule) override;
-
-			std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
-
-		private:
-			VkPhysicalDevice m_physicalDevice;
-			VkDevice m_device;
-			std::optional<uint32_t> m_graphicsFamily;
-			std::optional<uint32_t> m_presentFamily;
-			VkQueue m_graphicsQueue;
-			VkQueue m_presentQueue;
-
-			const std::vector<const char *> deviceExtensions = {
-					VK_KHR_SWAPCHAIN_EXTENSION_NAME
-			};
-
-			bool isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface> &surface);
-
-			void findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface> &surface);
-
-			bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice);
-	};
+                void CreateLogicalDevice();
 
 
-#pragma endregion VulkanDevice }
+                JarBuffer *CreateBuffer(size_t bufferSize, const void *data) override;
+
+                JarShaderModule *CreateShaderModule(std::string fileContent) override;
+
+                JarPipeline *CreatePipeline(JarShaderModule *vertexModule, JarShaderModule *fragmentModule) override;
+
+                std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
+
+            private:
+                VkPhysicalDevice m_physicalDevice;
+                VkDevice m_device;
+                std::optional<uint32_t> m_graphicsFamily;
+                std::optional<uint32_t> m_presentFamily;
+                VkQueue m_graphicsQueue;
+                VkQueue m_presentQueue;
+
+                const std::vector<const char *> deviceExtensions = {
+                        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+                };
+
+                bool isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface> &surface);
+
+                void findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface> &surface);
+
+                bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice);
+        };
 
 
-	struct QueueFamilyIndices;
+    #pragma endregion VulkanDevice }
 
 
-	class VulkanAPI {
-		public:
-			VulkanAPI(const std::vector<const char *> &extensionNames);
+        struct QueueFamilyIndices;
 
-			~VulkanAPI();
 
-			void RegisterPhysicalDevice();
+        class VulkanAPI {
+            public:
+                VulkanAPI(const std::vector<const char *> &extensionNames);
 
-			void CreateLogicalDevice();
+                ~VulkanAPI();
 
-			void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle);
+                void RegisterPhysicalDevice();
 
-			void CreateVertexBuffer();
+                void CreateLogicalDevice();
 
-			void CreateShaders();
+                void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle);
 
-			void CreateCommandQueue();
+                void CreateVertexBuffer();
 
-			void CreateGraphicsPipeline();
+                void CreateShaders();
 
-			void RecordCommandBuffer();
+                void CreateCommandQueue();
 
-			void Draw();
+                void CreateGraphicsPipeline();
 
-			void Shutdown();
+                void RecordCommandBuffer();
 
-		private:
-			VkInstance instance;
-			VkPhysicalDevice physicalDevice;
-			VkDevice device;
-			VkQueue graphicsQueue;
-			VkQueue presentQueue;
-			VkSurfaceKHR surface;
-			VkExtent2D surfaceExtent;
-			VkSwapchainKHR swapchain;
-			std::vector<VkImage> swapChainImages;
-			VkFormat swapchainImageFormat;
-			std::vector<VkImageView> swapchainImageViews;
-			std::vector<VkShaderModule> shaderModules;
-			VkRenderPass renderPass;
-			VkPipelineLayout pipelineLayout;
-			VkPipeline graphicsPipeline;
-			std::vector<VkFramebuffer> swapchainFramebuffers;
-			VkCommandPool commandPool;
-			std::vector<VkCommandBuffer> commandBuffers;
-			std::vector<VkSemaphore> imageAvailableSemaphores;
-			std::vector<VkSemaphore> renderFinishedSemaphores;
-			std::vector<VkFence> inFlightFences;
-			uint32_t currentFrame = 0;
-			VkBuffer vertexBuffer;
-			VkDeviceMemory vertexBufferMemory;
+                void Draw();
 
-			const std::vector<const char *> deviceExtensions = {
-					VK_KHR_SWAPCHAIN_EXTENSION_NAME
-			};
+                void Shutdown();
 
-			const int MAX_FRAMES_IN_FLIGHT = 2;
+            private:
+                VkInstance instance;
+                VkPhysicalDevice physicalDevice;
+                VkDevice device;
+                VkQueue graphicsQueue;
+                VkQueue presentQueue;
+                VkSurfaceKHR surface;
+                VkExtent2D surfaceExtent;
+                VkSwapchainKHR swapchain;
+                std::vector<VkImage> swapChainImages;
+                VkFormat swapchainImageFormat;
+                std::vector<VkImageView> swapchainImageViews;
+                std::vector<VkShaderModule> shaderModules;
+                VkRenderPass renderPass;
+                VkPipelineLayout pipelineLayout;
+                VkPipeline graphicsPipeline;
+                std::vector<VkFramebuffer> swapchainFramebuffers;
+                VkCommandPool commandPool;
+                std::vector<VkCommandBuffer> commandBuffers;
+                std::vector<VkSemaphore> imageAvailableSemaphores;
+                std::vector<VkSemaphore> renderFinishedSemaphores;
+                std::vector<VkFence> inFlightFences;
+                uint32_t currentFrame = 0;
+                VkBuffer vertexBuffer;
+                VkDeviceMemory vertexBufferMemory;
 
-			void createVulkanInstance(const std::vector<const char *> &extensionNames);
+                const std::vector<const char *> deviceExtensions = {
+                        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+                };
 
-			bool isPhysicalDeviceSuitable(VkPhysicalDevice device);
+                const int MAX_FRAMES_IN_FLIGHT = 2;
 
-			QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+                void createVulkanInstance(const std::vector<const char *> &extensionNames);
 
-			bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+                bool isPhysicalDeviceSuitable(VkPhysicalDevice device);
 
-			void createLogicalDevice(VkPhysicalDevice physicalDevice);
+                QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
-			SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+                bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
-			void createSwapChain();
+                void createLogicalDevice(VkPhysicalDevice physicalDevice);
 
-			void cleanupSwapchain();
+                SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
-			void createImageViews();
+                void createSwapChain();
 
-			[[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
+                void cleanupSwapchain();
 
-			static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
+                void createImageViews();
 
-			static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
+                [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
 
-			std::vector<char> readFile(const std::string &filename);
+                static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
 
-			VkShaderModule createShaderModule(const std::vector<char> &code);
+                static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
-			void createRenderPass();
+                std::vector<char> readFile(const std::string &filename);
 
-			void createFramebuffers();
+                VkShaderModule createShaderModule(const std::vector<char> &code);
 
-			void createCommandBuffers();
+                void createRenderPass();
 
-			void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+                void createFramebuffers();
 
-			void createSyncObjects();
+                void createCommandBuffers();
 
-			static VkVertexInputBindingDescription getBindingDescription();
+                void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
-			static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+                void createSyncObjects();
 
-			uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-	};
+                static VkVertexInputBindingDescription getBindingDescription();
+
+                static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+
+                uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+        };
+        */
 }
 
 #endif

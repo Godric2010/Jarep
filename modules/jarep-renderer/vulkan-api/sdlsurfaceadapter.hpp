@@ -19,8 +19,9 @@
 
 #include <vulkan/vulkan_wayland.h>
 
-#elif defined(__Win32)
+#elif defined (_WIN32)
 #define VK_USE_PLATFORM_WIN32_KHR
+#include <windows.h>
 #include <vulkan/vulkan_win32.h>
 #endif
 

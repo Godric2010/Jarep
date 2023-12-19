@@ -10,8 +10,8 @@ set(SOURCE_FILES JarepGraphics.cpp
 
 if(APPLE)
     list(APPEND SOURCE_FILES metal-api/metalapi.cpp metal-api/sdlsurfaceadapter.hpp metal-api/sdlsurfaceadapter.mm)
-elseif (UNIX OR WIN32)
-    list(APPEND SOURCE_FILES vulkan-api/vulkanapi.cpp vulkan-api/sdlsurfaceadapter.hpp vulkan-api/sdlsurfaceadapter.cpp)
+elseif (UNIX OR WIN32 OR WIN64)
+    list(APPEND SOURCE_FILES vulkan-api/vulkanapi.hpp vulkan-api/vulkanapi.cpp vulkan-api/sdlsurfaceadapter.hpp vulkan-api/sdlsurfaceadapter.cpp)
 endif ()
 
 
@@ -20,7 +20,7 @@ add_library(JAREP_RENDERER JarepGraphics.hpp ${SOURCE_FILES})
 if(APPLE)
     add_subdirectory(metal-api/metal)
     target_link_libraries(JAREP_RENDERER PUBLIC METAL_CPP)
-elseif (UNIX OR WIN32)
+elseif (UNIX OR WIN32 OR WIN64)
     find_package(Vulkan REQUIRED)
     target_link_libraries(JAREP_RENDERER PUBLIC Vulkan::Vulkan)
 endif ()

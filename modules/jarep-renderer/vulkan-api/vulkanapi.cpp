@@ -1,6 +1,7 @@
 //
 // Created by Sebastian Borsch on 24.10.23.
 //
+
 #if defined(__linux__) or defined(_WIN32)
 
 #include "vulkanapi.hpp"
@@ -30,7 +31,7 @@ namespace Graphics::Vulkan {
 		return std::make_shared<VulkanSurface>(surface, surfaceExtend);
 	}
 
-	std::shared_ptr<JarDevice> VulkanBackend::CreateDevice(std::shared_ptr<JarSurface> &surface) {
+/*	std::shared_ptr<JarDevice> VulkanBackend::CreateDevice(std::shared_ptr<JarSurface> &surface) {
 
 		auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface> &>(surface);
 
@@ -40,7 +41,7 @@ namespace Graphics::Vulkan {
 
 
 		return device;
-	}
+	}*/
 
 	void VulkanBackend::createInstance() {
 		VkApplicationInfo appInfo{};
@@ -103,12 +104,12 @@ namespace Graphics::Vulkan {
 		return details;
 	}
 
-	JarRenderPass *VulkanSurface::CreateRenderPass() {
+	//JarRenderPass *VulkanSurface::CreateRenderPass() {
 
-	}
+	//}
 
 #pragma endregion VulkanSurface }
-
+/*
 #pragma region VulkanDevice{
 
 	VulkanDevice::VulkanDevice() {
@@ -117,7 +118,7 @@ namespace Graphics::Vulkan {
 			m_presentQueue = VK_NULL_HANDLE;
 			m_graphicsQueue = VK_NULL_HANDLE;
 			m_graphicsFamily = std::nullopt;
-			m_presentFamily = std::nullopt;*/
+			m_presentFamily = std::nullopt;*
 	}
 
 	VulkanDevice::~VulkanDevice() = default;
@@ -325,7 +326,7 @@ namespace Graphics::Vulkan {
 
 				if(vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &m_surface)) {
 					throw std::runtime_error("Failed to create Win32 m_surface");
-				}*/
+				}*
 				return;
 			}
 			case Wayland: {
@@ -1097,6 +1098,6 @@ namespace Graphics::Vulkan {
 			}
 		}
 		throw std::runtime_error("Failed to find suitable memory type!");
-	}
+	}*/
 }
 #endif

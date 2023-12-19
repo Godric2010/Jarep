@@ -35,10 +35,10 @@ namespace Graphics::Vulkan {
 #if defined(_WIN32)
 		VkWin32SurfaceCreateInfoKHR createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-		createInfo.hwnd = reinterpret_cast<HWND>(nativeWindowHandleProvider.getNativeWindowHandle());
-		createInfo.hInstance = GetModuleHandle(nullptr);
+		createInfo.hwnd = static_cast<HWND>(nativeWindowHandleProvider->getNativeWindowHandle());
+		createInfo.hinstance = GetModuleHandle(nullptr);
 
-		if(vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &m_surface)) {
+		if(vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface)) {
 			throw std::runtime_error("Failed to create Win32 m_surface");
 		}
 #endif

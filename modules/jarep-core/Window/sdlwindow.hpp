@@ -14,6 +14,9 @@
 #include <SDL2/SDL_syswm.h>
 #include <SDL_vulkan.h>
 #include <string>
+#if defined (_WIN32)
+#include <windows.h>
+#endif
 
 namespace Core::Window {
 
