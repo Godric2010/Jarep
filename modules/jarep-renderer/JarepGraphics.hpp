@@ -25,8 +25,8 @@ namespace Graphics {
 			void Initialize(NativeWindowHandleProvider *nativeWindowHandle) {
 
 				surface = backend->CreateSurface(nativeWindowHandle);
-/*				device = backend->CreateDevice(m_surface);
-				queue = device->CreateCommandQueue();
+				device = backend->CreateDevice(surface);
+/*				queue = device->CreateCommandQueue();
 
 				const std::vector<Vertex> vertices = {
 						{{0.0f,  -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
@@ -71,8 +71,8 @@ namespace Graphics {
 			std::vector<const char *> extensions;
 			std::shared_ptr<Backend> backend;
 			std::shared_ptr<JarSurface> surface;
-		/*	std::shared_ptr<JarDevice> device;
-			std::shared_ptr<JarCommandQueue> queue;
+			std::shared_ptr<JarDevice> device;
+		/*	std::shared_ptr<JarCommandQueue> queue;
 			std::shared_ptr<JarBuffer> vertexBuffer;
 			std::shared_ptr<JarShaderModule> vertexShaderModule;
 			std::shared_ptr<JarShaderModule> fragmentShaderModule;

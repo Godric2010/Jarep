@@ -44,7 +44,7 @@ namespace Graphics::Vulkan
 
         std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* nativeWindowHandleProvider) override;
 
-        //std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) override;
+        std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) override;
 
     private:
         std::vector<const char*> extensionNames;
@@ -83,7 +83,7 @@ namespace Graphics::Vulkan
 
 
 #pragma endregion VulkanSurface }
-    /*
+
     #pragma region VulkanDevice{
 
         class VulkanDevice final : public JarDevice {
@@ -100,11 +100,11 @@ namespace Graphics::Vulkan
                 void CreateLogicalDevice();
 
 
-                JarBuffer *CreateBuffer(size_t bufferSize, const void *data) override;
+                std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void *data) override;
 
-                JarShaderModule *CreateShaderModule(std::string fileContent) override;
+                std::shared_ptr<JarShaderModule> CreateShaderModule(std::string fileContent) override;
 
-                JarPipeline *CreatePipeline(JarShaderModule *vertexModule, JarShaderModule *fragmentModule) override;
+                std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule, std::shared_ptr<JarShaderModule> fragmentModule) override;
 
                 std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
 
@@ -131,6 +131,7 @@ namespace Graphics::Vulkan
     #pragma endregion VulkanDevice }
 
 
+    /*
         struct QueueFamilyIndices;
 
 

@@ -97,7 +97,7 @@ namespace Graphics {
 
 			virtual std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *windowHandleProvider) = 0;
 
-		//	virtual std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) = 0;
+			virtual std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) = 0;
 	};
 
 }

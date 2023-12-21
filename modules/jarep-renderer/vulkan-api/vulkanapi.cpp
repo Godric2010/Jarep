@@ -31,7 +31,7 @@ namespace Graphics::Vulkan {
 		return std::make_shared<VulkanSurface>(surface, surfaceExtend);
 	}
 
-/*	std::shared_ptr<JarDevice> VulkanBackend::CreateDevice(std::shared_ptr<JarSurface> &surface) {
+	std::shared_ptr<JarDevice> VulkanBackend::CreateDevice(std::shared_ptr<JarSurface> &surface) {
 
 		auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface> &>(surface);
 
@@ -41,7 +41,7 @@ namespace Graphics::Vulkan {
 
 
 		return device;
-	}*/
+	}
 
 	void VulkanBackend::createInstance() {
 		VkApplicationInfo appInfo{};
@@ -109,16 +109,16 @@ namespace Graphics::Vulkan {
 	//}
 
 #pragma endregion VulkanSurface }
-/*
+
 #pragma region VulkanDevice{
 
 	VulkanDevice::VulkanDevice() {
-		/*	m_physicalDevice = VK_NULL_HANDLE;
+			m_physicalDevice = VK_NULL_HANDLE;
 			m_device = VK_NULL_HANDLE;
 			m_presentQueue = VK_NULL_HANDLE;
 			m_graphicsQueue = VK_NULL_HANDLE;
 			m_graphicsFamily = std::nullopt;
-			m_presentFamily = std::nullopt;*
+			m_presentFamily = std::nullopt;
 	}
 
 	VulkanDevice::~VulkanDevice() = default;
@@ -177,16 +177,16 @@ namespace Graphics::Vulkan {
 		vkGetDeviceQueue(m_device, m_presentFamily.value(), 0, &m_presentQueue);
 	}
 
-	JarBuffer *VulkanDevice::CreateBuffer(size_t bufferSize, const void *data) {
+	std::shared_ptr<JarBuffer> VulkanDevice::CreateBuffer(size_t bufferSize, const void *data) {
 		return nullptr;
 	}
 
-	JarShaderModule *VulkanDevice::CreateShaderModule(std::string fileContent) {
+	std::shared_ptr<JarShaderModule> VulkanDevice::CreateShaderModule(std::string fileContent) {
 		return nullptr;
 	}
 
-	JarPipeline *VulkanDevice::CreatePipeline(Graphics::JarShaderModule *vertexModule,
-	                                          Graphics::JarShaderModule *fragmentModule) {
+	std::shared_ptr<JarPipeline> VulkanDevice::CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
+	                                          std::shared_ptr<JarShaderModule> fragmentModule) {
 		return nullptr;
 	}
 
@@ -194,6 +194,7 @@ namespace Graphics::Vulkan {
 
 	void VulkanDevice::Release() {
 
+		vkDestroyDevice(m_device, nullptr);
 	}
 
 	bool
@@ -262,7 +263,7 @@ namespace Graphics::Vulkan {
 
 
 #pragma endregion VulkanDevice }
-
+/*
 
 	struct QueueFamilyIndices {
 		std::optional<uint32_t> graphicsFamily;
