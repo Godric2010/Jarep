@@ -44,7 +44,7 @@ namespace Graphics::Vulkan
 
         std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* nativeWindowHandleProvider) override;
 
-        std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) override;
+        std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>& surface) override;
 
     private:
         std::vector<const char*> extensionNames;
@@ -84,52 +84,128 @@ namespace Graphics::Vulkan
 
 #pragma endregion VulkanSurface }
 
-    #pragma region VulkanDevice{
+#pragma region VulkanDevice{
 
-        class VulkanDevice final : public JarDevice {
+    class VulkanDevice final : public JarDevice
+    {
+    public:
+        VulkanDevice();
 
-            public:
-                VulkanDevice();
+        ~VulkanDevice() override;
 
-                ~VulkanDevice() override;
+        void Release() override;
 
-                void Release() override;
+        void CreatePhysicalDevice(VkInstance instance, std::shared_ptr<VulkanSurface>& surface);
 
-                void CreatePhysicalDevice(VkInstance instance, std::shared_ptr<VulkanSurface> &surface);
+        void CreateLogicalDevice();
 
-                void CreateLogicalDevice();
+        std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void* data) override;
 
+        std::shared_ptr<JarShaderModule> CreateShaderModule(std::string fileContent) override;
 
-                std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void *data) override;
+        std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
+                                                    std::shared_ptr<JarShaderModule> fragmentModule) override;
 
-                std::shared_ptr<JarShaderModule> CreateShaderModule(std::string fileContent) override;
+        std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
 
-                std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule, std::shared_ptr<JarShaderModule> fragmentModule) override;
+        VkDevice getLogicalDevice() const { return m_device; }
 
-                std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
+    private:
+        VkPhysicalDevice m_physicalDevice;
+        VkDevice m_device;
+        std::optional<uint32_t> m_graphicsFamily;
+        std::optional<uint32_t> m_presentFamily;
+        VkQueue m_graphicsQueue;
+        VkQueue m_presentQueue;
 
-            private:
-                VkPhysicalDevice m_physicalDevice;
-                VkDevice m_device;
-                std::optional<uint32_t> m_graphicsFamily;
-                std::optional<uint32_t> m_presentFamily;
-                VkQueue m_graphicsQueue;
-                VkQueue m_presentQueue;
-
-                const std::vector<const char *> deviceExtensions = {
-                        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-                };
-
-                bool isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface> &surface);
-
-                void findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface> &surface);
-
-                bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice);
+        const std::vector<const char*> deviceExtensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
 
+        bool isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface);
 
-    #pragma endregion VulkanDevice }
+        void findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface);
 
+        bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice);
+    };
+
+
+#pragma endregion VulkanDevice }
+
+
+#pragma region VulkanCommandBuffer{
+
+    class VulkanCommandBuffer final : JarCommandBuffer
+    {
+    public:
+        VulkanCommandBuffer(VkCommandBuffer commandBuffer, VkSemaphore imageAvailableSemaphore,
+                            VkSemaphore renderFinishedSemaphore, VkFence frameInFlightFence);
+        ~VulkanCommandBuffer() override;
+
+        void StartRecording(JarRenderPass* renderPass) override;
+        void EndRecording() override;
+        void BindPipeline(std::shared_ptr<JarPipeline> pipeline) override;
+        void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
+        void Draw() override;
+        void Present(std::shared_ptr<JarSurface>& surface) override;
+
+        void Release(VkDevice device);
+
+    private:
+        VkCommandBuffer m_commandBuffer;
+        VkSemaphore m_imageAvailableSemaphore;
+        VkSemaphore m_renderFinishedSemaphore;
+        VkFence m_frameInFlightFence;
+    };
+
+#pragma endregion VulkanCommandBuffer}
+
+#pragma  region VulkanCommandQueue{
+
+    class VulkanCommandQueue final : public JarCommandQueue
+    {
+    public:
+        VulkanCommandQueue();
+        ~VulkanCommandQueue() override;
+
+        void CreateVulkanCommandQueue(VkDevice& device, uint32_t graphicsFamilyIndex);
+
+        JarCommandBuffer* getNextCommandBuffer() override;
+
+        void Release(std::shared_ptr<JarDevice> device) override;
+
+    private:
+        const int MaxFramesInFlight = 2;
+
+        uint32_t m_graphicsFamily;
+        VkCommandPool m_commandPool;
+        std::vector<VulkanCommandBuffer*> m_commandBuffers;
+
+        int m_currentBufferIndexInUse;
+
+        void createCommandBuffers(VkDevice& device);
+    };
+
+#pragma endregion VulkanCommandQueue}
+
+#pragma region VulkanBuffer{
+
+    class VulkanBuffer final : public JarBuffer
+    {
+    public:
+        VulkanBuffer() = default;
+        ~VulkanBuffer() override;
+
+        void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, const size_t bufferSize, const void* data);
+        static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
+                                       VkMemoryPropertyFlags properties);
+
+    private:
+        VkBuffer m_buffer;
+        VkDeviceMemory m_bufferMemory;
+    };
+
+#pragma endregion VulkanBuffer}
 
     /*
         struct QueueFamilyIndices;

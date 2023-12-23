@@ -26,7 +26,7 @@ namespace Graphics {
 
 				surface = backend->CreateSurface(nativeWindowHandle);
 				device = backend->CreateDevice(surface);
-/*				queue = device->CreateCommandQueue();
+				queue = device->CreateCommandQueue();
 
 				const std::vector<Vertex> vertices = {
 						{{0.0f,  -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
@@ -36,10 +36,10 @@ namespace Graphics {
 
 				const size_t vertexDataSize = vertices.size() * sizeof(Vertex);
 				vertexBuffer = device->CreateBuffer(vertexDataSize, vertices.data());
-				vertexShaderModule = device->CreateShaderModule(readFile("shaders/triangle_vert.metal"));
+/*				vertexShaderModule = device->CreateShaderModule(readFile("shaders/triangle_vert.metal"));
 				fragmentShaderModule = device->CreateShaderModule(readFile("shaders/triangle_frag.metal"));
 				pipeline = device->CreatePipeline(vertexShaderModule, fragmentShaderModule);
-			}
+			*/}
 
 			void Render() {
 				/*
@@ -53,17 +53,17 @@ namespace Graphics {
 
 				commandBuffer->EndRecording();
 				commandBuffer->Present(surface);
-			}
+			*/}
 
 			void Shutdown() {
-/*
-				pipeline->Release();
-				vertexShaderModule->Release();
-				fragmentShaderModule->Release();
 
-				queue->Release();
+				// pipeline->Release();
+				// vertexShaderModule->Release();
+				// fragmentShaderModule->Release();
+
+				queue->Release(device);
 				device->Release();
-				*/
+
 				std::cout << "Shutdown renderer" << std::endl;
 			}
 
@@ -72,9 +72,9 @@ namespace Graphics {
 			std::shared_ptr<Backend> backend;
 			std::shared_ptr<JarSurface> surface;
 			std::shared_ptr<JarDevice> device;
-		/*	std::shared_ptr<JarCommandQueue> queue;
+			std::shared_ptr<JarCommandQueue> queue;
 			std::shared_ptr<JarBuffer> vertexBuffer;
-			std::shared_ptr<JarShaderModule> vertexShaderModule;
+	/*		std::shared_ptr<JarShaderModule> vertexShaderModule;
 			std::shared_ptr<JarShaderModule> fragmentShaderModule;
 			std::shared_ptr<JarPipeline> pipeline;
 
