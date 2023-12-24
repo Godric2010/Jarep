@@ -205,7 +205,9 @@ namespace Graphics::Vulkan
 
     std::shared_ptr<JarShaderModule> VulkanDevice::CreateShaderModule(std::string fileContent)
     {
-        return nullptr;
+        std::shared_ptr<VulkanShaderModule> shaderModule = std::make_shared<VulkanShaderModule>();
+        shaderModule->CreateShaderModule(m_device, fileContent);
+        return shaderModule;
     }
 
     std::shared_ptr<JarPipeline> VulkanDevice::CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
@@ -214,7 +216,12 @@ namespace Graphics::Vulkan
         return nullptr;
     }
 
-    std::shared_ptr<JarCommandQueue> VulkanDevice::CreateCommandQueue() { return nullptr; }
+    std::shared_ptr<JarCommandQueue> VulkanDevice::CreateCommandQueue()
+    {
+        std::shared_ptr<VulkanCommandQueue> commandQueue = std::make_shared<VulkanCommandQueue>();
+        commandQueue->CreateVulkanCommandQueue(m_device, m_graphicsFamily.value());
+        return commandQueue;
+    }
 
     void VulkanDevice::Release()
     {
@@ -475,7 +482,6 @@ namespace Graphics::Vulkan
 
         vkBindBufferMemory(device, m_buffer, m_bufferMemory, 0);
 
-        void* bufferData = const_cast<void*>(data);
         void* mappedData;
         vkMapMemory(device, m_bufferMemory, 0, bufferSize, 0, &mappedData);
         memcpy(mappedData, data, bufferSize);
@@ -500,6 +506,33 @@ namespace Graphics::Vulkan
 
 #pragma endregion VulkanBuffer}
 
+#pragma region VulkanShaderModule {
+
+    VulkanShaderModule::~VulkanShaderModule()
+    {
+    }
+
+    void VulkanShaderModule::CreateShaderModule(VkDevice device, std::string shaderContent)
+    {
+        VkShaderModuleCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = shaderContent.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(shaderContent.data());
+
+        if (vkCreateShaderModule(device, &createInfo, nullptr, &m_shaderModule) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed o create shader module!");
+        }
+    }
+
+    void VulkanShaderModule::Release(std::shared_ptr<JarDevice> jarDevice)
+    {
+        const auto vulkan_device = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(jarDevice);
+        vkDestroyShaderModule(vulkan_device->getLogicalDevice(), m_shaderModule, nullptr);
+    }
+
+
+#pragma endregion VulkanShaderModule}
     /*
 
         struct QueueFamilyIndices {

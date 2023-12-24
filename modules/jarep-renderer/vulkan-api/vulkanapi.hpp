@@ -207,6 +207,25 @@ namespace Graphics::Vulkan
 
 #pragma endregion VulkanBuffer}
 
+#pragma region VulkanShaderModule{
+
+    class VulkanShaderModule final : public JarShaderModule
+    {
+    public:
+        VulkanShaderModule() = default;
+        ~VulkanShaderModule() override;
+
+        void CreateShaderModule(VkDevice device, std::string shaderContent);
+        void Release(std::shared_ptr<JarDevice> jarDevice) override;
+
+        [[nodiscard]] VkShaderModule getShaderModule() const { return m_shaderModule; }
+
+    private:
+        VkShaderModule m_shaderModule;
+    };
+
+#pragma endregion VulkanShaderModule}
+
     /*
         struct QueueFamilyIndices;
 

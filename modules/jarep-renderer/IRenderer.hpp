@@ -37,12 +37,20 @@ namespace Graphics
         virtual ~JarBuffer() = default;
     };
 
+    enum ShaderType
+    {
+        VertexShader,
+        FragmentShader,
+        GeometryShader,
+        ComputeShader,
+    };
+
     class JarShaderModule
     {
     public:
         virtual ~JarShaderModule() = default;
 
-        virtual void Release() = 0;
+        virtual void Release(std::shared_ptr<JarDevice> device) = 0;
     };
 
     class JarPipeline
