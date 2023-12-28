@@ -68,9 +68,6 @@ namespace Graphics
 
         virtual void Release() = 0;
 
-        virtual std::vector<std::shared_ptr<JarFramebuffer>, std::allocator<std::shared_ptr<JarFramebuffer>>>
-        GetFramebuffers() = 0;
-
         virtual std::shared_ptr<JarRenderPass> GetRenderPass() = 0;
     };
 
@@ -79,8 +76,7 @@ namespace Graphics
     public:
         virtual ~JarCommandBuffer() = default;
 
-        virtual void StartRecording(std::shared_ptr<JarDevice> device, std::shared_ptr<JarRenderPass> renderPass,
-                                    std::shared_ptr<JarFramebuffer> framebuffer) = 0;
+        virtual void StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) = 0;
 
         virtual void EndRecording() = 0;
 

@@ -8,15 +8,13 @@
 
 #include "IRenderer.hpp"
 #include <optional>
-#include <set>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
-#include <fstream>
-#include <iostream>
 #include <memory>
 #include <vector>
-#include <stdexcept>
 #include "sdlsurfaceadapter.hpp"
+#include <iostream>
+#include <set>
 
 #if defined (__linux__)
 #define VK_USE_PLATFORM_XLIB_KHR
@@ -33,12 +31,17 @@
 
 namespace Graphics::Vulkan
 {
+    class VulkanDevice;
+    class VulkanFramebuffer;
+    class VulkanSwapchain;
+    class VulkanRenderPass;
+
 #pragma region VulkanBackend{
 
     class VulkanBackend final : public Backend
     {
     public:
-        VulkanBackend(const std::vector<const char*>& extensions);
+        explicit VulkanBackend(const std::vector<const char*>& extensions);
 
         ~VulkanBackend() override;
 
@@ -68,15 +71,20 @@ namespace Graphics::Vulkan
 
         void Update() override;
 
+        void FinalizeSurface(std::shared_ptr<VulkanDevice> device);
+
+        SwapChainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice) const;
+
         [[nodiscard]] VkSurfaceKHR getSurface() const { return m_surface; }
 
         [[nodiscard]] VkExtent2D getSurfaceExtent() const { return m_surfaceExtent; }
 
-        SwapChainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice);
+        [[nodiscard]] VulkanSwapchain* getSwapchain() const { return m_swapchain.get(); }
 
     private:
         VkSurfaceKHR m_surface;
         VkExtent2D m_surfaceExtent{};
+        std::unique_ptr<VulkanSwapchain> m_swapchain;
     };
 
 
@@ -97,10 +105,6 @@ namespace Graphics::Vulkan
 
         void CreateLogicalDevice();
 
-        void CreateSwapchain(std::shared_ptr<VulkanSurface> surface);
-
-        void CreateImageViews();
-
         std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void* data) override;
 
         std::shared_ptr<JarShaderModule> CreateShaderModule(std::string fileContent) override;
@@ -115,45 +119,82 @@ namespace Graphics::Vulkan
 
         [[nodiscard]] VkDevice getLogicalDevice() const { return m_device; }
 
-        [[nodiscard]] VkSwapchainKHR getSwapchain() const { return m_swapchain; }
+        [[nodiscard]] VkPhysicalDevice getPhysicalDevice() const { return m_physicalDevice; }
 
-        [[nodiscard]] VkQueue getGraphicsQueue() const { return m_graphicsQueue; }
+        [[nodiscard]] std::optional<uint32_t> getGraphicsFamilyIndex() const { return m_graphicsFamily; }
 
-        [[nodiscard]] VkQueue getPresentQueue() const { return m_presentQueue; }
+        [[nodiscard]] std::optional<uint32_t> getPresentFamilyIndex() const { return m_presentFamily; }
 
     private:
         VkPhysicalDevice m_physicalDevice;
         VkDevice m_device;
         std::optional<uint32_t> m_graphicsFamily;
         std::optional<uint32_t> m_presentFamily;
-        VkQueue m_graphicsQueue;
-        VkQueue m_presentQueue;
-        VkExtent2D m_imageExtent;
-        VkFormat m_swapchainImageFormat;
-        VkSwapchainKHR m_swapchain;
-        std::vector<VkImage> m_swapchainImages;
-        std::vector<VkImageView> m_swapchainImageViews;
 
         const std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
 
         bool isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface);
-
         void findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface);
 
         bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice) const;
-
-        [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
-                                                  const VkExtent2D surfaceExtent) const;
-
-        VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-
-        VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     };
 
 
 #pragma endregion VulkanDevice }
+
+#pragma region VulkanSwapchain{
+
+    class VulkanSwapchain
+    {
+    public:
+        VulkanSwapchain() = default;
+        ~VulkanSwapchain() = default;
+
+        void Initialize(const std::shared_ptr<VulkanDevice>& device, const VkExtent2D extent,
+                        const SwapChainSupportDetails& swapchainSupport, const VkSurfaceKHR surface);
+
+
+        void CreateFramebuffersFromRenderPass(const std::shared_ptr<VulkanRenderPass>& renderPass);
+
+        std::shared_ptr<VulkanFramebuffer> AcquireNewImage(VkSemaphore imageAvailable, VkFence frameInFlight);
+
+        void PresentImage(VkSemaphore imageAvailable, VkSemaphore renderFinished, VkFence frameInFlight,
+                          VkCommandBuffer* cmdBuffer);
+
+        void Release();
+
+        [[nodiscard]] VkFormat getSwapchainImageFormat() const { return m_swapchainImageFormat; }
+
+        [[nodiscard]] uint32_t getCurrentImageIndex() const { return m_currentImageIndex; }
+
+    private:
+        VkExtent2D m_imageExtent{};
+        VkQueue m_graphicsQueue{};
+        VkQueue m_presentQueue{};
+        VkFormat m_swapchainImageFormat;
+        VkSwapchainKHR m_swapchain{};
+        std::vector<VkImage> m_swapchainImages;
+        std::vector<VkImageView> m_swapchainImageViews;
+        uint32_t m_currentImageIndex{};
+        uint32_t m_swapchainMaxImageCount{};
+
+        std::vector<std::shared_ptr<VulkanFramebuffer>> m_swapchainFramebuffers;
+
+        std::shared_ptr<VulkanDevice> m_device;
+
+        [[nodiscard]] static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
+                                                         VkExtent2D surfaceExtent);
+
+        static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+
+        static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+
+        void createImageViews();
+    };
+
+#pragma endregion VulkanSwapchain}
 
 #pragma region VulkanCommandBuffer{
 
@@ -164,8 +205,7 @@ namespace Graphics::Vulkan
                             VkSemaphore renderFinishedSemaphore, VkFence frameInFlightFence);
         ~VulkanCommandBuffer() override;
 
-        void StartRecording(std::shared_ptr<JarDevice> device, std::shared_ptr<JarRenderPass> renderPass,
-                            std::shared_ptr<JarFramebuffer> framebuffer) override;
+        void StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) override;
         void EndRecording() override;
         void BindPipeline(std::shared_ptr<JarPipeline> pipeline) override;
         void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
@@ -310,11 +350,7 @@ namespace Graphics::Vulkan
         void CreateGraphicsPipeline(VkDevice device, VkShaderModule vertexSahderModule,
                                     VkShaderModule fragmentShaderModule, std::shared_ptr<VulkanRenderPass> renderPass);
 
-        void CreateFramebuffers(VkDevice device, VkExtent2D surfaceExtent,
-                                std::vector<VkImageView> swapchainImageViews);
-
         void Release() override;
-        std::vector<std::shared_ptr<JarFramebuffer>> GetFramebuffers() override;
         std::shared_ptr<JarRenderPass> GetRenderPass() override;
 
         [[nodiscard]] VkPipeline getPipeline() const { return m_graphicsPipeline; }
@@ -322,7 +358,6 @@ namespace Graphics::Vulkan
     private:
         VkPipelineLayout m_pipelineLayout;
         VkPipeline m_graphicsPipeline;
-        std::vector<std::shared_ptr<VulkanFramebuffer>> m_framebuffers;
         std::shared_ptr<VulkanRenderPass> m_renderPass;
 
         static VkVertexInputBindingDescription getBindingDescription();

@@ -48,7 +48,7 @@ namespace Graphics
         void Render()
         {
             const auto commandBuffer = queue->getNextCommandBuffer();
-            commandBuffer->StartRecording(device, renderPass, pipeline->GetFramebuffers()[0]);
+            commandBuffer->StartRecording(surface, renderPass);
 
             commandBuffer->BindPipeline(pipeline);
             commandBuffer->BindVertexBuffer(vertexBuffer);

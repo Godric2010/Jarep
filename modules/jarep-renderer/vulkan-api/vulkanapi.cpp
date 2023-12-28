@@ -2,11 +2,9 @@
 // Created by Sebastian Borsch on 24.10.23.
 //
 
-#include "vulkanapi.hpp"
-
 #include <IRenderer.hpp>
-#include <vector>
 #include <vulkan/vulkan_core.h>
+
 #if defined(__linux__) or defined(_WIN32)
 
 #include "vulkanapi.hpp"
@@ -24,8 +22,7 @@ namespace Graphics::Vulkan
 
     VulkanBackend::~VulkanBackend() = default;
 
-    std::shared_ptr<JarSurface> VulkanBackend::CreateSurface(
-        Graphics::NativeWindowHandleProvider* nativeWindowHandleProvider)
+    std::shared_ptr<JarSurface> VulkanBackend::CreateSurface(NativeWindowHandleProvider* nativeWindowHandleProvider)
     {
         VkExtent2D surfaceExtend = VkExtent2D();
         surfaceExtend.width = nativeWindowHandleProvider->getWindowWidth();
@@ -44,8 +41,8 @@ namespace Graphics::Vulkan
         auto device = std::make_shared<VulkanDevice>();
         device->CreatePhysicalDevice(instance, vkSurface);
         device->CreateLogicalDevice();
-        device->CreateSwapchain(vkSurface);
-        device->CreateImageViews();
+
+        vkSurface->FinalizeSurface(device);
 
         return device;
     }
@@ -93,7 +90,16 @@ namespace Graphics::Vulkan
     {
     }
 
-    SwapChainSupportDetails VulkanSurface::QuerySwapchainSupport(VkPhysicalDevice physicalDevice)
+    void VulkanSurface::FinalizeSurface(std::shared_ptr<VulkanDevice> device)
+    {
+        auto swapchainSupport = QuerySwapchainSupport(device->getPhysicalDevice());
+
+        m_swapchain = std::make_unique<VulkanSwapchain>();
+        m_swapchain->Initialize(device, m_surfaceExtent, swapchainSupport, m_surface);
+    }
+
+
+    SwapChainSupportDetails VulkanSurface::QuerySwapchainSupport(VkPhysicalDevice physicalDevice) const
     {
         SwapChainSupportDetails details;
 
@@ -127,8 +133,6 @@ namespace Graphics::Vulkan
     {
         m_physicalDevice = VK_NULL_HANDLE;
         m_device = VK_NULL_HANDLE;
-        m_presentQueue = VK_NULL_HANDLE;
-        m_graphicsQueue = VK_NULL_HANDLE;
         m_graphicsFamily = std::nullopt;
         m_presentFamily = std::nullopt;
     }
@@ -189,9 +193,6 @@ namespace Graphics::Vulkan
         {
             throw std::runtime_error("Failed to create logical device");
         }
-
-        vkGetDeviceQueue(m_device, m_graphicsFamily.value(), 0, &m_graphicsQueue);
-        vkGetDeviceQueue(m_device, m_presentFamily.value(), 0, &m_presentQueue);
     }
 
     std::shared_ptr<JarBuffer> VulkanDevice::CreateBuffer(size_t bufferSize, const void* data)
@@ -219,8 +220,6 @@ namespace Graphics::Vulkan
         auto pipeline = std::make_shared<VulkanGraphicsPipeline>();
         pipeline->CreateGraphicsPipeline(m_device, vkVertexModule->getShaderModule(),
                                          vkFragmentModule->getShaderModule(), vkRenderPass);
-        pipeline->CreateFramebuffers(m_device, m_imageExtent, m_swapchainImageViews);
-
         return pipeline;
     }
 
@@ -233,8 +232,10 @@ namespace Graphics::Vulkan
 
     std::shared_ptr<JarRenderPass> VulkanDevice::CreateRenderPass(std::shared_ptr<JarSurface> surface)
     {
+        const auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
         const auto renderPass = std::make_shared<VulkanRenderPass>();
-        renderPass->CreateRenderPass(m_device, m_swapchainImageFormat);
+        renderPass->CreateRenderPass(m_device, vkSurface->getSwapchain()->getSwapchainImageFormat());
+        vkSurface->getSwapchain()->CreateFramebuffersFromRenderPass(renderPass);
         return renderPass;
     }
 
@@ -313,34 +314,45 @@ namespace Graphics::Vulkan
 
         return requiredExtensions.empty();
     }
+#pragma endregion VulkanDevice }
 
-    void VulkanDevice::CreateSwapchain(std::shared_ptr<VulkanSurface> surface)
+#pragma region VulkanSwapchain{
+
+    void VulkanSwapchain::Initialize(const std::shared_ptr<VulkanDevice>& device, const VkExtent2D extent,
+                                     const SwapChainSupportDetails& swapchainSupport, const VkSurfaceKHR surface)
     {
-        SwapChainSupportDetails swapChainSupport = surface->QuerySwapchainSupport(m_physicalDevice);
-        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-        m_imageExtent = chooseSwapExtent(swapChainSupport.capabilities, surface->getSurfaceExtent());
+        m_device = device;
+        m_imageExtent = extent;
+
+        vkGetDeviceQueue(m_device->getLogicalDevice(), m_device->getGraphicsFamilyIndex().value(), 0, &m_graphicsQueue);
+        vkGetDeviceQueue(m_device->getLogicalDevice(), m_device->getPresentFamilyIndex().value(), 0, &m_presentQueue);
+
+        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
+        const VkPresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
+        m_imageExtent = chooseSwapExtent(swapchainSupport.capabilities, m_imageExtent);
 
         m_swapchainImageFormat = surfaceFormat.format;
 
-        uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-        if (swapChainSupport.capabilities.maxImageCount > 0 &&
-            imageCount > swapChainSupport.capabilities.maxImageCount)
+        m_swapchainMaxImageCount = swapchainSupport.capabilities.minImageCount + 1;
+        if (swapchainSupport.capabilities.maxImageCount > 0 &&
+            m_swapchainMaxImageCount > swapchainSupport.capabilities.maxImageCount)
         {
-            imageCount = swapChainSupport.capabilities.maxImageCount;
+            m_swapchainMaxImageCount = swapchainSupport.capabilities.maxImageCount;
         }
 
         VkSwapchainCreateInfoKHR createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = surface->getSurface();
-        createInfo.minImageCount = imageCount;
+        createInfo.surface = surface;
+        createInfo.minImageCount = m_swapchainMaxImageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
         createInfo.imageExtent = m_imageExtent;
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        uint32_t queueFamilyIndices[] = {m_graphicsFamily.value(), m_presentFamily.value()};
-        if (m_graphicsFamily != m_presentFamily)
+        const uint32_t queueFamilyIndices[] = {
+            device->getGraphicsFamilyIndex().value(), device->getPresentFamilyIndex().value()
+        };
+        if (device->getGraphicsFamilyIndex() != device->getPresentFamilyIndex())
         {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = 2;
@@ -352,23 +364,112 @@ namespace Graphics::Vulkan
             createInfo.queueFamilyIndexCount = 0;
             createInfo.pQueueFamilyIndices = nullptr;
         }
-        createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+        createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
+        if (vkCreateSwapchainKHR(m_device->getLogicalDevice(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create swap chain!");
         }
 
-        vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, nullptr);
-        m_swapchainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, m_swapchainImages.data());
+        vkGetSwapchainImagesKHR(m_device->getLogicalDevice(), m_swapchain, &m_swapchainMaxImageCount, nullptr);
+        m_swapchainImages.resize(m_swapchainMaxImageCount);
+        vkGetSwapchainImagesKHR(m_device->getLogicalDevice(), m_swapchain, &m_swapchainMaxImageCount,
+                                m_swapchainImages.data());
+
+        m_currentImageIndex = 0;
     }
 
-    VkSurfaceFormatKHR VulkanDevice::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+    void VulkanSwapchain::CreateFramebuffersFromRenderPass(const std::shared_ptr<VulkanRenderPass>& renderPass)
+    {
+        for (const auto& m_swapchainImageView : m_swapchainImageViews)
+        {
+            auto framebuffer = std::make_shared<VulkanFramebuffer>(m_imageExtent);
+            framebuffer->CreateFramebuffer(m_device->getLogicalDevice(), renderPass->getRenderPass(),
+                                           m_swapchainImageView);
+            m_swapchainFramebuffers.push_back(framebuffer);
+        }
+    }
+
+    std::shared_ptr<VulkanFramebuffer> VulkanSwapchain::AcquireNewImage(VkSemaphore imageAvailable,
+                                                                        VkFence frameInFlight)
+    {
+        vkWaitForFences(m_device->getLogicalDevice(), 1, &frameInFlight, VK_TRUE, UINT64_MAX);
+        vkResetFences(m_device->getLogicalDevice(), 1, &frameInFlight);
+
+        uint32_t imageIndex;
+        vkAcquireNextImageKHR(m_device->getLogicalDevice(), m_swapchain, UINT64_MAX, imageAvailable, VK_NULL_HANDLE,
+                              &imageIndex);
+
+        return m_swapchainFramebuffers[imageIndex];
+    }
+
+    void VulkanSwapchain::PresentImage(VkSemaphore imageAvailable, VkSemaphore renderFinished, VkFence frameInFlight,
+                                       VkCommandBuffer* cmdBuffer)
+    {
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        VkSemaphore waitSemaphores[] = {imageAvailable};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = cmdBuffer;
+        VkSemaphore signalSemaphores[] = {renderFinished};
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, frameInFlight) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to submit draw command buffer");
+        }
+
+        const uint32_t currentImageIndex = static_cast<uint32_t>(m_currentImageIndex);
+        const uint32_t* currentImageIndexPtr = &currentImageIndex;
+
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+        const VkSwapchainKHR swapchains[] = {m_swapchain};
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = swapchains;
+        presentInfo.pImageIndices = currentImageIndexPtr;
+        presentInfo.pResults = nullptr;
+
+        vkQueuePresentKHR(m_presentQueue, &presentInfo);
+
+        m_currentImageIndex = (m_currentImageIndex + 1) % m_swapchainMaxImageCount;
+    }
+
+    void VulkanSwapchain::Release()
+    {
+        for (const auto& framebuffer : m_swapchainFramebuffers)
+        {
+            framebuffer->Release(m_device);
+        }
+
+        for (const auto imageView : m_swapchainImageViews)
+        {
+            vkDestroyImageView(m_device->getLogicalDevice(), imageView, nullptr);
+        }
+
+        for (const auto image : m_swapchainImages)
+        {
+            vkDestroyImage(m_device->getLogicalDevice(), image, nullptr);
+        }
+
+        vkDestroySwapchainKHR(m_device->getLogicalDevice(), m_swapchain, nullptr);
+    }
+
+
+    VkSurfaceFormatKHR VulkanSwapchain::chooseSwapSurfaceFormat(
+        const std::vector<VkSurfaceFormatKHR>& availableFormats)
     {
         for (const auto& availableFormat : availableFormats)
         {
@@ -381,7 +482,8 @@ namespace Graphics::Vulkan
         return availableFormats[0];
     }
 
-    VkPresentModeKHR VulkanDevice::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+    VkPresentModeKHR VulkanSwapchain::chooseSwapPresentMode(
+        const std::vector<VkPresentModeKHR>& availablePresentModes)
     {
         for (const auto& availablePresentMode : availablePresentModes)
         {
@@ -393,8 +495,8 @@ namespace Graphics::Vulkan
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    VkExtent2D VulkanDevice::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
-                                              const VkExtent2D surfaceExtent) const
+    VkExtent2D VulkanSwapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
+                                                 const VkExtent2D surfaceExtent)
     {
         if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
         {
@@ -412,7 +514,7 @@ namespace Graphics::Vulkan
         }
     }
 
-    void VulkanDevice::CreateImageViews()
+    void VulkanSwapchain::createImageViews()
     {
         m_swapchainImageViews.resize(m_swapchainImages.size());
         for (size_t i = 0; i < m_swapchainImages.size(); i++)
@@ -432,14 +534,15 @@ namespace Graphics::Vulkan
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(m_device, &createInfo, nullptr, &m_swapchainImageViews[i]) != VK_SUCCESS)
+            if (vkCreateImageView(m_device->getLogicalDevice(), &createInfo, nullptr, &m_swapchainImageViews[i]) !=
+                VK_SUCCESS)
             {
                 throw std::runtime_error("failed to create image views");
             }
         }
     }
+#pragma endregion VulkanSwapchain}
 
-#pragma endregion VulkanDevice }
 
 #pragma region VulkanCommandQueue{
 
@@ -548,21 +651,14 @@ namespace Graphics::Vulkan
     VulkanCommandBuffer::~VulkanCommandBuffer() = default;
 
 
-    void VulkanCommandBuffer::StartRecording(std::shared_ptr<JarDevice> device,
-                                             std::shared_ptr<JarRenderPass> renderPass,
-                                             std::shared_ptr<JarFramebuffer> framebuffer)
+    void VulkanCommandBuffer::StartRecording(std::shared_ptr<JarSurface> surface,
+                                             std::shared_ptr<JarRenderPass> renderPass)
     {
         auto vkRenderPass = reinterpret_cast<std::shared_ptr<VulkanRenderPass>&>(renderPass);
-        auto vkFramebuffer = reinterpret_cast<std::shared_ptr<VulkanFramebuffer>&>(framebuffer);
-        auto vkDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
+        auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
 
-        vkWaitForFences(vkDevice->getLogicalDevice(), 1, &m_frameInFlightFence, VK_TRUE, UINT64_MAX);
-        vkResetFences(vkDevice->getLogicalDevice(), 1, &m_frameInFlightFence);
-
-        uint32_t imageIndex;
-        vkAcquireNextImageKHR(vkDevice->getLogicalDevice(), vkDevice->getSwapchain(), UINT64_MAX,
-                              m_imageAvailableSemaphore, VK_NULL_HANDLE,
-                              &imageIndex);
+        auto vkFramebuffer = vkSurface->getSwapchain()->
+                                        AcquireNewImage(m_imageAvailableSemaphore, m_frameInFlightFence);
 
         vkResetCommandBuffer(m_commandBuffer, 0);
 
@@ -576,14 +672,14 @@ namespace Graphics::Vulkan
             throw std::runtime_error("failed to begin recording command buffer");
         }
 
-        VkExtent2D framebufferExtent = vkFramebuffer->getFramebufferExtent();
+        const VkExtent2D surfaceExtent = vkSurface->getSurfaceExtent();
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = vkRenderPass->getRenderPass();
         renderPassInfo.framebuffer = vkFramebuffer->getFramebuffer();
         renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = framebufferExtent;
+        renderPassInfo.renderArea.extent = surfaceExtent;
         VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0}}};
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
@@ -591,15 +687,15 @@ namespace Graphics::Vulkan
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width = static_cast<float>(framebufferExtent.width);
-        viewport.height = static_cast<float>(framebufferExtent.height);
+        viewport.width = static_cast<float>(surfaceExtent.width);
+        viewport.height = static_cast<float>(surfaceExtent.height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
         vkCmdSetViewport(m_commandBuffer, 0, 1, &viewport);
 
         VkRect2D scissor{};
         scissor.offset = {0, 0};
-        scissor.extent = framebufferExtent;
+        scissor.extent = surfaceExtent;
         vkCmdSetScissor(m_commandBuffer, 0, 1, &scissor);
 
         vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -621,54 +717,22 @@ namespace Graphics::Vulkan
 
     void VulkanCommandBuffer::Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device)
     {
-        auto vkDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-        VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore};
-        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = waitSemaphores;
-        submitInfo.pWaitDstStageMask = waitStages;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &m_commandBuffer;
-        VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphore};
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
-
-        if (vkQueueSubmit(vkDevice->getGraphicsQueue(), 1, &submitInfo, m_frameInFlightFence) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to submit draw command buffer");
-        }
-
-        const uint32_t* imageIndex = 0;
-
-        VkPresentInfoKHR presentInfo{};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = signalSemaphores;
-        VkSwapchainKHR swapChains[] = {vkDevice->getSwapchain()};
-        presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = swapChains;
-        presentInfo.pImageIndices = imageIndex;
-        presentInfo.pResults = nullptr;
-
-        vkQueuePresentKHR(vkDevice->getPresentQueue(), &presentInfo);
-
-        // currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        const auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
+        vkSurface->getSwapchain()->PresentImage(m_imageAvailableSemaphore, m_renderFinishedSemaphore,
+                                                m_frameInFlightFence, &m_commandBuffer);
     }
 
     void VulkanCommandBuffer::BindPipeline(std::shared_ptr<JarPipeline> pipeline)
     {
-        auto vkPipeline = reinterpret_cast<std::shared_ptr<VulkanGraphicsPipeline>&>(pipeline);
+        const auto vkPipeline = reinterpret_cast<std::shared_ptr<VulkanGraphicsPipeline>&>(pipeline);
         vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->getPipeline());
     }
 
     void VulkanCommandBuffer::BindVertexBuffer(std::shared_ptr<JarBuffer> buffer)
     {
-        auto vulkanBuffer = reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(buffer);
-        VkBuffer vertexBuffers[] = {vulkanBuffer->getBuffer()};
-        VkDeviceSize offsets[] = {0};
+        const auto vulkanBuffer = reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(buffer);
+        const VkBuffer vertexBuffers[] = {vulkanBuffer->getBuffer()};
+        const VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(m_commandBuffer, 0, 1, vertexBuffers, offsets);
     }
 
@@ -901,31 +965,9 @@ namespace Graphics::Vulkan
         return m_renderPass;
     }
 
-    std::vector<std::shared_ptr<JarFramebuffer>> VulkanGraphicsPipeline::GetFramebuffers()
-    {
-        std::vector<std::shared_ptr<JarFramebuffer>> result;
-        for (auto& framebuffer : m_framebuffers)
-        {
-            result.push_back(std::static_pointer_cast<JarFramebuffer>(framebuffer));
-        }
-        return result;
-    }
-
     void VulkanGraphicsPipeline::Release()
     {
     }
-
-    void VulkanGraphicsPipeline::CreateFramebuffers(VkDevice device, VkExtent2D surfaceExtent,
-                                                    std::vector<VkImageView> swapchainImageViews)
-    {
-        for (const auto& m_swapchainImageView : swapchainImageViews)
-        {
-            auto framebuffer = std::make_shared<VulkanFramebuffer>(surfaceExtent);
-            framebuffer->CreateFramebuffer(device, m_renderPass->getRenderPass(), m_swapchainImageView);
-            m_framebuffers.push_back(framebuffer);
-        }
-    }
-
 
     VkVertexInputBindingDescription VulkanGraphicsPipeline::getBindingDescription()
     {
