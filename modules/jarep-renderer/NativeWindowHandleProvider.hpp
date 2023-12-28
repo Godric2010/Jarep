@@ -5,43 +5,49 @@
 #ifndef NATIVEWINDOWHANDLEPROVIDER_HPP
 #define NATIVEWINDOWHANDLEPROVIDER_HPP
 
-namespace Graphics {
-	enum WindowSystem {
-		Win32,
-		Cocoa,
-		X11,
-		Wayland
-	};
+namespace Graphics
+{
+    enum WindowSystem
+    {
+        Win32,
+        Cocoa,
+        X11,
+        Wayland
+    };
 
-	class NativeWindowHandleProvider {
-		public:
-			NativeWindowHandleProvider(void *handle, const int width, const int height, const WindowSystem system) {
-				windowHandle = handle;
-				windowWidth = width;
-				windowHeight = height;
-				windowSystem = system;
-			}
+    class NativeWindowHandleProvider
+    {
+    public:
+        NativeWindowHandleProvider(void* handle, const int width, const int height, const WindowSystem system)
+        {
+            windowHandle = handle;
+            windowWidth = width;
+            windowHeight = height;
+            windowSystem = system;
+        }
 
-			virtual ~NativeWindowHandleProvider() = default;
+        virtual ~NativeWindowHandleProvider() = default;
 
-			[[nodiscard]] void *getNativeWindowHandle() const { return windowHandle; }
+        [[nodiscard]] void* getNativeWindowHandle() const { return windowHandle; }
 
-			[[nodiscard]] int getWindowWidth() const { return windowWidth; }
+        [[nodiscard]] int getWindowWidth() const { return windowWidth; }
 
-			[[nodiscard]] int getWindowHeight() const { return windowHeight; }
+        [[nodiscard]] int getWindowHeight() const { return windowHeight; }
 
-			[[nodiscard]] WindowSystem getWindowSystem() const { return windowSystem; }
+        [[nodiscard]] WindowSystem getWindowSystem() const { return windowSystem; }
 
-		private:
-			void *windowHandle;
-			int windowWidth;
-			int windowHeight;
-			WindowSystem windowSystem;
-	};
+    private:
+        void* windowHandle;
+        int windowWidth;
+        int windowHeight;
+        WindowSystem windowSystem;
+    };
 
-	class XlibWindowHandleProvider;
+    class XlibWindowHandleProvider;
 
-	class WaylandWindowHandleProvider;
+    class WaylandWindowHandleProvider;
+
+    class WindowsWindowHandleProvider;
 }
 
 #if defined(__linux__)
@@ -89,4 +95,27 @@ class Graphics::WaylandWindowHandleProvider : public Graphics::NativeWindowHandl
 
 #endif
 
+#if defined (_WIN32)
+#include <windows.h>
+
+class Graphics::WindowsWindowHandleProvider final : public NativeWindowHandleProvider
+{
+public:
+    WindowsWindowHandleProvider(HWND handle, HINSTANCE hInst, const int width, const int height,
+                                const WindowSystem system) : NativeWindowHandleProvider(
+        reinterpret_cast<void*>(handle), width, height, system)
+    {
+        hInstance = hInst;
+        window = handle;
+    }
+
+    HINSTANCE getHIstance() const { return hInstance; }
+    HWND getWindowHandle() const { return window; }
+
+private:
+    HINSTANCE hInstance;
+    HWND window;
+};
+
+#endif
 #endif //NATIVEWINDOWHANDLEPROVIDER_HPP
