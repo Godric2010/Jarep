@@ -8,6 +8,7 @@
 #include <iostream>
 #include <memory>
 #include <filesystem>
+#include <fstream>
 #include <vector>
 #include "IRenderer.hpp"
 #include "NativeWindowHandleProvider.hpp"
@@ -40,29 +41,26 @@ namespace Graphics
             vertexBuffer = device->CreateBuffer(vertexDataSize, vertices.data());
             vertexShaderModule = device->CreateShaderModule(readFile("shaders/triangle_vert.spv"));
             fragmentShaderModule = device->CreateShaderModule(readFile("shaders/triangle_frag.spv"));
-            /*				pipeline = device->CreatePipeline(vertexShaderModule, fragmentShaderModule);
-                        */
+            renderPass = device->CreateRenderPass(surface);
+            pipeline = device->CreatePipeline(vertexShaderModule, fragmentShaderModule, renderPass);
         }
 
         void Render()
         {
-            /*
             const auto commandBuffer = queue->getNextCommandBuffer();
-            const auto renderPassDesc = m_surface->CreateRenderPass();
-            commandBuffer->StartRecording(renderPassDesc);
+            commandBuffer->StartRecording(device, renderPass, pipeline->GetFramebuffers()[0]);
 
             commandBuffer->BindPipeline(pipeline);
             commandBuffer->BindVertexBuffer(vertexBuffer);
             commandBuffer->Draw();
 
             commandBuffer->EndRecording();
-            commandBuffer->Present(surface);
-        */
+            commandBuffer->Present(surface, device);
         }
 
         void Shutdown()
         {
-            // pipeline->Release();
+            pipeline->Release();
             vertexShaderModule->Release(device);
             fragmentShaderModule->Release(device);
 
@@ -81,10 +79,11 @@ namespace Graphics
         std::shared_ptr<JarBuffer> vertexBuffer;
         std::shared_ptr<JarShaderModule> vertexShaderModule;
         std::shared_ptr<JarShaderModule> fragmentShaderModule;
-        // std::shared_ptr<JarPipeline> pipeline;
+        std::shared_ptr<JarPipeline> pipeline;
+        std::shared_ptr<JarRenderPass> renderPass;
 
 
-        std::string readFile(const std::string& filename)
+        static std::string readFile(const std::string& filename)
         {
             std::ifstream file(filename, std::ios::ate | std::ios::binary);
 

@@ -68,11 +68,9 @@ namespace Graphics::Vulkan
 
         void Update() override;
 
-        //JarRenderPass* CreateRenderPass() override;
+        [[nodiscard]] VkSurfaceKHR getSurface() const { return m_surface; }
 
-        VkSurfaceKHR getSurface() { return m_surface; }
-
-        VkExtent2D getSurfaceExtent() { return m_surfaceExtent; }
+        [[nodiscard]] VkExtent2D getSurfaceExtent() const { return m_surfaceExtent; }
 
         SwapChainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice);
 
@@ -99,16 +97,29 @@ namespace Graphics::Vulkan
 
         void CreateLogicalDevice();
 
+        void CreateSwapchain(std::shared_ptr<VulkanSurface> surface);
+
+        void CreateImageViews();
+
         std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void* data) override;
 
         std::shared_ptr<JarShaderModule> CreateShaderModule(std::string fileContent) override;
 
         std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
-                                                    std::shared_ptr<JarShaderModule> fragmentModule) override;
+                                                    std::shared_ptr<JarShaderModule> fragmentModule,
+                                                    std::shared_ptr<JarRenderPass> renderPass) override;
 
         std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
 
-        VkDevice getLogicalDevice() const { return m_device; }
+        std::shared_ptr<JarRenderPass> CreateRenderPass(std::shared_ptr<JarSurface> surface) override;
+
+        [[nodiscard]] VkDevice getLogicalDevice() const { return m_device; }
+
+        [[nodiscard]] VkSwapchainKHR getSwapchain() const { return m_swapchain; }
+
+        [[nodiscard]] VkQueue getGraphicsQueue() const { return m_graphicsQueue; }
+
+        [[nodiscard]] VkQueue getPresentQueue() const { return m_presentQueue; }
 
     private:
         VkPhysicalDevice m_physicalDevice;
@@ -117,6 +128,11 @@ namespace Graphics::Vulkan
         std::optional<uint32_t> m_presentFamily;
         VkQueue m_graphicsQueue;
         VkQueue m_presentQueue;
+        VkExtent2D m_imageExtent;
+        VkFormat m_swapchainImageFormat;
+        VkSwapchainKHR m_swapchain;
+        std::vector<VkImage> m_swapchainImages;
+        std::vector<VkImageView> m_swapchainImageViews;
 
         const std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -126,12 +142,18 @@ namespace Graphics::Vulkan
 
         void findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface);
 
-        bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice);
+        bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice) const;
+
+        [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
+                                                  const VkExtent2D surfaceExtent) const;
+
+        VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+
+        VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     };
 
 
 #pragma endregion VulkanDevice }
-
 
 #pragma region VulkanCommandBuffer{
 
@@ -142,12 +164,13 @@ namespace Graphics::Vulkan
                             VkSemaphore renderFinishedSemaphore, VkFence frameInFlightFence);
         ~VulkanCommandBuffer() override;
 
-        void StartRecording(JarRenderPass* renderPass) override;
+        void StartRecording(std::shared_ptr<JarDevice> device, std::shared_ptr<JarRenderPass> renderPass,
+                            std::shared_ptr<JarFramebuffer> framebuffer) override;
         void EndRecording() override;
         void BindPipeline(std::shared_ptr<JarPipeline> pipeline) override;
         void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
         void Draw() override;
-        void Present(std::shared_ptr<JarSurface>& surface) override;
+        void Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) override;
 
         void Release(VkDevice device);
 
@@ -200,6 +223,8 @@ namespace Graphics::Vulkan
         static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
                                        VkMemoryPropertyFlags properties);
 
+        [[nodiscard]] VkBuffer getBuffer() const { return m_buffer; }
+
     private:
         VkBuffer m_buffer;
         VkDeviceMemory m_bufferMemory;
@@ -225,6 +250,87 @@ namespace Graphics::Vulkan
     };
 
 #pragma endregion VulkanShaderModule}
+
+#pragma region VulkanFramebuffer{
+
+    class VulkanFramebuffer final : public JarFramebuffer
+    {
+    public:
+        explicit VulkanFramebuffer(const VkExtent2D framebufferExtent)
+        {
+            m_framebuffer = nullptr;
+            m_framebufferExtent = framebufferExtent;
+        }
+
+        ~VulkanFramebuffer() override;
+
+        void CreateFramebuffer(VkDevice device, VkRenderPass renderPass,
+                               VkImageView swapchainImageView);
+
+        [[nodiscard]] VkFramebuffer getFramebuffer() const { return m_framebuffer; }
+        [[nodiscard]] VkExtent2D getFramebufferExtent() const { return m_framebufferExtent; }
+
+        void Release(std::shared_ptr<JarDevice> device) override;
+
+    private:
+        VkFramebuffer m_framebuffer;
+        VkExtent2D m_framebufferExtent;
+    };
+
+#pragma endregion VulkanFrambuffer}
+
+#pragma region VulkanRenderPass{
+
+    class VulkanRenderPass final : public JarRenderPass
+    {
+    public:
+        VulkanRenderPass() = default;
+        ~VulkanRenderPass() override;
+
+        void CreateRenderPass(VkDevice device, VkFormat imageFormat);
+
+        void Release(std::shared_ptr<JarDevice> jarDevice) override;
+
+        [[nodiscard]] VkRenderPass getRenderPass() const { return m_renderPass; }
+
+    private:
+        VkRenderPass m_renderPass;
+    };
+
+#pragma endregion VulkanRenderPass}
+
+#pragma region VulkanGraphicsPipeline{
+
+    class VulkanGraphicsPipeline final : public JarPipeline
+    {
+    public:
+        VulkanGraphicsPipeline() = default;
+        ~VulkanGraphicsPipeline() override;
+
+        void CreateGraphicsPipeline(VkDevice device, VkShaderModule vertexSahderModule,
+                                    VkShaderModule fragmentShaderModule, std::shared_ptr<VulkanRenderPass> renderPass);
+
+        void CreateFramebuffers(VkDevice device, VkExtent2D surfaceExtent,
+                                std::vector<VkImageView> swapchainImageViews);
+
+        void Release() override;
+        std::vector<std::shared_ptr<JarFramebuffer>> GetFramebuffers() override;
+        std::shared_ptr<JarRenderPass> GetRenderPass() override;
+
+        [[nodiscard]] VkPipeline getPipeline() const { return m_graphicsPipeline; }
+
+    private:
+        VkPipelineLayout m_pipelineLayout;
+        VkPipeline m_graphicsPipeline;
+        std::vector<std::shared_ptr<VulkanFramebuffer>> m_framebuffers;
+        std::shared_ptr<VulkanRenderPass> m_renderPass;
+
+        static VkVertexInputBindingDescription getBindingDescription();
+        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+    };
+
+#pragma endregion VulkanGraphicsPipeline};
+
 
     /*
         struct QueueFamilyIndices;

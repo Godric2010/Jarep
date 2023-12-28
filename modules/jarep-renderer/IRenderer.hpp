@@ -5,6 +5,8 @@
 #ifndef JAREP_IRENDERER_HPP
 #define JAREP_IRENDERER_HPP
 
+#include <complex.h>
+
 #include "NativeWindowHandleProvider.hpp"
 #include <memory>
 #include <string>
@@ -17,8 +19,16 @@ namespace Graphics
     {
     public:
         virtual ~JarRenderPass() = default;
+        virtual void Release(std::shared_ptr<JarDevice> jarDevice) = 0;
     };
 
+    class JarFramebuffer
+    {
+    public:
+        virtual ~JarFramebuffer() = default;
+
+        virtual void Release(std::shared_ptr<JarDevice> device) = 0;
+    };
 
     class JarSurface
     {
@@ -26,8 +36,6 @@ namespace Graphics
         virtual ~JarSurface() = default;
 
         virtual void Update() = 0;
-
-        //	virtual JarRenderPass *CreateRenderPass() = 0;
     };
 
 
@@ -59,6 +67,11 @@ namespace Graphics
         virtual ~JarPipeline() = default;
 
         virtual void Release() = 0;
+
+        virtual std::vector<std::shared_ptr<JarFramebuffer>, std::allocator<std::shared_ptr<JarFramebuffer>>>
+        GetFramebuffers() = 0;
+
+        virtual std::shared_ptr<JarRenderPass> GetRenderPass() = 0;
     };
 
     class JarCommandBuffer
@@ -66,7 +79,8 @@ namespace Graphics
     public:
         virtual ~JarCommandBuffer() = default;
 
-        virtual void StartRecording(JarRenderPass* renderPass) = 0;
+        virtual void StartRecording(std::shared_ptr<JarDevice> device, std::shared_ptr<JarRenderPass> renderPass,
+                                    std::shared_ptr<JarFramebuffer> framebuffer) = 0;
 
         virtual void EndRecording() = 0;
 
@@ -76,7 +90,7 @@ namespace Graphics
 
         virtual void Draw() = 0;
 
-        virtual void Present(std::shared_ptr<JarSurface>& surface) = 0;
+        virtual void Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) = 0;
     };
 
 
@@ -89,6 +103,7 @@ namespace Graphics
 
         virtual void Release(std::shared_ptr<JarDevice> device) = 0;
     };
+
 
     class JarDevice
     {
@@ -103,8 +118,11 @@ namespace Graphics
 
         virtual std::shared_ptr<JarShaderModule> CreateShaderModule(std::string fileContent) = 0;
 
+        virtual std::shared_ptr<JarRenderPass> CreateRenderPass(std::shared_ptr<JarSurface> surface) = 0;
+
         virtual std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
-                                                            std::shared_ptr<JarShaderModule> fragmentModule) = 0;
+                                                            std::shared_ptr<JarShaderModule> fragmentModule,
+                                                            std::shared_ptr<JarRenderPass> renderPass) = 0;
     };
 
     class Backend
