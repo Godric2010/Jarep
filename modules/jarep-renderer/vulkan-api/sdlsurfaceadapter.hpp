@@ -6,6 +6,7 @@
 #define JAREP_SDLSURFACEADAPTER_HPP
 
 
+#if defined (__linux__) || defined (_WIN32)
 #include <vulkan/vulkan_core.h>
 #include <stdexcept>
 #include "../NativeWindowHandleProvider.hpp"
@@ -47,5 +48,5 @@ namespace Graphics::Vulkan {
 			CreateWindowsSurface(NativeWindowHandleProvider *nativeWindowHandleProvider, VkInstance instance);
 	};
 }
-
+#endif
 #endif //JAREP_SDLSURFACEADAPTER_HPP

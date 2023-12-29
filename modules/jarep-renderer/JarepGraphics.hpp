@@ -39,8 +39,8 @@ namespace Graphics
 
             const size_t vertexDataSize = vertices.size() * sizeof(Vertex);
             vertexBuffer = device->CreateBuffer(vertexDataSize, vertices.data());
-            vertexShaderModule = device->CreateShaderModule(readFile("shaders/triangle_vert.spv"));
-            fragmentShaderModule = device->CreateShaderModule(readFile("shaders/triangle_frag.spv"));
+            vertexShaderModule = device->CreateShaderModule(readFile("shaders/triangle_vert.metal"));
+            fragmentShaderModule = device->CreateShaderModule(readFile("shaders/triangle_frag.metal"));
             renderPass = device->CreateRenderPass(surface);
             pipeline = device->CreatePipeline(vertexShaderModule, fragmentShaderModule, renderPass);
         }

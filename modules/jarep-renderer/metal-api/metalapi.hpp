@@ -32,11 +32,16 @@ namespace Graphics::Metal {
 
 			void Update() override;
 
-			JarRenderPass *CreateRenderPass() override;
-
 			void FinalizeSurface(MTL::Device *device);
 
 			[[nodiscard]] CA::MetalDrawable *getDrawable() const { return drawable; }
+
+			[[nodiscard]] bool isSurfaceInitialized() const { return contentView != nullptr; }
+
+			MTL::Texture *acquireNewDrawTexture() {
+				drawable = layer->nextDrawable();
+				return drawable->texture();
+			}
 
 		private:
 			NS::View *contentView;
@@ -54,6 +59,8 @@ namespace Graphics::Metal {
 
 			~MetalRenderPass() override;
 
+			void Release(std::shared_ptr<JarDevice> jarDevice) override;
+
 			[[nodiscard]] MTL::RenderPassDescriptor *getRenderPassDesc() const { return renderPassDesc; }
 
 		private:
@@ -68,7 +75,8 @@ namespace Graphics::Metal {
 
 			~MetalCommandBuffer() override;
 
-			void StartRecording(JarRenderPass *renderPass) override;
+			void
+			StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) override;
 
 			void EndRecording() override;
 
@@ -78,7 +86,7 @@ namespace Graphics::Metal {
 
 			void Draw() override;
 
-			void Present(std::shared_ptr<JarSurface> &m_surface) override;
+			void Present(std::shared_ptr<JarSurface> &m_surface, std::shared_ptr<JarDevice> device) override;
 
 		private:
 			MTL::CommandBuffer *buffer;
@@ -94,7 +102,7 @@ namespace Graphics::Metal {
 
 			JarCommandBuffer *getNextCommandBuffer() override;
 
-			void Release() override;
+			void Release(std::shared_ptr<JarDevice> device) override;
 
 		private:
 			MTL::CommandQueue *queue;
@@ -116,8 +124,11 @@ namespace Graphics::Metal {
 
 			std::shared_ptr<JarShaderModule> CreateShaderModule(std::string shaderContent) override;
 
+			std::shared_ptr<JarRenderPass> CreateRenderPass(std::shared_ptr<JarSurface> surface) override;
+
 			std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
-			                                            std::shared_ptr<JarShaderModule> fragmentModule) override;
+			                                            std::shared_ptr<JarShaderModule> fragmentModule,
+			                                            std::shared_ptr<JarRenderPass> renderPass) override;
 
 			[[nodiscard]] std::optional<MTL::Device *> getDevice() const;
 
@@ -147,7 +158,7 @@ namespace Graphics::Metal {
 
 			void CreateShaderLibrary(MTL::Device *device, std::string shaderContent);
 
-			void Release() override;
+			void Release(std::shared_ptr<JarDevice> device) override;
 
 			MTL::Library *getLibrary() { return library; }
 
@@ -160,6 +171,8 @@ namespace Graphics::Metal {
 			MetalPipeline() = default;
 
 			~MetalPipeline() override;
+
+			std::shared_ptr<JarRenderPass> GetRenderPass() override;
 
 			void CreatePipeline(MTL::Device *device, MTL::Library *vertexLib, MTL::Library *fragmentLib);
 

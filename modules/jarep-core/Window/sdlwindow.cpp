@@ -79,8 +79,12 @@ namespace Core::Window
         bool running = true;
         SDL_Event event;
 
+		int counter = 0;
         while (running)
         {
+			counter++;
+
+//			if(counter > 10) running = false;
             if (isDirty)
             {
                 auto newDisplayMode = getDisplayModeFromOpts();

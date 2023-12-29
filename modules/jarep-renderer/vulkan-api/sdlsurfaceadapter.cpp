@@ -3,6 +3,7 @@
 //
 
 
+#if defined (__linux__) || defined (_WIN32)
 #include "sdlsurfaceadapter.hpp"
 
 namespace Graphics::Vulkan
@@ -91,3 +92,4 @@ namespace Graphics::Vulkan
         return surface;
     }
 }
+#endif

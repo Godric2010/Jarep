@@ -55,22 +55,6 @@ namespace Graphics::Metal {
 	void MetalSurface::Update() {
 	}
 
-	JarRenderPass *MetalSurface::CreateRenderPass() {
-		if (contentView == nullptr) {
-			throw std::runtime_error("Surface has not been initialized!");
-		}
-		drawable = layer->nextDrawable();
-		MTL::RenderPassDescriptor *renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();;
-		MTL::RenderPassColorAttachmentDescriptor *cd = renderPassDescriptor->colorAttachments()->object(0);
-		cd->setTexture(drawable->texture());
-		cd->setLoadAction(MTL::LoadActionClear);
-		cd->setClearColor(MTL::ClearColor(0.0, 0.0, 0.0, 1.0));
-		cd->setStoreAction(MTL::StoreActionStore);
-
-		return new MetalRenderPass(renderPassDescriptor);
-	}
-
-
 	void MetalSurface::FinalizeSurface(MTL::Device *device) {
 
 		Graphics::Metal::SDLSurfaceAdapter::CreateViewAndMetalLayer(surfaceRect, &contentView, &layer);
@@ -125,8 +109,25 @@ namespace Graphics::Metal {
 		return shaderLib;
 	}
 
+	std::shared_ptr<JarRenderPass> MetalDevice::CreateRenderPass(std::shared_ptr<JarSurface> surface) {
+		auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
+
+		if (!metalSurface->isSurfaceInitialized()) {
+			throw std::runtime_error("Surface has not been initialized!");
+		}
+		MTL::RenderPassDescriptor *renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();;
+		MTL::RenderPassColorAttachmentDescriptor *cd = renderPassDescriptor->colorAttachments()->object(0);
+		cd->setTexture(metalSurface->acquireNewDrawTexture());
+		cd->setLoadAction(MTL::LoadActionClear);
+		cd->setClearColor(MTL::ClearColor(0.0, 0.0, 0.0, 1.0));
+		cd->setStoreAction(MTL::StoreActionStore);
+
+		return std::make_shared<MetalRenderPass>(renderPassDescriptor);
+	}
+
 	std::shared_ptr<JarPipeline> MetalDevice::CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
-	                                                         std::shared_ptr<JarShaderModule> fragmentModule) {
+	                                                         std::shared_ptr<JarShaderModule> fragmentModule,
+															 std::shared_ptr<JarRenderPass> renderPass) {
 
 		auto *vertexShaderLib = reinterpret_cast<MetalShaderLibrary *>(vertexModule.get());
 		auto *fragmentShaderLib = reinterpret_cast<MetalShaderLibrary *>(fragmentModule.get());
@@ -149,7 +150,7 @@ namespace Graphics::Metal {
 		return new MetalCommandBuffer(queue->commandBuffer());
 	}
 
-	void MetalCommandQueue::Release() {
+	void MetalCommandQueue::Release(std::shared_ptr<JarDevice> device) {
 		queue->release();
 	}
 
@@ -159,9 +160,13 @@ namespace Graphics::Metal {
 
 	MetalCommandBuffer::~MetalCommandBuffer() = default;
 
-	void MetalCommandBuffer::StartRecording(JarRenderPass *renderPass) {
-		const auto metalRenderPass = reinterpret_cast<MetalRenderPass *>(renderPass);
-		encoder = buffer->renderCommandEncoder(metalRenderPass->getRenderPassDesc());
+	void MetalCommandBuffer::StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) {
+		const auto metalRenderPass = reinterpret_cast<std::shared_ptr<MetalRenderPass>&>(renderPass);
+		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
+
+		auto renderPassDesc = metalRenderPass->getRenderPassDesc();
+	   	renderPassDesc->colorAttachments()->object(0)->setTexture(metalSurface->acquireNewDrawTexture());
+		encoder = buffer->renderCommandEncoder(renderPassDesc);
 	}
 
 	void MetalCommandBuffer::EndRecording() {
@@ -184,7 +189,7 @@ namespace Graphics::Metal {
 
 	}
 
-	void MetalCommandBuffer::Present(std::shared_ptr<JarSurface> &surface) {
+	void MetalCommandBuffer::Present(std::shared_ptr<JarSurface> &surface, std::shared_ptr<JarDevice> device) {
 		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface> &>(surface);
 		buffer->presentDrawable(metalSurface->getDrawable());
 		buffer->commit();
@@ -198,6 +203,9 @@ namespace Graphics::Metal {
 	MetalRenderPass::~MetalRenderPass() {
 	}
 
+	void MetalRenderPass::Release(std::shared_ptr<JarDevice> jardevice) {
+
+	}
 
 #pragma endregion MetalRenderPass }
 
@@ -234,7 +242,7 @@ namespace Graphics::Metal {
 		}
 	}
 
-	void MetalShaderLibrary::Release() {
+	void MetalShaderLibrary::Release(std::shared_ptr<JarDevice> device) {
 		library->release();
 	}
 
@@ -282,6 +290,10 @@ namespace Graphics::Metal {
 
 	void MetalPipeline::Release() {
 		pipelineState->release();
+	}
+
+	std::shared_ptr<JarRenderPass> MetalPipeline::GetRenderPass() {
+
 	}
 
 #pragma endregion MetalPipeline }
