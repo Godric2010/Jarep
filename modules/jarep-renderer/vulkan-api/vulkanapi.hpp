@@ -83,7 +83,7 @@ namespace Graphics::Vulkan
 
     private:
         VkSurfaceKHR m_surface;
-        VkExtent2D m_surfaceExtent{};
+        VkExtent2D m_surfaceExtent;
         std::unique_ptr<VulkanSwapchain> m_swapchain;
     };
 
@@ -152,8 +152,8 @@ namespace Graphics::Vulkan
         VulkanSwapchain() = default;
         ~VulkanSwapchain() = default;
 
-        void Initialize(const std::shared_ptr<VulkanDevice>& device, const VkExtent2D extent,
-                        const SwapChainSupportDetails& swapchainSupport, const VkSurfaceKHR surface);
+        void Initialize(const std::shared_ptr<VulkanDevice>& device, VkExtent2D extent,
+                        const SwapChainSupportDetails& swapchainSupport, VkSurfaceKHR surface);
 
 
         void CreateFramebuffersFromRenderPass(const std::shared_ptr<VulkanRenderPass>& renderPass);
@@ -170,15 +170,15 @@ namespace Graphics::Vulkan
         [[nodiscard]] uint32_t getCurrentImageIndex() const { return m_currentImageIndex; }
 
     private:
-        VkExtent2D m_imageExtent{};
-        VkQueue m_graphicsQueue{};
-        VkQueue m_presentQueue{};
+        VkExtent2D m_imageExtent;
+        VkQueue m_graphicsQueue;
+        VkQueue m_presentQueue;
         VkFormat m_swapchainImageFormat;
-        VkSwapchainKHR m_swapchain{};
+        VkSwapchainKHR m_swapchain;
         std::vector<VkImage> m_swapchainImages;
         std::vector<VkImageView> m_swapchainImageViews;
-        uint32_t m_currentImageIndex{};
-        uint32_t m_swapchainMaxImageCount{};
+        uint32_t m_currentImageIndex;
+        uint32_t m_swapchainMaxImageCount;
 
         std::vector<std::shared_ptr<VulkanFramebuffer>> m_swapchainFramebuffers;
 
@@ -365,115 +365,6 @@ namespace Graphics::Vulkan
     };
 
 #pragma endregion VulkanGraphicsPipeline};
-
-
-    /*
-        struct QueueFamilyIndices;
-
-
-        class VulkanAPI {
-            public:
-                VulkanAPI(const std::vector<const char *> &extensionNames);
-
-                ~VulkanAPI();
-
-                void RegisterPhysicalDevice();
-
-                void CreateLogicalDevice();
-
-                void CreateSurface(NativeWindowHandleProvider *nativeWindowHandle);
-
-                void CreateVertexBuffer();
-
-                void CreateShaders();
-
-                void CreateCommandQueue();
-
-                void CreateGraphicsPipeline();
-
-                void RecordCommandBuffer();
-
-                void Draw();
-
-                void Shutdown();
-
-            private:
-                VkInstance instance;
-                VkPhysicalDevice physicalDevice;
-                VkDevice device;
-                VkQueue graphicsQueue;
-                VkQueue presentQueue;
-                VkSurfaceKHR surface;
-                VkExtent2D surfaceExtent;
-                VkSwapchainKHR swapchain;
-                std::vector<VkImage> swapChainImages;
-                VkFormat swapchainImageFormat;
-                std::vector<VkImageView> swapchainImageViews;
-                std::vector<VkShaderModule> shaderModules;
-                VkRenderPass renderPass;
-                VkPipelineLayout pipelineLayout;
-                VkPipeline graphicsPipeline;
-                std::vector<VkFramebuffer> swapchainFramebuffers;
-                VkCommandPool commandPool;
-                std::vector<VkCommandBuffer> commandBuffers;
-                std::vector<VkSemaphore> imageAvailableSemaphores;
-                std::vector<VkSemaphore> renderFinishedSemaphores;
-                std::vector<VkFence> inFlightFences;
-                uint32_t currentFrame = 0;
-                VkBuffer vertexBuffer;
-                VkDeviceMemory vertexBufferMemory;
-
-                const std::vector<const char *> deviceExtensions = {
-                        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-                };
-
-                const int MAX_FRAMES_IN_FLIGHT = 2;
-
-                void createVulkanInstance(const std::vector<const char *> &extensionNames);
-
-                bool isPhysicalDeviceSuitable(VkPhysicalDevice device);
-
-                QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-
-                bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-
-                void createLogicalDevice(VkPhysicalDevice physicalDevice);
-
-                SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-
-                void createSwapChain();
-
-                void cleanupSwapchain();
-
-                void createImageViews();
-
-                [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
-
-                static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
-
-                static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
-
-                std::vector<char> readFile(const std::string &filename);
-
-                VkShaderModule createShaderModule(const std::vector<char> &code);
-
-                void createRenderPass();
-
-                void createFramebuffers();
-
-                void createCommandBuffers();
-
-                void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-
-                void createSyncObjects();
-
-                static VkVertexInputBindingDescription getBindingDescription();
-
-                static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
-
-                uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-        };
-        */
 }
 
 #endif

@@ -121,13 +121,13 @@ namespace Core::Window
                 }
             }
 
-            //	renderer->Render();
+            	renderer->Render();
         }
     }
 
     void SdlWindow::Shutdown()
     {
-        //renderer->Shutdown();
+        renderer->Shutdown();
         SDL_Quit();
     }
 
