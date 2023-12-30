@@ -52,6 +52,49 @@ namespace Graphics::Metal {
 
 	};
 
+#pragma region MetalRenderPass{
+
+	class MetalRenderPassBuilder : public JarRenderPassBuilder {
+		public:
+			MetalRenderPassBuilder();
+
+			~MetalRenderPassBuilder() override;
+
+			JarRenderPassBuilder *AddColorAttachment(Graphics::ColorAttachment colorAttachment) override;
+
+			std::shared_ptr<JarRenderPass> Build(std::shared_ptr<JarDevice> device) override;
+
+		private:
+			MTL::RenderPassDescriptor *m_renderPassDescriptor;
+			std::optional<ColorAttachment> m_colorAttachment;
+
+			static MTL::StoreAction storeActionToMetal(StoreOp storeOp) {
+				switch (storeOp) {
+					case StoreOp::Store:
+						return MTL::StoreActionStore;
+					case StoreOp::DontCare:
+						return MTL::StoreActionDontCare;
+				}
+			}
+
+			static MTL::LoadAction loadActionToMetal(LoadOp loadOp) {
+				switch (loadOp) {
+
+					case LoadOp::Load:
+						return MTL::LoadActionLoad;
+					case LoadOp::Clear:
+						return MTL::LoadActionClear;
+					case LoadOp::DontCare:
+						return MTL::LoadActionDontCare;
+				}
+			}
+
+			static MTL::ClearColor clearColorToMetal(ClearColor clearColor) {
+				return MTL::ClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+			}
+
+	};
+
 	class MetalRenderPass final : public JarRenderPass {
 		public:
 			explicit MetalRenderPass(MTL::RenderPassDescriptor *rpd) : renderPassDesc(rpd) {
@@ -59,13 +102,15 @@ namespace Graphics::Metal {
 
 			~MetalRenderPass() override;
 
-			void Release(std::shared_ptr<JarDevice> jarDevice) override;
+			void Release() override;
 
 			[[nodiscard]] MTL::RenderPassDescriptor *getRenderPassDesc() const { return renderPassDesc; }
 
 		private:
 			MTL::RenderPassDescriptor *renderPassDesc;
 	};
+
+#pragma endregion MetalRenderPass }
 
 	class MetalCommandBuffer final : public JarCommandBuffer {
 		public:
@@ -123,8 +168,6 @@ namespace Graphics::Metal {
 			std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void *data) override;
 
 			std::shared_ptr<JarShaderModule> CreateShaderModule(std::string shaderContent) override;
-
-			std::shared_ptr<JarRenderPass> CreateRenderPass(std::shared_ptr<JarSurface> surface) override;
 
 			std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
 			                                            std::shared_ptr<JarShaderModule> fragmentModule,
@@ -193,6 +236,8 @@ namespace Graphics::Metal {
 			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *windowHandleProvider) override;
 
 			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &m_surface) override;
+
+			JarRenderPassBuilder* InitRenderPassBuilder() override;
 	};
 }
 #endif
