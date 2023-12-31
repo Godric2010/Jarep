@@ -15,6 +15,10 @@ namespace Graphics {
 	class JarDevice;
 	class JarShaderModule;
 	class JarRenderPass;
+	class JarCommandQueue;
+	class JarCommandBuffer;
+	class JarPipeline;
+	class JarBuffer;
 
 	enum ImageFormat {
 		B8G8R8A8_UNORM,
@@ -159,23 +163,32 @@ namespace Graphics {
 	};
 
 
+#pragma region CommandQueue{
+
+	class JarCommandQueueBuilder {
+		public:
+			virtual ~JarCommandQueueBuilder() = default;
+
+			virtual JarCommandQueueBuilder* SetCommandBufferAmount(uint32_t commandBufferAmount) = 0;
+
+			virtual std::shared_ptr<JarCommandQueue> Build(std::shared_ptr<JarDevice> device) = 0;
+	};
+
 	class JarCommandQueue {
 		public:
 			virtual ~JarCommandQueue() = default;
 
 			virtual JarCommandBuffer* getNextCommandBuffer() = 0;
 
-			virtual void Release(std::shared_ptr<JarDevice> device) = 0;
+			virtual void Release() = 0;
 	};
-
+#pragma endregion CommandQueue}
 
 	class JarDevice {
 		public:
 			virtual ~JarDevice() = default;
 
 			virtual void Release() = 0;
-
-			virtual std::shared_ptr<JarCommandQueue> CreateCommandQueue() = 0;
 
 			virtual std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void* data) = 0;
 
@@ -197,6 +210,8 @@ namespace Graphics {
 			virtual JarShaderModuleBuilder* InitShaderModuleBuilder() = 0;
 
 			virtual JarRenderPassBuilder* InitRenderPassBuilder() = 0;
+
+			virtual JarCommandQueueBuilder* InitCommandQueueBuilder() = 0;
 	};
 
 #pragma endregion Backend }

@@ -40,6 +40,10 @@ namespace Graphics::Metal {
 		return new MetalRenderPassBuilder();
 	}
 
+	JarCommandQueueBuilder* MetalBackend::InitCommandQueueBuilder() {
+		return new MetalCommandQueueBuilder();
+	}
+
 
 #pragma endregion MetalBackend }
 
@@ -97,12 +101,6 @@ namespace Graphics::Metal {
 		_device.value()->release();
 	}
 
-	std::shared_ptr<JarCommandQueue> MetalDevice::CreateCommandQueue() {
-		const auto cmdQueue = _device.value()->newCommandQueue();
-		const auto metalQueue = std::make_shared<MetalCommandQueue>(cmdQueue);
-		return metalQueue;
-	}
-
 	std::shared_ptr<JarBuffer> MetalDevice::CreateBuffer(size_t bufferSize, const void* data) {
 		auto metalBuffer = std::make_shared<MetalBuffer>();
 		metalBuffer->CreateBuffer(bufferSize, data, _device.value());
@@ -125,14 +123,34 @@ namespace Graphics::Metal {
 
 #pragma region MetalCommandQueue {
 
-	MetalCommandQueue::~MetalCommandQueue() {
+	MetalCommandQueueBuilder::~MetalCommandQueueBuilder() = default;
+
+	MetalCommandQueueBuilder* MetalCommandQueueBuilder::SetCommandBufferAmount(uint32_t commandBufferAmount) {
+		m_amountOfCommandBuffers = std::make_optional(commandBufferAmount);
+		return this;
 	}
+
+	std::shared_ptr<JarCommandQueue> MetalCommandQueueBuilder::Build(std::shared_ptr<JarDevice> device) {
+		const auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice> &>(device);
+
+		uint32_t commandBuffersCount;
+		if (m_amountOfCommandBuffers.has_value())
+			commandBuffersCount = m_amountOfCommandBuffers.value();
+		else
+			commandBuffersCount = DEFAULT_COMMAND_BUFFER_COUNT;
+
+		const auto amountOfCommandBuffers = static_cast<NS::UInteger>(commandBuffersCount);
+		auto commandQueue = metalDevice->getDevice().value()->newCommandQueue(amountOfCommandBuffers);
+		return std::make_shared<MetalCommandQueue>(commandQueue);
+	}
+
+	MetalCommandQueue::~MetalCommandQueue() = default;
 
 	JarCommandBuffer* MetalCommandQueue::getNextCommandBuffer() {
 		return new MetalCommandBuffer(queue->commandBuffer());
 	}
 
-	void MetalCommandQueue::Release(std::shared_ptr<JarDevice> device) {
+	void MetalCommandQueue::Release() {
 		queue->release();
 	}
 

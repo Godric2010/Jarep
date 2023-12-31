@@ -21,7 +21,9 @@ namespace Graphics {
 	void JarepGraphics::Initialize(NativeWindowHandleProvider* nativeWindowHandle) {
 		surface = backend->CreateSurface(nativeWindowHandle);
 		device = backend->CreateDevice(surface);
-		queue = device->CreateCommandQueue();
+
+		const auto commandQueueBuilder = backend->InitCommandQueueBuilder();
+		queue = commandQueueBuilder->Build(device);
 
 		const std::vector<Vertex> vertices = {
 			{{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
@@ -65,7 +67,7 @@ namespace Graphics {
 		vertexShaderModule->Release();
 		fragmentShaderModule->Release();
 
-		queue->Release(device);
+		queue->Release();
 		device->Release();
 
 		std::cout << "Shutdown renderer" << std::endl;

@@ -136,6 +136,23 @@ namespace Graphics::Metal {
 			MTL::RenderCommandEncoder* encoder;
 	};
 
+#pragma region CommandQueue{
+
+	class MetalCommandQueueBuilder final : public JarCommandQueueBuilder {
+		public:
+			MetalCommandQueueBuilder() = default;
+
+			~MetalCommandQueueBuilder() override;
+
+			MetalCommandQueueBuilder* SetCommandBufferAmount(uint32_t commandBufferAmount) override;
+
+			std::shared_ptr<JarCommandQueue> Build(std::shared_ptr<JarDevice> device) override;
+
+		private:
+			std::optional<uint32_t> m_amountOfCommandBuffers;
+			const uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 3;
+	};
+
 	class MetalCommandQueue final : public JarCommandQueue {
 		public:
 			MetalCommandQueue(MTL::CommandQueue* cmdQueue) : queue(cmdQueue) {
@@ -145,12 +162,12 @@ namespace Graphics::Metal {
 
 			JarCommandBuffer* getNextCommandBuffer() override;
 
-			void Release(std::shared_ptr<JarDevice> device) override;
+			void Release() override;
 
 		private:
 			MTL::CommandQueue* queue;
 	};
-
+#pragma endregion CommandQueue}
 	class MetalDevice final : public JarDevice {
 		public:
 			MetalDevice() { _device = std::nullopt; }
@@ -160,8 +177,6 @@ namespace Graphics::Metal {
 			void Initialize();
 
 			void Release() override;
-
-			std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
 
 			std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void* data) override;
 
@@ -202,14 +217,16 @@ namespace Graphics::Metal {
 			MetalShaderLibraryBuilder* SetShaderType(ShaderType shaderType) override;
 
 			std::shared_ptr<JarShaderModule> Build(std::shared_ptr<JarDevice> device) override;
+
 		private:
-			std::optional<NS::String*> m_shaderCodeString;
+			std::optional<NS::String *> m_shaderCodeString;
 			std::optional<ShaderType> m_shaderTypeOpt;
 	};
 
 	class MetalShaderLibrary final : public JarShaderModule {
 		public:
-			explicit MetalShaderLibrary(MTL::Library* library): m_library(library){}
+			explicit MetalShaderLibrary(MTL::Library* library): m_library(library) {
+			}
 
 			~MetalShaderLibrary() override;
 
@@ -253,6 +270,8 @@ namespace Graphics::Metal {
 			JarShaderModuleBuilder* InitShaderModuleBuilder() override;
 
 			JarRenderPassBuilder* InitRenderPassBuilder() override;
+
+			JarCommandQueueBuilder* InitCommandQueueBuilder() override;
 	};
 }
 #endif
