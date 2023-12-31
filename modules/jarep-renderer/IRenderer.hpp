@@ -13,7 +13,7 @@
 
 namespace Graphics {
 	class JarDevice;
-
+	class JarShaderModule;
 	class JarRenderPass;
 
 	enum ImageFormat {
@@ -39,7 +39,8 @@ namespace Graphics {
 			float b;
 			float a;
 
-			ClearColor(float red, float green, float blue, float alpha) : r(red), g(green), b(blue), a(alpha) {}
+			ClearColor(float red, float green, float blue, float alpha) : r(red), g(green), b(blue), a(alpha) {
+			}
 	};
 
 	struct ColorAttachment {
@@ -54,20 +55,20 @@ namespace Graphics {
 			}
 	};
 
-//	struct DepthStencilAttachment{
-//		public:
-//			ImageFormat ImageFormat;
-//			StoreOp StencilStoreOp;
-//			LoadOp StencilLoadOp;
-//			float DepthClearValue;
-//			uint32_t StencilClearValue;
-//	};
+	//	struct DepthStencilAttachment{
+	//		public:
+	//			ImageFormat ImageFormat;
+	//			StoreOp StencilStoreOp;
+	//			LoadOp StencilLoadOp;
+	//			float DepthClearValue;
+	//			uint32_t StencilClearValue;
+	//	};
 
 	class JarRenderPassBuilder {
 		public:
 			virtual ~JarRenderPassBuilder() = default;
 
-			virtual JarRenderPassBuilder *AddColorAttachment(ColorAttachment colorAttachment) = 0;
+			virtual JarRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) = 0;
 
 			virtual std::shared_ptr<JarRenderPass> Build(std::shared_ptr<JarDevice> device) = 0;
 	};
@@ -102,6 +103,7 @@ namespace Graphics {
 			virtual ~JarBuffer() = default;
 	};
 
+#pragma region JarShader{
 	enum ShaderType {
 		VertexShader,
 		FragmentShader,
@@ -109,12 +111,25 @@ namespace Graphics {
 		ComputeShader,
 	};
 
+	class JarShaderModuleBuilder {
+		public:
+			virtual ~JarShaderModuleBuilder() = default;
+
+			virtual JarShaderModuleBuilder* SetShader(std::string shaderCode) = 0;
+
+			virtual JarShaderModuleBuilder* SetShaderType(ShaderType shaderType) = 0;
+
+			virtual std::shared_ptr<JarShaderModule> Build(std::shared_ptr<JarDevice> device) = 0;
+	};
+
 	class JarShaderModule {
 		public:
 			virtual ~JarShaderModule() = default;
 
-			virtual void Release(std::shared_ptr<JarDevice> device) = 0;
+			virtual void Release() = 0;
 	};
+
+#pragma endregion JarShader }
 
 	class JarPipeline {
 		public:
@@ -140,7 +155,7 @@ namespace Graphics {
 
 			virtual void Draw() = 0;
 
-			virtual void Present(std::shared_ptr<JarSurface> &surface, std::shared_ptr<JarDevice> device) = 0;
+			virtual void Present(std::shared_ptr<JarSurface>&surface, std::shared_ptr<JarDevice> device) = 0;
 	};
 
 
@@ -148,7 +163,7 @@ namespace Graphics {
 		public:
 			virtual ~JarCommandQueue() = default;
 
-			virtual JarCommandBuffer *getNextCommandBuffer() = 0;
+			virtual JarCommandBuffer* getNextCommandBuffer() = 0;
 
 			virtual void Release(std::shared_ptr<JarDevice> device) = 0;
 	};
@@ -162,28 +177,28 @@ namespace Graphics {
 
 			virtual std::shared_ptr<JarCommandQueue> CreateCommandQueue() = 0;
 
-			virtual std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void *data) = 0;
-
-			virtual std::shared_ptr<JarShaderModule> CreateShaderModule(std::string fileContent) = 0;
+			virtual std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void* data) = 0;
 
 			virtual std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
 			                                                    std::shared_ptr<JarShaderModule> fragmentModule,
 			                                                    std::shared_ptr<JarRenderPass> renderPass) = 0;
 	};
 
-	#pragma region Backend{
+#pragma region Backend{
 
 	class Backend {
 		public:
 			virtual ~Backend() = default;
 
-			virtual std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *windowHandleProvider) = 0;
+			virtual std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* windowHandleProvider) = 0;
 
-			virtual std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &surface) = 0;
+			virtual std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>&surface) = 0;
+
+			virtual JarShaderModuleBuilder* InitShaderModuleBuilder() = 0;
 
 			virtual JarRenderPassBuilder* InitRenderPassBuilder() = 0;
 	};
 
-	#pragma endregion Backend }
+#pragma endregion Backend }
 }
 #endif //JAREP_IRENDERER_HPP

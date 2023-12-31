@@ -21,35 +21,33 @@
 #include <fstream>
 
 namespace Graphics::Metal {
-
 	class MetalSurface final : public JarSurface {
 		public:
 			MetalSurface();
 
 			~MetalSurface() override;
 
-			bool CreateFromNativeWindowProvider(NativeWindowHandleProvider *windowHandleProvider);
+			bool CreateFromNativeWindowProvider(NativeWindowHandleProvider* windowHandleProvider);
 
 			void Update() override;
 
-			void FinalizeSurface(MTL::Device *device);
+			void FinalizeSurface(MTL::Device* device);
 
-			[[nodiscard]] CA::MetalDrawable *getDrawable() const { return drawable; }
+			[[nodiscard]] CA::MetalDrawable* getDrawable() const { return drawable; }
 
 			[[nodiscard]] bool isSurfaceInitialized() const { return contentView != nullptr; }
 
-			MTL::Texture *acquireNewDrawTexture() {
+			MTL::Texture* acquireNewDrawTexture() {
 				drawable = layer->nextDrawable();
 				return drawable->texture();
 			}
 
 		private:
-			NS::View *contentView;
-			NS::Window *window;
+			NS::View* contentView;
+			NS::Window* window;
 			CGRect surfaceRect;
-			CA::MetalLayer *layer;
-			CA::MetalDrawable *drawable;
-
+			CA::MetalLayer* layer;
+			CA::MetalDrawable* drawable;
 	};
 
 #pragma region MetalRenderPass{
@@ -60,26 +58,26 @@ namespace Graphics::Metal {
 
 			~MetalRenderPassBuilder() override;
 
-			JarRenderPassBuilder *AddColorAttachment(Graphics::ColorAttachment colorAttachment) override;
+			JarRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) override;
 
 			std::shared_ptr<JarRenderPass> Build(std::shared_ptr<JarDevice> device) override;
 
 		private:
-			MTL::RenderPassDescriptor *m_renderPassDescriptor;
+			MTL::RenderPassDescriptor* m_renderPassDescriptor;
 			std::optional<ColorAttachment> m_colorAttachment;
 
-			static MTL::StoreAction storeActionToMetal(StoreOp storeOp) {
+			static MTL::StoreAction storeActionToMetal(const StoreOp storeOp) {
 				switch (storeOp) {
 					case StoreOp::Store:
 						return MTL::StoreActionStore;
 					case StoreOp::DontCare:
 						return MTL::StoreActionDontCare;
 				}
+				return {};
 			}
 
-			static MTL::LoadAction loadActionToMetal(LoadOp loadOp) {
+			static MTL::LoadAction loadActionToMetal(const LoadOp loadOp) {
 				switch (loadOp) {
-
 					case LoadOp::Load:
 						return MTL::LoadActionLoad;
 					case LoadOp::Clear:
@@ -87,34 +85,34 @@ namespace Graphics::Metal {
 					case LoadOp::DontCare:
 						return MTL::LoadActionDontCare;
 				}
+				return {};
 			}
 
 			static MTL::ClearColor clearColorToMetal(ClearColor clearColor) {
-				return MTL::ClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+				return {clearColor.r, clearColor.g, clearColor.b, clearColor.a};
 			}
-
 	};
 
 	class MetalRenderPass final : public JarRenderPass {
 		public:
-			explicit MetalRenderPass(MTL::RenderPassDescriptor *rpd) : renderPassDesc(rpd) {
+			explicit MetalRenderPass(MTL::RenderPassDescriptor* rpd) : renderPassDesc(rpd) {
 			}
 
 			~MetalRenderPass() override;
 
 			void Release() override;
 
-			[[nodiscard]] MTL::RenderPassDescriptor *getRenderPassDesc() const { return renderPassDesc; }
+			[[nodiscard]] MTL::RenderPassDescriptor* getRenderPassDesc() const { return renderPassDesc; }
 
 		private:
-			MTL::RenderPassDescriptor *renderPassDesc;
+			MTL::RenderPassDescriptor* renderPassDesc;
 	};
 
 #pragma endregion MetalRenderPass }
 
 	class MetalCommandBuffer final : public JarCommandBuffer {
 		public:
-			explicit MetalCommandBuffer(MTL::CommandBuffer *cmdBuffer) : buffer(cmdBuffer) {
+			explicit MetalCommandBuffer(MTL::CommandBuffer* cmdBuffer) : buffer(cmdBuffer) {
 				encoder = nullptr;
 			}
 
@@ -131,26 +129,26 @@ namespace Graphics::Metal {
 
 			void Draw() override;
 
-			void Present(std::shared_ptr<JarSurface> &m_surface, std::shared_ptr<JarDevice> device) override;
+			void Present(std::shared_ptr<JarSurface>&m_surface, std::shared_ptr<JarDevice> device) override;
 
 		private:
-			MTL::CommandBuffer *buffer;
-			MTL::RenderCommandEncoder *encoder;
+			MTL::CommandBuffer* buffer;
+			MTL::RenderCommandEncoder* encoder;
 	};
 
 	class MetalCommandQueue final : public JarCommandQueue {
 		public:
-			MetalCommandQueue(MTL::CommandQueue *cmdQueue) : queue(cmdQueue) {
+			MetalCommandQueue(MTL::CommandQueue* cmdQueue) : queue(cmdQueue) {
 			}
 
 			~MetalCommandQueue() override;
 
-			JarCommandBuffer *getNextCommandBuffer() override;
+			JarCommandBuffer* getNextCommandBuffer() override;
 
 			void Release(std::shared_ptr<JarDevice> device) override;
 
 		private:
-			MTL::CommandQueue *queue;
+			MTL::CommandQueue* queue;
 	};
 
 	class MetalDevice final : public JarDevice {
@@ -165,9 +163,7 @@ namespace Graphics::Metal {
 
 			std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
 
-			std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void *data) override;
-
-			std::shared_ptr<JarShaderModule> CreateShaderModule(std::string shaderContent) override;
+			std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void* data) override;
 
 			std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
 			                                            std::shared_ptr<JarShaderModule> fragmentModule,
@@ -185,29 +181,46 @@ namespace Graphics::Metal {
 
 			~MetalBuffer() override;
 
-			void CreateBuffer(size_t size, const void *data, MTL::Device *metalDevice);
+			void CreateBuffer(size_t size, const void* data, MTL::Device* metalDevice);
 
 			std::optional<MTL::Buffer *> getBuffer();
 
 		private:
-			MTL::Buffer *buffer;
+			MTL::Buffer* buffer;
+	};
+
+#pragma region MetalShaderLibrary{
+
+	class MetalShaderLibraryBuilder final : public JarShaderModuleBuilder {
+		public:
+			MetalShaderLibraryBuilder() = default;
+
+			~MetalShaderLibraryBuilder() override;
+
+			MetalShaderLibraryBuilder* SetShader(std::string shaderCode) override;
+
+			MetalShaderLibraryBuilder* SetShaderType(ShaderType shaderType) override;
+
+			std::shared_ptr<JarShaderModule> Build(std::shared_ptr<JarDevice> device) override;
+		private:
+			std::optional<NS::String*> m_shaderCodeString;
+			std::optional<ShaderType> m_shaderTypeOpt;
 	};
 
 	class MetalShaderLibrary final : public JarShaderModule {
 		public:
-			MetalShaderLibrary() = default;
+			explicit MetalShaderLibrary(MTL::Library* library): m_library(library){}
 
 			~MetalShaderLibrary() override;
 
-			void CreateShaderLibrary(MTL::Device *device, std::string shaderContent);
+			void Release() override;
 
-			void Release(std::shared_ptr<JarDevice> device) override;
-
-			MTL::Library *getLibrary() { return library; }
+			[[nodiscard]] MTL::Library* getLibrary() const { return m_library; }
 
 		private:
-			MTL::Library *library;
+			MTL::Library* m_library;
 	};
+#pragma endregion MetalShaderLibrary}
 
 	class MetalPipeline final : public JarPipeline {
 		public:
@@ -217,14 +230,14 @@ namespace Graphics::Metal {
 
 			std::shared_ptr<JarRenderPass> GetRenderPass() override;
 
-			void CreatePipeline(MTL::Device *device, MTL::Library *vertexLib, MTL::Library *fragmentLib);
+			void CreatePipeline(MTL::Device* device, MTL::Library* vertexLib, MTL::Library* fragmentLib);
 
 			void Release() override;
 
-			MTL::RenderPipelineState *getPSO() { return pipelineState; }
+			MTL::RenderPipelineState* getPSO() { return pipelineState; }
 
 		private:
-			MTL::RenderPipelineState *pipelineState;
+			MTL::RenderPipelineState* pipelineState;
 	};
 
 	class MetalBackend final : public Backend {
@@ -233,9 +246,11 @@ namespace Graphics::Metal {
 
 			~MetalBackend() override;
 
-			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider *windowHandleProvider) override;
+			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* windowHandleProvider) override;
 
-			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface> &m_surface) override;
+			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>&m_surface) override;
+
+			JarShaderModuleBuilder* InitShaderModuleBuilder() override;
 
 			JarRenderPassBuilder* InitRenderPassBuilder() override;
 	};

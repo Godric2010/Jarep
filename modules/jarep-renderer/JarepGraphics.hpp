@@ -19,66 +19,19 @@
 namespace Graphics {
 	class JarepGraphics {
 		public:
-			JarepGraphics(const std::vector<const char *> &extensionNames);
+			JarepGraphics(const std::vector<const char *>&extensionNames);
 
 			~JarepGraphics() = default;
 
-			void Initialize(NativeWindowHandleProvider *nativeWindowHandle) {
-				surface = backend->CreateSurface(nativeWindowHandle);
-				device = backend->CreateDevice(surface);
-				queue = device->CreateCommandQueue();
+			void Initialize(NativeWindowHandleProvider* nativeWindowHandle);
 
-				const std::vector<Vertex> vertices = {
-						{{0.0f,  -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-						{{0.5f,  0.5f,  0.0f}, {0.0f, 1.0f, 0.0f}},
-						{{-0.5f, 0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}}
-				};
+			void Render();
 
-				const size_t vertexDataSize = vertices.size() * sizeof(Vertex);
-				vertexBuffer = device->CreateBuffer(vertexDataSize, vertices.data());
-				vertexShaderModule = device->CreateShaderModule(readFile("shaders/triangle_vert.metal"));
-				fragmentShaderModule = device->CreateShaderModule(readFile("shaders/triangle_frag.metal"));
-
-				ColorAttachment colorAttachment;
-				colorAttachment.LoadOp = LoadOp::Clear;
-				colorAttachment.StoreOp = StoreOp::Store;
-				colorAttachment.ClearColor = ClearColor(0, 0, 0, 0);
-				colorAttachment.ImageFormat = ImageFormat::B8G8R8A8_UNORM;
-
-				JarRenderPassBuilder *rpBuilder = backend->InitRenderPassBuilder();
-				rpBuilder->AddColorAttachment(colorAttachment);
-
-
-				renderPass = rpBuilder->Build(device);
-
-				pipeline = device->CreatePipeline(vertexShaderModule, fragmentShaderModule, renderPass);
-			}
-
-			void Render() {
-				const auto commandBuffer = queue->getNextCommandBuffer();
-				commandBuffer->StartRecording(surface, renderPass);
-
-				commandBuffer->BindPipeline(pipeline);
-				commandBuffer->BindVertexBuffer(vertexBuffer);
-				commandBuffer->Draw();
-
-				commandBuffer->EndRecording();
-				commandBuffer->Present(surface, device);
-			}
-
-			void Shutdown() {
-				pipeline->Release();
-				vertexShaderModule->Release(device);
-				fragmentShaderModule->Release(device);
-
-				queue->Release(device);
-				device->Release();
-
-				std::cout << "Shutdown renderer" << std::endl;
-			}
+			void Shutdown();
 
 		private:
 			std::vector<const char *> extensions;
+			std::string shaderFileType;
 			std::shared_ptr<Backend> backend;
 			std::shared_ptr<JarSurface> surface;
 			std::shared_ptr<JarDevice> device;
@@ -89,7 +42,10 @@ namespace Graphics {
 			std::shared_ptr<JarPipeline> pipeline;
 			std::shared_ptr<JarRenderPass> renderPass;
 
-			static std::string readFile(const std::string &filename) {
+			[[nodiscard]] std::shared_ptr<JarShaderModule> createShaderModule(
+				ShaderType shaderType, const std::string&shaderName) const;
+
+			static std::string readFile(const std::string&filename) {
 				std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
 				if (!std::filesystem::exists(filename)) {
@@ -100,7 +56,7 @@ namespace Graphics {
 					throw std::runtime_error("Failed to open file: " + filename);
 				}
 
-				auto fileSize = (size_t) file.tellg();
+				auto fileSize = (size_t)file.tellg();
 				std::vector<char> buffer(fileSize);
 
 				file.seekg(0);

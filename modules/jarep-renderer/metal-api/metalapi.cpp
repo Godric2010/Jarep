@@ -10,20 +10,19 @@
 #include "Vertex.hpp"
 
 namespace Graphics::Metal {
-
 #pragma region MetalBackend{
 
 	MetalBackend::MetalBackend() = default;
 
 	MetalBackend::~MetalBackend() = default;
 
-	std::shared_ptr<JarSurface> MetalBackend::CreateSurface(NativeWindowHandleProvider *windowHandleProvider) {
+	std::shared_ptr<JarSurface> MetalBackend::CreateSurface(NativeWindowHandleProvider* windowHandleProvider) {
 		auto metalSurface = std::make_shared<MetalSurface>();
 		metalSurface->CreateFromNativeWindowProvider(windowHandleProvider);
 		return metalSurface;
 	}
 
-	std::shared_ptr<JarDevice> MetalBackend::CreateDevice(std::shared_ptr<JarSurface> &surface) {
+	std::shared_ptr<JarDevice> MetalBackend::CreateDevice(std::shared_ptr<JarSurface>&surface) {
 		auto metalDevice = std::make_shared<MetalDevice>();
 		metalDevice->Initialize();
 
@@ -31,6 +30,10 @@ namespace Graphics::Metal {
 		metalSurface->FinalizeSurface(metalDevice->getDevice().value());
 
 		return metalDevice;
+	}
+
+	JarShaderModuleBuilder* MetalBackend::InitShaderModuleBuilder() {
+		return new MetalShaderLibraryBuilder();
 	}
 
 	JarRenderPassBuilder* MetalBackend::InitRenderPassBuilder() {
@@ -47,7 +50,7 @@ namespace Graphics::Metal {
 	MetalSurface::~MetalSurface() = default;
 
 
-	bool MetalSurface::CreateFromNativeWindowProvider(NativeWindowHandleProvider *windowHandleProvider) {
+	bool MetalSurface::CreateFromNativeWindowProvider(NativeWindowHandleProvider* windowHandleProvider) {
 		window = static_cast<NS::Window *>(windowHandleProvider->getNativeWindowHandle());
 
 
@@ -59,8 +62,7 @@ namespace Graphics::Metal {
 	void MetalSurface::Update() {
 	}
 
-	void MetalSurface::FinalizeSurface(MTL::Device *device) {
-
+	void MetalSurface::FinalizeSurface(MTL::Device* device) {
 		Graphics::Metal::SDLSurfaceAdapter::CreateViewAndMetalLayer(surfaceRect, &contentView, &layer);
 
 		if (contentView == nullptr)
@@ -101,30 +103,22 @@ namespace Graphics::Metal {
 		return metalQueue;
 	}
 
-	std::shared_ptr<JarBuffer> MetalDevice::CreateBuffer(size_t bufferSize, const void *data) {
+	std::shared_ptr<JarBuffer> MetalDevice::CreateBuffer(size_t bufferSize, const void* data) {
 		auto metalBuffer = std::make_shared<MetalBuffer>();
 		metalBuffer->CreateBuffer(bufferSize, data, _device.value());
 		return metalBuffer;
 	}
 
-	std::shared_ptr<JarShaderModule> MetalDevice::CreateShaderModule(std::string shaderContent) {
-		auto shaderLib = std::make_shared<MetalShaderLibrary>();
-		shaderLib->CreateShaderLibrary(_device.value(), std::move(shaderContent));
-		return shaderLib;
-	}
-
 	std::shared_ptr<JarPipeline> MetalDevice::CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
 	                                                         std::shared_ptr<JarShaderModule> fragmentModule,
 	                                                         std::shared_ptr<JarRenderPass> renderPass) {
-
-		auto *vertexShaderLib = reinterpret_cast<MetalShaderLibrary *>(vertexModule.get());
-		auto *fragmentShaderLib = reinterpret_cast<MetalShaderLibrary *>(fragmentModule.get());
+		auto* vertexShaderLib = reinterpret_cast<MetalShaderLibrary *>(vertexModule.get());
+		auto* fragmentShaderLib = reinterpret_cast<MetalShaderLibrary *>(fragmentModule.get());
 
 		auto pso = std::make_shared<MetalPipeline>();
 		pso->CreatePipeline(_device.value(), vertexShaderLib->getLibrary(), fragmentShaderLib->getLibrary());
 
 		return pso;
-
 	}
 
 #pragma endregion MetalDevice }
@@ -134,7 +128,7 @@ namespace Graphics::Metal {
 	MetalCommandQueue::~MetalCommandQueue() {
 	}
 
-	JarCommandBuffer *MetalCommandQueue::getNextCommandBuffer() {
+	JarCommandBuffer* MetalCommandQueue::getNextCommandBuffer() {
 		return new MetalCommandBuffer(queue->commandBuffer());
 	}
 
@@ -168,17 +162,15 @@ namespace Graphics::Metal {
 	}
 
 	void MetalCommandBuffer::BindVertexBuffer(std::shared_ptr<Graphics::JarBuffer> buffer) {
-		auto *metalBuffer = reinterpret_cast<MetalBuffer *>(buffer.get());
+		auto* metalBuffer = reinterpret_cast<MetalBuffer *>(buffer.get());
 		encoder->setVertexBuffer(metalBuffer->getBuffer().value(), 0, 0);
-
 	}
 
 	void MetalCommandBuffer::Draw() {
 		encoder->drawPrimitives(MTL::PrimitiveType::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
-
 	}
 
-	void MetalCommandBuffer::Present(std::shared_ptr<JarSurface> &surface, std::shared_ptr<JarDevice> device) {
+	void MetalCommandBuffer::Present(std::shared_ptr<JarSurface>&surface, std::shared_ptr<JarDevice> device) {
 		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface> &>(surface);
 		buffer->presentDrawable(metalSurface->getDrawable());
 		buffer->commit();
@@ -198,7 +190,7 @@ namespace Graphics::Metal {
 
 	JarRenderPassBuilder* MetalRenderPassBuilder::AddColorAttachment(Graphics::ColorAttachment colorAttachment) {
 		m_colorAttachment = std::make_optional(colorAttachment);
-		MTL::RenderPassColorAttachmentDescriptor *cd = m_renderPassDescriptor->colorAttachments()->object(0);
+		MTL::RenderPassColorAttachmentDescriptor* cd = m_renderPassDescriptor->colorAttachments()->object(0);
 		cd->setLoadAction(loadActionToMetal(colorAttachment.LoadOp));
 		cd->setClearColor(clearColorToMetal(colorAttachment.ClearColor));
 		cd->setStoreAction(storeActionToMetal(colorAttachment.StoreOp));
@@ -206,8 +198,7 @@ namespace Graphics::Metal {
 	}
 
 	std::shared_ptr<JarRenderPass> MetalRenderPassBuilder::Build(std::shared_ptr<JarDevice> device) {
-
-		if(!m_colorAttachment.has_value())
+		if (!m_colorAttachment.has_value())
 			throw std::exception();
 
 		return std::make_shared<MetalRenderPass>(m_renderPassDescriptor);
@@ -224,7 +215,7 @@ namespace Graphics::Metal {
 
 	MetalBuffer::~MetalBuffer() = default;
 
-	void MetalBuffer::CreateBuffer(size_t size, const void *data, MTL::Device *metalDevice) {
+	void MetalBuffer::CreateBuffer(size_t size, const void* data, MTL::Device* metalDevice) {
 		buffer = metalDevice->newBuffer(size, MTL::ResourceStorageModeManaged);
 		memcpy(buffer->contents(), data, size);
 		buffer->didModifyRange(NS::Range::Make(0, buffer->length()));
@@ -239,22 +230,40 @@ namespace Graphics::Metal {
 
 #pragma region MetalShader{
 
-	MetalShaderLibrary::~MetalShaderLibrary() = default;
+	MetalShaderLibraryBuilder::~MetalShaderLibraryBuilder() = default;
 
-	void MetalShaderLibrary::CreateShaderLibrary(MTL::Device *device, std::string shaderContent) {
+	MetalShaderLibraryBuilder* MetalShaderLibraryBuilder::SetShader(std::string shaderCode) {
+		NS::String* shaderStr = NS::String::string(shaderCode.c_str(), NS::UTF8StringEncoding);
+		m_shaderCodeString = std::make_optional(shaderStr);
+		return this;
+	}
 
-		const NS::String *shaderStr = NS::String::string(shaderContent.c_str(), NS::UTF8StringEncoding);
+	MetalShaderLibraryBuilder* MetalShaderLibraryBuilder::SetShaderType(ShaderType shaderType) {
+		m_shaderTypeOpt = std::make_optional(shaderType);
+		return this;
+	}
 
-		NS::Error *error = nullptr;
-		library = device->newLibrary(shaderStr, nullptr, &error);
+	std::shared_ptr<JarShaderModule> MetalShaderLibraryBuilder::Build(std::shared_ptr<JarDevice> device) {
+		const auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice> &>(device);
+
+		if (!m_shaderCodeString.has_value() || !m_shaderTypeOpt.has_value())
+			throw std::runtime_error("Could not build shader module! Shader type and/or code are undefined!");
+
+		NS::Error* error = nullptr;
+		const auto library = metalDevice->getDevice().value()->newLibrary(m_shaderCodeString.value(), nullptr, &error);
 		if (!library) {
 			throw std::runtime_error("Failed to load vertex shader library: " +
 			                         std::string(error->localizedDescription()->cString(NS::UTF8StringEncoding)));
 		}
+
+		return std::make_shared<MetalShaderLibrary>(library);
 	}
 
-	void MetalShaderLibrary::Release(std::shared_ptr<JarDevice> device) {
-		library->release();
+
+	MetalShaderLibrary::~MetalShaderLibrary() = default;
+
+	void MetalShaderLibrary::Release() {
+		m_library->release();
 	}
 
 #pragma endregion }
@@ -263,11 +272,11 @@ namespace Graphics::Metal {
 
 	MetalPipeline::~MetalPipeline() = default;
 
-	void MetalPipeline::CreatePipeline(MTL::Device *device, MTL::Library *vertexLib, MTL::Library *fragmentLib) {
-		MTL::Function *vertexShader = vertexLib->newFunction(
-				NS::String::string("main0", NS::ASCIIStringEncoding));
+	void MetalPipeline::CreatePipeline(MTL::Device* device, MTL::Library* vertexLib, MTL::Library* fragmentLib) {
+		MTL::Function* vertexShader = vertexLib->newFunction(
+			NS::String::string("main0", NS::ASCIIStringEncoding));
 		assert(vertexShader);
-		MTL::Function *fragmentShader = fragmentLib->
+		MTL::Function* fragmentShader = fragmentLib->
 				newFunction(NS::String::string("main0", NS::ASCIIStringEncoding));
 		assert(fragmentShader);
 
@@ -283,15 +292,15 @@ namespace Graphics::Metal {
 		vertexDescriptor->layouts()->object(0)->setStride(sizeof(float) * 6);
 		vertexDescriptor->layouts()->object(0)->setStepFunction(MTL::VertexStepFunctionPerVertex);
 
-		MTL::RenderPipelineDescriptor *renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+		MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
 		renderPipelineDescriptor->setLabel(NS::String::string("Triangle rendering pipeline", NS::ASCIIStringEncoding));
 		renderPipelineDescriptor->setVertexFunction(vertexShader);
 		renderPipelineDescriptor->setFragmentFunction(fragmentShader);
 		renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(
-				MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB/*metalLayer->pixelFormat()*/);
+			MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB/*metalLayer->pixelFormat()*/);
 		renderPipelineDescriptor->setVertexDescriptor(vertexDescriptor);
 
-		NS::Error *error = nullptr;
+		NS::Error* error = nullptr;
 		pipelineState = device->newRenderPipelineState(renderPipelineDescriptor, &error);
 		if (!pipelineState) {
 			throw std::runtime_error("Failed to create render pipeline state object! " +
@@ -304,10 +313,8 @@ namespace Graphics::Metal {
 	}
 
 	std::shared_ptr<JarRenderPass> MetalPipeline::GetRenderPass() {
-
 	}
 
 #pragma endregion MetalPipeline }
-
 }
 #endif
