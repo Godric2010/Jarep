@@ -44,6 +44,10 @@ namespace Graphics::Metal {
 		return new MetalCommandQueueBuilder();
 	}
 
+	JarBufferBuilder* MetalBackend::InitBufferBuilder() {
+		return new MetalBufferBuilder();
+	}
+
 
 #pragma endregion MetalBackend }
 
@@ -99,12 +103,6 @@ namespace Graphics::Metal {
 	void MetalDevice::Release() {
 		if (!_device.has_value()) return;
 		_device.value()->release();
-	}
-
-	std::shared_ptr<JarBuffer> MetalDevice::CreateBuffer(size_t bufferSize, const void* data) {
-		auto metalBuffer = std::make_shared<MetalBuffer>();
-		metalBuffer->CreateBuffer(bufferSize, data, _device.value());
-		return metalBuffer;
 	}
 
 	std::shared_ptr<JarPipeline> MetalDevice::CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
@@ -231,17 +229,77 @@ namespace Graphics::Metal {
 
 #pragma region MetalBuffer{
 
-	MetalBuffer::~MetalBuffer() = default;
+	MetalBufferBuilder::~MetalBufferBuilder() = default;
 
-	void MetalBuffer::CreateBuffer(size_t size, const void* data, MTL::Device* metalDevice) {
-		buffer = metalDevice->newBuffer(size, MTL::ResourceStorageModeManaged);
-		memcpy(buffer->contents(), data, size);
-		buffer->didModifyRange(NS::Range::Make(0, buffer->length()));
+	MetalBufferBuilder* MetalBufferBuilder::SetUsageFlags(BufferUsage usageFlags) {
+		m_bufferUsage = std::make_optional(usageFlags);
+		return this;
 	}
 
+	MetalBufferBuilder* MetalBufferBuilder::SetMemoryProperties(MemoryProperties memProps) {
+		m_memoryProperties = std::make_optional(memProps);
+		return this;
+	}
+
+	MetalBufferBuilder* MetalBufferBuilder::SetBufferData(const void* data, size_t bufferSize) {
+		m_bufferSize = bufferSize;
+		m_data = std::make_optional(data);
+		return this;
+	}
+
+	std::shared_ptr<JarBuffer> MetalBufferBuilder::Build(std::shared_ptr<JarDevice> device) {
+		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice> &>(device);
+
+		if (m_bufferSize <= 0 || !m_data.has_value() || !m_memoryProperties.has_value() || !m_bufferUsage.has_value())
+			throw std::runtime_error("Could not create buffer! Provided data is insufficent.");
+
+		const auto bufferOptions = bufferUsageToMetal(m_bufferUsage.value()) & memoryPropertiesToMetal(
+			                           m_memoryProperties.value());
+		auto buffer = metalDevice->getDevice().value()->newBuffer(m_bufferSize, bufferOptions);
+		memcpy(buffer->contents(), m_data.value(), m_bufferSize);
+		buffer->didModifyRange(NS::Range::Make(0, buffer->length()));
+
+		return std::make_shared<MetalBuffer>(buffer);
+	}
+
+	MTL::ResourceOptions MetalBufferBuilder::bufferUsageToMetal(const BufferUsage bufferUsage) {
+		switch (bufferUsage) {
+			case BufferUsage::VertexBuffer:
+			case BufferUsage::IndexBuffer:
+			case BufferUsage::UniformBuffer:
+				return MTL::ResourceUsageRead;
+			case BufferUsage::StoreBuffer:
+				return MTL::ResourceUsageRead & MTL::ResourceUsageWrite;
+			case BufferUsage::TransferSrc:
+				return MTL::ResourceUsageRead & MTL::ResourceUsageWrite;
+			case BufferUsage::TransferDest:
+				return MTL::ResourceUsageRead & MTL::ResourceUsageWrite;
+			default: ;
+		}
+		return 0;
+	}
+
+	MTL::ResourceOptions MetalBufferBuilder::memoryPropertiesToMetal(const MemoryProperties memProps) {
+		switch (memProps) {
+			case MemoryProperties::HostVisible:
+				return MTL::StorageModeShared;
+			case MemoryProperties::HostCoherent:
+				return MTL::StorageModeManaged;
+			case MemoryProperties::HostCached:
+				return MTL::StorageModeManaged;
+			case MemoryProperties::DeviceLocal:
+				return MTL::StorageModePrivate;
+			case MemoryProperties::LazilyAllocation:
+				return MTL::StorageModeManaged;
+		}
+		return 0;
+	}
+
+	MetalBuffer::~MetalBuffer() = default;
+
 	std::optional<MTL::Buffer *> MetalBuffer::getBuffer() {
-		if (buffer == nullptr) return std::nullopt;
-		return std::make_optional(buffer);
+		if (m_buffer == nullptr) return std::nullopt;
+		return std::make_optional(m_buffer);
 	}
 
 #pragma endregion MetalBuffer }

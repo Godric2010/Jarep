@@ -32,7 +32,13 @@ namespace Graphics {
 		};
 
 		const size_t vertexDataSize = vertices.size() * sizeof(Vertex);
-		vertexBuffer = device->CreateBuffer(vertexDataSize, vertices.data());
+
+		const auto bufferBuilder = backend->InitBufferBuilder();
+		bufferBuilder->SetBufferData(vertices.data(), vertexDataSize);
+		bufferBuilder->SetMemoryProperties(MemoryProperties::HostVisible);
+		bufferBuilder->SetUsageFlags(BufferUsage::VertexBuffer);
+		vertexBuffer = bufferBuilder->Build(device);
+
 		vertexShaderModule = createShaderModule(VertexShader, "triangle_vert");
 		fragmentShaderModule = createShaderModule(FragmentShader, "triangle_frag");
 

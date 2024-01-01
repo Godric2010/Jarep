@@ -10,6 +10,7 @@
 #include "NativeWindowHandleProvider.hpp"
 #include <memory>
 #include <string>
+#include <sys/kauth.h>
 
 namespace Graphics {
 	class JarDevice;
@@ -102,10 +103,43 @@ namespace Graphics {
 	};
 
 
+#pragma region Buffer{
+
+	enum class BufferUsage {
+		VertexBuffer,
+		IndexBuffer,
+		UniformBuffer,
+		StoreBuffer,
+		TransferSrc,
+		TransferDest,
+	};
+
+	enum class MemoryProperties {
+		HostVisible,
+		HostCoherent,
+		HostCached,
+		DeviceLocal,
+		LazilyAllocation,
+	};
+
+	class JarBufferBuilder {
+		public:
+			virtual ~JarBufferBuilder() = default;
+
+			virtual JarBufferBuilder* SetUsageFlags(BufferUsage usageFlags) = 0;
+
+			virtual JarBufferBuilder* SetMemoryProperties(MemoryProperties memProps) = 0;
+
+			virtual JarBufferBuilder* SetBufferData(const void* data, size_t bufferSize) = 0;
+
+			virtual std::shared_ptr<JarBuffer> Build(std::shared_ptr<JarDevice> device) = 0;
+	};
+
 	class JarBuffer {
 		public:
 			virtual ~JarBuffer() = default;
 	};
+#pragma endregion Buffer}
 
 #pragma region JarShader{
 	enum ShaderType {
@@ -190,8 +224,6 @@ namespace Graphics {
 
 			virtual void Release() = 0;
 
-			virtual std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void* data) = 0;
-
 			virtual std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
 			                                                    std::shared_ptr<JarShaderModule> fragmentModule,
 			                                                    std::shared_ptr<JarRenderPass> renderPass) = 0;
@@ -212,6 +244,8 @@ namespace Graphics {
 			virtual JarRenderPassBuilder* InitRenderPassBuilder() = 0;
 
 			virtual JarCommandQueueBuilder* InitCommandQueueBuilder() = 0;
+
+			virtual JarBufferBuilder* InitBufferBuilder() = 0;
 	};
 
 #pragma endregion Backend }

@@ -178,8 +178,6 @@ namespace Graphics::Metal {
 
 			void Release() override;
 
-			std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void* data) override;
-
 			std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
 			                                            std::shared_ptr<JarShaderModule> fragmentModule,
 			                                            std::shared_ptr<JarRenderPass> renderPass) override;
@@ -190,20 +188,45 @@ namespace Graphics::Metal {
 			std::optional<MTL::Device *> _device;
 	};
 
+#pragma region MetalBuffer{
+
+	class MetalBufferBuilder final : public JarBufferBuilder {
+		public:
+			MetalBufferBuilder() = default;
+
+			~MetalBufferBuilder() override;
+
+			MetalBufferBuilder* SetUsageFlags(BufferUsage usageFlags) override;
+
+			MetalBufferBuilder* SetMemoryProperties(MemoryProperties memProps) override;
+
+			MetalBufferBuilder* SetBufferData(const void* data, size_t bufferSize) override;
+
+			std::shared_ptr<JarBuffer> Build(std::shared_ptr<JarDevice> device) override;
+
+		private:
+			std::optional<BufferUsage> m_bufferUsage;
+			std::optional<MemoryProperties> m_memoryProperties;
+			std::optional<const void *> m_data;
+			size_t m_bufferSize;
+
+			static MTL::ResourceUsage bufferUsageToMetal(BufferUsage usage);
+
+			static MTL::ResourceOptions memoryPropertiesToMetal(MemoryProperties memProps);
+	};
+
 	class MetalBuffer final : public JarBuffer {
 		public:
-			MetalBuffer() = default;
+			explicit MetalBuffer(MTL::Buffer* buffer) : m_buffer(buffer){}
 
 			~MetalBuffer() override;
-
-			void CreateBuffer(size_t size, const void* data, MTL::Device* metalDevice);
 
 			std::optional<MTL::Buffer *> getBuffer();
 
 		private:
-			MTL::Buffer* buffer;
+			MTL::Buffer* m_buffer;
 	};
-
+#pragma endregion MetalBuffer}
 #pragma region MetalShaderLibrary{
 
 	class MetalShaderLibraryBuilder final : public JarShaderModuleBuilder {
@@ -272,6 +295,8 @@ namespace Graphics::Metal {
 			JarRenderPassBuilder* InitRenderPassBuilder() override;
 
 			JarCommandQueueBuilder* InitCommandQueueBuilder() override;
+
+			JarBufferBuilder* InitBufferBuilder() override;
 	};
 }
 #endif
