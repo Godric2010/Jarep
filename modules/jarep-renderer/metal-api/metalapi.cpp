@@ -48,6 +48,10 @@ namespace Graphics::Metal {
 		return new MetalBufferBuilder();
 	}
 
+	JarPipelineBuilder* MetalBackend::InitPipelineBuilder() {
+		return new MetalPipelineBuilder();
+	}
+
 
 #pragma endregion MetalBackend }
 
@@ -103,18 +107,6 @@ namespace Graphics::Metal {
 	void MetalDevice::Release() {
 		if (!_device.has_value()) return;
 		_device.value()->release();
-	}
-
-	std::shared_ptr<JarPipeline> MetalDevice::CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
-	                                                         std::shared_ptr<JarShaderModule> fragmentModule,
-	                                                         std::shared_ptr<JarRenderPass> renderPass) {
-		auto* vertexShaderLib = reinterpret_cast<MetalShaderLibrary *>(vertexModule.get());
-		auto* fragmentShaderLib = reinterpret_cast<MetalShaderLibrary *>(fragmentModule.get());
-
-		auto pso = std::make_shared<MetalPipeline>();
-		pso->CreatePipeline(_device.value(), vertexShaderLib->getLibrary(), fragmentShaderLib->getLibrary());
-
-		return pso;
 	}
 
 #pragma endregion MetalDevice }
@@ -346,49 +338,244 @@ namespace Graphics::Metal {
 
 #pragma region MetalPipeline{
 
-	MetalPipeline::~MetalPipeline() = default;
+	static std::unordered_map<VertexInputRate, MTL::VertexStepFunction> vertexInputRateMap{
+		{VertexInputRate::PerInstance, MTL::VertexStepFunctionPerInstance},
+		{VertexInputRate::PerVertex, MTL::VertexStepFunctionPerVertex},
+	};
 
-	void MetalPipeline::CreatePipeline(MTL::Device* device, MTL::Library* vertexLib, MTL::Library* fragmentLib) {
-		MTL::Function* vertexShader = vertexLib->newFunction(
-			NS::String::string("main0", NS::ASCIIStringEncoding));
-		assert(vertexShader);
-		MTL::Function* fragmentShader = fragmentLib->
-				newFunction(NS::String::string("main0", NS::ASCIIStringEncoding));
-		assert(fragmentShader);
+	static std::unordered_map<Graphics::VertexFormat, MTL::VertexFormat> vertexFormatMap{
+		{VertexFormat::Float, MTL::VertexFormatFloat},
+		{VertexFormat::Float2, MTL::VertexFormatFloat2},
+		{VertexFormat::Float3, MTL::VertexFormatFloat3},
+		{VertexFormat::Float4, MTL::VertexFormatFloat4},
+		{VertexFormat::Int, MTL::VertexFormatInt},
+		{VertexFormat::Int2, MTL::VertexFormatInt2},
+		{VertexFormat::Int3, MTL::VertexFormatInt3},
+		{VertexFormat::Int4, MTL::VertexFormatInt4},
+	};
 
-		auto vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
-		vertexDescriptor->attributes()->object(0)->setFormat(MTL::VertexFormat::VertexFormatFloat3);
-		vertexDescriptor->attributes()->object(0)->setOffset(0);
-		vertexDescriptor->attributes()->object(0)->setBufferIndex(0);
+	static std::unordered_map<InputAssemblyTopology, MTL::PrimitiveTopologyClass> topologyMap{
+		{InputAssemblyTopology::PointList, MTL::PrimitiveTopologyClassPoint},
+		{InputAssemblyTopology::LineList, MTL::PrimitiveTopologyClassLine},
+		{InputAssemblyTopology::LineStrip, MTL::PrimitiveTopologyClassLine},
+		{InputAssemblyTopology::TriangleList, MTL::PrimitiveTopologyClassTriangle},
+		{InputAssemblyTopology::TriangleStrip, MTL::PrimitiveTopologyClassTriangle},
+	};
 
-		vertexDescriptor->attributes()->object(1)->setFormat(MTL::VertexFormat::VertexFormatFloat3);
-		vertexDescriptor->attributes()->object(1)->setOffset(sizeof(float) * 3);
-		vertexDescriptor->attributes()->object(1)->setBufferIndex(0);
+	static std::unordered_map<PixelFormat, MTL::PixelFormat> pixelFormatMap{
+		{PixelFormat::BC1, MTL::PixelFormatBC1_RGBA},
+		{PixelFormat::BC3, MTL::PixelFormatBC3_RGBA},
+		{PixelFormat::BGRA8_UNORM, MTL::PixelFormat::PixelFormatBGRA8Unorm},
+		{PixelFormat::RGBA8_UNORM, MTL::PixelFormatRGBA8Unorm},
+		{PixelFormat::DEPTH24_STENCIL8, MTL::PixelFormatDepth24Unorm_Stencil8},
+		{PixelFormat::DEPTH32_FLOAT, MTL::PixelFormatDepth32Float},
+		{PixelFormat::PVRTC, MTL::PixelFormatPVRTC_RGBA_4BPP},
+		{PixelFormat::RGBA16_FLOAT, MTL::PixelFormatRGBA16Float},
+		{PixelFormat::RGBA32_FLOAT, MTL::PixelFormatRGBA32Float},
+		{PixelFormat::R16_FLOAT, MTL::PixelFormatR16Float},
+		{PixelFormat::R8_UNORM, MTL::PixelFormatR8Unorm}
+	};
 
-		vertexDescriptor->layouts()->object(0)->setStride(sizeof(float) * 6);
-		vertexDescriptor->layouts()->object(0)->setStepFunction(MTL::VertexStepFunctionPerVertex);
+	static std::unordered_map<BlendFactor, MTL::BlendFactor> blendFactorMap{
+		{BlendFactor::Zero, MTL::BlendFactorZero},
+		{BlendFactor::One, MTL::BlendFactorOne},
+		{BlendFactor::SrcColor, MTL::BlendFactorSourceColor},
+		{BlendFactor::OneMinusSrcColor, MTL::BlendFactorOneMinusSourceColor},
+		{BlendFactor::DstColor, MTL::BlendFactorDestinationColor},
+		{BlendFactor::OneMinusDstColor, MTL::BlendFactorOneMinusDestinationColor},
+		{BlendFactor::SrcAlpha, MTL::BlendFactorSourceAlpha},
+		{BlendFactor::OneMinusSrcAlpha, MTL::BlendFactorOneMinusSourceAlpha},
+		{BlendFactor::DstAlpha, MTL::BlendFactorDestinationAlpha},
+		{BlendFactor::OneMinusDstAlpha, MTL::BlendFactorOneMinusDestinationAlpha},
+		{BlendFactor::ConstantColor, MTL::BlendFactorBlendColor},
+		{BlendFactor::OneMinusConstantColor, MTL::BlendFactorOneMinusBlendColor},
+		{BlendFactor::ConstantAlpha, MTL::BlendFactorBlendAlpha},
+		{BlendFactor::OneMinusConstantAlpha, MTL::BlendFactorOneMinusBlendAlpha}
+	};
 
-		MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
-		renderPipelineDescriptor->setLabel(NS::String::string("Triangle rendering pipeline", NS::ASCIIStringEncoding));
-		renderPipelineDescriptor->setVertexFunction(vertexShader);
-		renderPipelineDescriptor->setFragmentFunction(fragmentShader);
-		renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(
-			MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB/*metalLayer->pixelFormat()*/);
-		renderPipelineDescriptor->setVertexDescriptor(vertexDescriptor);
+	static std::unordered_map<BlendOperation, MTL::BlendOperation> blendOperationMap{
+		{BlendOperation::Add, MTL::BlendOperationAdd},
+		{BlendOperation::Subtract, MTL::BlendOperationSubtract},
+		{BlendOperation::ReverseSubtract, MTL::BlendOperationReverseSubtract},
+		{BlendOperation::Min, MTL::BlendOperationMin},
+		{BlendOperation::Max, MTL::BlendOperationMax},
+	};
+
+	static std::unordered_map<DepthCompareOperation, MTL::CompareFunction> depthCompareMap{
+		{DepthCompareOperation::Never, MTL::CompareFunctionNever},
+		{DepthCompareOperation::Less, MTL::CompareFunctionLess},
+		{DepthCompareOperation::LessEqual, MTL::CompareFunctionLessEqual},
+		{DepthCompareOperation::Equal, MTL::CompareFunctionEqual},
+		{DepthCompareOperation::Greater, MTL::CompareFunctionGreater},
+		{DepthCompareOperation::GreaterEqual, MTL::CompareFunctionGreaterEqual},
+		{DepthCompareOperation::NotEqual, MTL::CompareFunctionNotEqual},
+		{DepthCompareOperation::Always, MTL::CompareFunctionAlways}
+	};
+
+	static std::unordered_map<StencilOpState, MTL::StencilOperation> stencilOpMap{
+		{StencilOpState::Keep, MTL::StencilOperationKeep},
+		{StencilOpState::Zero, MTL::StencilOperationZero},
+		{StencilOpState::Replace, MTL::StencilOperationReplace},
+		{StencilOpState::IncrementAndClamp, MTL::StencilOperationIncrementClamp},
+		{StencilOpState::IncrementAndWrap, MTL::StencilOperationIncrementWrap},
+		{StencilOpState::DecrementAndClamp, MTL::StencilOperationDecrementClamp},
+		{StencilOpState::DecrementAndWrap, MTL::StencilOperationDecrementWrap},
+		{StencilOpState::Invert, MTL::StencilOperationInvert},
+	};
+
+	MetalPipelineBuilder::~MetalPipelineBuilder() = default;
+
+	MetalPipelineBuilder* MetalPipelineBuilder::SetShaderStage(ShaderStage shaderStage) {
+		const auto mainFunc = (shaderStage.MainFunctionName + "0").c_str();
+		NS::String* mainFuncName = NS::String::string(mainFunc, NS::StringEncoding::ASCIIStringEncoding);
+
+		const auto vertexShaderModule = reinterpret_cast<std::shared_ptr<MetalShaderLibrary> &>(shaderStage.
+			VertexShaderModule);
+		const auto fragmentShaderModule = reinterpret_cast<std::shared_ptr<MetalShaderLibrary> &>(shaderStage.
+			FragmentShaderModule);
+
+		m_vertexShaderFunc = vertexShaderModule->getLibrary()->newFunction(mainFuncName);
+		m_fragmentShaderFunc = fragmentShaderModule->getLibrary()->newFunction(mainFuncName);
+		return this;
+	}
+
+	MetalPipelineBuilder* MetalPipelineBuilder::SetRenderPass(std::shared_ptr<JarRenderPass> renderPass) {
+		m_renderPass = renderPass;
+		return this;
+	}
+
+	MetalPipelineBuilder* MetalPipelineBuilder::SetVertexInput(VertexInput vertexInput) {
+		m_vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
+
+		for (int i = 0; i < vertexInput.AttributeDescriptions.size(); ++i) {
+			m_vertexDescriptor->attributes()->object(i)->setBufferIndex(
+				vertexInput.AttributeDescriptions[i].BindingIndex);
+			m_vertexDescriptor->attributes()->object(i)->setOffset(vertexInput.AttributeDescriptions[i].Offset);
+			m_vertexDescriptor->attributes()->object(i)->setFormat(
+				vertexFormatMap[vertexInput.AttributeDescriptions[i].Format]);
+		}
+
+		for (auto&bindingDescriptor: vertexInput.BindingDescriptions) {
+			m_vertexDescriptor->layouts()->object(bindingDescriptor.BindingIndex)->setStepFunction(
+				vertexInputRateMap[bindingDescriptor.InputRate]);
+			m_vertexDescriptor->layouts()->object(bindingDescriptor.BindingIndex)->setStride(bindingDescriptor.Stride);
+			m_vertexDescriptor->layouts()->object(bindingDescriptor.BindingIndex)->setStepRate(
+				bindingDescriptor.StepRate);
+		}
+
+		return this;
+	}
+
+	MetalPipelineBuilder* MetalPipelineBuilder::SetInputAssemblyTopology(InputAssemblyTopology topology) {
+		m_topology = topologyMap[topology];
+		return this;
+	}
+
+	MetalPipelineBuilder* MetalPipelineBuilder::SetMultisamplingCount(uint16_t multisamplingCount) {
+		m_multisamplingCount = multisamplingCount;
+		return this;
+	}
+
+	MetalPipelineBuilder*
+	MetalPipelineBuilder::SetColorBlendAttachments(Graphics::ColorBlendAttachment blendAttachment) {
+		auto colorAttachment = MTL::RenderPipelineColorAttachmentDescriptor::alloc()->init();
+		colorAttachment->setPixelFormat(pixelFormatMap[blendAttachment.PixelFormat]);
+		colorAttachment->setBlendingEnabled(blendAttachment.BlendingEnabled);
+		colorAttachment->setSourceRGBBlendFactor(blendFactorMap[blendAttachment.SourceRGBBlendFactor]);
+		colorAttachment->setDestinationRGBBlendFactor(blendFactorMap[blendAttachment.DestinationRGBBlendFactor]);
+		colorAttachment->setRgbBlendOperation(blendOperationMap[blendAttachment.RGBBlendOperation]);
+		colorAttachment->setSourceAlphaBlendFactor(blendFactorMap[blendAttachment.SourceAlphaBlendFactor]);
+		colorAttachment->setDestinationAlphaBlendFactor(blendFactorMap[blendAttachment.DestinationAlphaBlendFactor]);
+		colorAttachment->setAlphaBlendOperation(blendOperationMap[blendAttachment.AlphaBlendOperation]);
+		colorAttachment->setWriteMask(convertToMetalColorWriteMask(blendAttachment.WriteMask));
+
+		m_colorAttachments.push_back(colorAttachment);
+		return this;
+	}
+
+	MetalPipelineBuilder* MetalPipelineBuilder::SetDepthStencilState(Graphics::DepthStencilState depthStencilState) {
+		m_depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
+
+		if (depthStencilState.DepthTestEnable) {
+			m_depthStencilDescriptor->setDepthCompareFunction(depthCompareMap[depthStencilState.DepthCompareOp]);
+			m_depthStencilDescriptor->setDepthWriteEnabled(depthStencilState.DepthWriteEnable);
+		}
+		else {
+			m_depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionAlways);
+		}
+
+		if (depthStencilState.StencilTestEnable) {
+			m_stencilDescriptor = MTL::StencilDescriptor::alloc()->init();
+			m_stencilDescriptor->setStencilCompareFunction(depthCompareMap[depthStencilState.DepthCompareOp]);
+			m_stencilDescriptor->setStencilFailureOperation(stencilOpMap[depthStencilState.StencilOpState]);
+			m_stencilDescriptor->setDepthFailureOperation(stencilOpMap[depthStencilState.StencilOpState]);
+			m_stencilDescriptor->setDepthStencilPassOperation(stencilOpMap[depthStencilState.StencilOpState]);
+
+			m_depthStencilDescriptor->setFrontFaceStencil(m_stencilDescriptor);
+			m_depthStencilDescriptor->setBackFaceStencil(m_stencilDescriptor);
+		}
+		return this;
+	}
+
+	std::shared_ptr<JarPipeline> MetalPipelineBuilder::Build(std::shared_ptr<JarDevice> device) {
+		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice> &>(device);
+		MTL::RenderPipelineDescriptor* metalPipelineDesc = MTL::RenderPipelineDescriptor::alloc()->init();
+
+		if (!m_vertexShaderFunc || !m_fragmentShaderFunc)
+			throw std::runtime_error("Vertex and shader function must be set to build a valid pipeline!");
+
+		metalPipelineDesc->setVertexFunction(m_vertexShaderFunc);
+		metalPipelineDesc->setFragmentFunction(m_fragmentShaderFunc);
+
+		if (m_vertexDescriptor)
+			metalPipelineDesc->setVertexDescriptor(m_vertexDescriptor);
+
+		metalPipelineDesc->setInputPrimitiveTopology(m_topology);
+		metalPipelineDesc->setSampleCount(m_multisamplingCount);
+
+		for (int i = 0; i < m_colorAttachments.size(); ++i) {
+			MTL::RenderPipelineColorAttachmentDescriptor* colorAttachment = m_colorAttachments[i];
+			metalPipelineDesc->colorAttachments()->setObject(colorAttachment, i);
+		}
+		auto mtlDevice = metalDevice->getDevice().value();
 
 		NS::Error* error = nullptr;
-		pipelineState = device->newRenderPipelineState(renderPipelineDescriptor, &error);
+		MTL::RenderPipelineState* pipelineState = mtlDevice->newRenderPipelineState(metalPipelineDesc, &error);
 		if (!pipelineState) {
 			throw std::runtime_error("Failed to create render pipeline state object! " +
 			                         std::string(error->localizedDescription()->utf8String()));
 		}
+
+		MTL::DepthStencilState* depthStencilState = nullptr;
+		if (m_depthStencilDescriptor) {
+			depthStencilState = metalDevice->getDevice().value()->newDepthStencilState(m_depthStencilDescriptor);
+		}
+
+		auto metalPipeline = std::make_shared<MetalPipeline>(mtlDevice, pipelineState, depthStencilState,
+		                                                     m_renderPass);
+		return metalPipeline;
 	}
+
+	MTL::ColorWriteMask MetalPipelineBuilder::convertToMetalColorWriteMask(Graphics::ColorWriteMask mask) {
+		MTL::ColorWriteMask metalMask = MTL::ColorWriteMaskNone;
+		auto maskValue = static_cast<std::underlying_type<ColorWriteMask>::type>(mask);
+
+		if (maskValue & static_cast<std::underlying_type<ColorWriteMask>::type>(ColorWriteMask::Red))
+			metalMask |= MTL::ColorWriteMaskRed;
+		if (maskValue & static_cast<std::underlying_type<ColorWriteMask>::type>(ColorWriteMask::Green))
+			metalMask |= MTL::ColorWriteMaskGreen;
+		if (maskValue & static_cast<std::underlying_type<ColorWriteMask>::type>(ColorWriteMask::Blue))
+			metalMask |= MTL::ColorWriteMaskBlue;
+		if (maskValue & static_cast<std::underlying_type<ColorWriteMask>::type>(ColorWriteMask::Alpha))
+			metalMask |= MTL::ColorWriteMaskAlpha;
+
+		return metalMask;
+	}
+
+	MetalPipeline::~MetalPipeline() = default;
 
 	void MetalPipeline::Release() {
-		pipelineState->release();
-	}
-
-	std::shared_ptr<JarRenderPass> MetalPipeline::GetRenderPass() {
+		m_pipelineState->release();
 	}
 
 #pragma endregion MetalPipeline }

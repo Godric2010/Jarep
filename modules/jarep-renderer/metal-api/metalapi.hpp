@@ -19,6 +19,7 @@
 #include <simd/simd.h>
 #include <functional>
 #include <fstream>
+#include <utility>
 
 namespace Graphics::Metal {
 	class MetalSurface final : public JarSurface {
@@ -129,7 +130,7 @@ namespace Graphics::Metal {
 
 			void Draw() override;
 
-			void Present(std::shared_ptr<JarSurface>&m_surface, std::shared_ptr<JarDevice> device) override;
+			void Present(std::shared_ptr<JarSurface>& m_surface, std::shared_ptr<JarDevice> device) override;
 
 		private:
 			MTL::CommandBuffer* buffer;
@@ -167,7 +168,9 @@ namespace Graphics::Metal {
 		private:
 			MTL::CommandQueue* queue;
 	};
-#pragma endregion CommandQueue}
+
+#pragma endregion CommandQueue }
+
 	class MetalDevice final : public JarDevice {
 		public:
 			MetalDevice() { _device = std::nullopt; }
@@ -178,14 +181,10 @@ namespace Graphics::Metal {
 
 			void Release() override;
 
-			std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
-			                                            std::shared_ptr<JarShaderModule> fragmentModule,
-			                                            std::shared_ptr<JarRenderPass> renderPass) override;
-
-			[[nodiscard]] std::optional<MTL::Device *> getDevice() const;
+			[[nodiscard]] std::optional<MTL::Device*> getDevice() const;
 
 		private:
-			std::optional<MTL::Device *> _device;
+			std::optional<MTL::Device*> _device;
 	};
 
 #pragma region MetalBuffer{
@@ -207,7 +206,7 @@ namespace Graphics::Metal {
 		private:
 			std::optional<BufferUsage> m_bufferUsage;
 			std::optional<MemoryProperties> m_memoryProperties;
-			std::optional<const void *> m_data;
+			std::optional<const void*> m_data;
 			size_t m_bufferSize;
 
 			static MTL::ResourceUsage bufferUsageToMetal(BufferUsage usage);
@@ -217,16 +216,18 @@ namespace Graphics::Metal {
 
 	class MetalBuffer final : public JarBuffer {
 		public:
-			explicit MetalBuffer(MTL::Buffer* buffer) : m_buffer(buffer){}
+			explicit MetalBuffer(MTL::Buffer* buffer) : m_buffer(buffer) {
+			}
 
 			~MetalBuffer() override;
 
-			std::optional<MTL::Buffer *> getBuffer();
+			std::optional<MTL::Buffer*> getBuffer();
 
 		private:
 			MTL::Buffer* m_buffer;
 	};
-#pragma endregion MetalBuffer}
+
+#pragma endregion MetalBuffer }
 #pragma region MetalShaderLibrary{
 
 	class MetalShaderLibraryBuilder final : public JarShaderModuleBuilder {
@@ -242,13 +243,13 @@ namespace Graphics::Metal {
 			std::shared_ptr<JarShaderModule> Build(std::shared_ptr<JarDevice> device) override;
 
 		private:
-			std::optional<NS::String *> m_shaderCodeString;
+			std::optional<NS::String*> m_shaderCodeString;
 			std::optional<ShaderType> m_shaderTypeOpt;
 	};
 
 	class MetalShaderLibrary final : public JarShaderModule {
 		public:
-			explicit MetalShaderLibrary(MTL::Library* library): m_library(library) {
+			explicit MetalShaderLibrary(MTL::Library* library) : m_library(library) {
 			}
 
 			~MetalShaderLibrary() override;
@@ -260,24 +261,71 @@ namespace Graphics::Metal {
 		private:
 			MTL::Library* m_library;
 	};
-#pragma endregion MetalShaderLibrary}
+
+#pragma endregion MetalShaderLibrary }
+
+	class MetalPipelineBuilder final : public JarPipelineBuilder {
+		public:
+			MetalPipelineBuilder() = default;
+
+			~MetalPipelineBuilder() override;
+
+			MetalPipelineBuilder* SetShaderStage(ShaderStage shaderStage) override;
+
+			MetalPipelineBuilder* SetRenderPass(std::shared_ptr<JarRenderPass> renderPass) override;
+
+			MetalPipelineBuilder* SetVertexInput(VertexInput vertexInput) override;
+
+			MetalPipelineBuilder* SetInputAssemblyTopology(InputAssemblyTopology topology) override;
+
+			MetalPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) override;
+
+			MetalPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment blendAttachment) override;
+
+			MetalPipelineBuilder* SetDepthStencilState(DepthStencilState depthStencilState) override;
+
+			std::shared_ptr<JarPipeline> Build(std::shared_ptr<JarDevice> device) override;
+
+		private:
+			MTL::Function* m_vertexShaderFunc;
+			MTL::Function* m_fragmentShaderFunc;
+
+			std::shared_ptr<JarRenderPass> m_renderPass;
+
+			MTL::VertexDescriptor* m_vertexDescriptor;
+			MTL::PrimitiveTopologyClass m_topology;
+
+			uint16_t m_multisamplingCount;
+
+			std::vector<MTL::RenderPipelineColorAttachmentDescriptor*> m_colorAttachments;
+			MTL::DepthStencilDescriptor* m_depthStencilDescriptor;
+			MTL::StencilDescriptor* m_stencilDescriptor;
+
+			MTL::ColorWriteMask convertToMetalColorWriteMask(ColorWriteMask mask);
+	};
 
 	class MetalPipeline final : public JarPipeline {
 		public:
-			MetalPipeline() = default;
+			MetalPipeline(MTL::Device* device, MTL::RenderPipelineState* pipelineState,
+			              MTL::DepthStencilState* depthStencilState, std::shared_ptr<JarRenderPass> renderPass)
+					: m_device(device), m_pipelineState(pipelineState),
+					  m_depthStencilState(depthStencilState), m_renderPass(std::move(renderPass)) {};
 
 			~MetalPipeline() override;
 
-			std::shared_ptr<JarRenderPass> GetRenderPass() override;
-
-			void CreatePipeline(MTL::Device* device, MTL::Library* vertexLib, MTL::Library* fragmentLib);
-
 			void Release() override;
 
-			MTL::RenderPipelineState* getPSO() { return pipelineState; }
+			std::shared_ptr<JarRenderPass> GetRenderPass() override { return m_renderPass; }
+
+			MTL::RenderPipelineState* getPSO() { return m_pipelineState; }
+
+			MTL::DepthStencilState* getDSS() { return m_depthStencilState; }
 
 		private:
-			MTL::RenderPipelineState* pipelineState;
+			MTL::RenderPipelineState* m_pipelineState;
+			MTL::DepthStencilState* m_depthStencilState;
+			MTL::Device* m_device;
+			std::shared_ptr<JarRenderPass> m_renderPass;
 	};
 
 	class MetalBackend final : public Backend {
@@ -288,7 +336,7 @@ namespace Graphics::Metal {
 
 			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* windowHandleProvider) override;
 
-			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>&m_surface) override;
+			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>& m_surface) override;
 
 			JarShaderModuleBuilder* InitShaderModuleBuilder() override;
 
@@ -297,6 +345,8 @@ namespace Graphics::Metal {
 			JarCommandQueueBuilder* InitCommandQueueBuilder() override;
 
 			JarBufferBuilder* InitBufferBuilder() override;
+
+			JarPipelineBuilder* InitPipelineBuilder() override;
 	};
 }
 #endif

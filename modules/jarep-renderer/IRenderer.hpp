@@ -10,15 +10,22 @@
 #include "NativeWindowHandleProvider.hpp"
 #include <memory>
 #include <string>
+#include <vector>
 #include <sys/kauth.h>
 
 namespace Graphics {
 	class JarDevice;
+
 	class JarShaderModule;
+
 	class JarRenderPass;
+
 	class JarCommandQueue;
+
 	class JarCommandBuffer;
+
 	class JarPipeline;
+
 	class JarBuffer;
 
 	enum ImageFormat {
@@ -139,7 +146,8 @@ namespace Graphics {
 		public:
 			virtual ~JarBuffer() = default;
 	};
-#pragma endregion Buffer}
+
+#pragma endregion Buffer }
 
 #pragma region JarShader{
 	enum ShaderType {
@@ -169,6 +177,184 @@ namespace Graphics {
 
 #pragma endregion JarShader }
 
+#pragma region JarPipeline{
+
+	struct ShaderStage {
+		std::shared_ptr<JarShaderModule> VertexShaderModule;
+		std::shared_ptr<JarShaderModule> FragmentShaderModule;
+		std::string MainFunctionName;
+
+	};
+
+	enum class VertexInputRate {
+		PerVertex,
+		PerInstance,
+	};
+
+	struct BindingDescription {
+		uint32_t BindingIndex;
+		uint32_t Stride;
+		VertexInputRate InputRate;
+		uint32_t StepRate;
+	};
+
+	enum class VertexFormat {
+		Float,
+		Float2,
+		Float3,
+		Float4,
+		Int,
+		Int2,
+		Int3,
+		Int4,
+	};
+
+	struct AttributeDescription {
+		uint32_t BindingIndex;
+		uint32_t AttributeLocation;
+		uint32_t Offset;
+		VertexFormat Format;
+	};
+
+	struct VertexInput {
+		std::vector<BindingDescription> BindingDescriptions;
+		std::vector<AttributeDescription> AttributeDescriptions;
+	};
+
+	enum class InputAssemblyTopology {
+		PointList,
+		LineList,
+		LineStrip,
+		TriangleList,
+		TriangleStrip,
+	};
+
+	enum class PolygonMode {
+	};
+
+	enum class CullMode {
+	};
+
+	enum class FrontFace {
+	};
+
+	struct RasterizationState {
+		PolygonMode PolygonMode;
+		CullMode CullMode;
+		FrontFace FrontFace;
+	};
+
+	enum class PixelFormat {
+		RGBA8_UNORM,
+		BGRA8_UNORM,
+		RGBA16_FLOAT,
+		RGBA32_FLOAT,
+		DEPTH32_FLOAT,
+		DEPTH24_STENCIL8,
+		R8_UNORM,
+		R16_FLOAT,
+		BC1,
+		BC3,
+		PVRTC,
+	};
+
+	enum class BlendFactor {
+		Zero,
+		One,
+		SrcColor,
+		OneMinusSrcColor,
+		DstColor,
+		OneMinusDstColor,
+		SrcAlpha,
+		OneMinusSrcAlpha,
+		DstAlpha,
+		OneMinusDstAlpha,
+		ConstantColor,
+		OneMinusConstantColor,
+		ConstantAlpha,
+		OneMinusConstantAlpha,
+	};
+
+	enum class BlendOperation {
+		Add,
+		Subtract,
+		ReverseSubtract,
+		Min,
+		Max
+	};
+
+	enum class ColorWriteMask {
+		None = 0,
+		Red = 1 << 0,
+		Green = 1 << 1,
+		Blue = 1 << 2,
+		Alpha = 1 << 3,
+		All = Red | Green | Blue | Alpha
+	};
+
+	struct ColorBlendAttachment {
+		PixelFormat PixelFormat;
+		bool BlendingEnabled;
+		BlendFactor SourceRGBBlendFactor;
+		BlendFactor DestinationRGBBlendFactor;
+		BlendOperation RGBBlendOperation;
+		BlendFactor SourceAlphaBlendFactor;
+		BlendFactor DestinationAlphaBlendFactor;
+		BlendOperation AlphaBlendOperation;
+		ColorWriteMask WriteMask;
+	};
+
+	enum class DepthCompareOperation {
+		Never,
+		Less,
+		Equal,
+		LessEqual,
+		Greater,
+		NotEqual,
+		GreaterEqual,
+		Always
+	};
+
+	enum class StencilOpState {
+		Keep,
+		Zero,
+		Replace,
+		IncrementAndClamp,
+		DecrementAndClamp,
+		Invert,
+		IncrementAndWrap,
+		DecrementAndWrap,
+	};
+
+	struct DepthStencilState {
+		bool DepthTestEnable;
+		bool DepthWriteEnable;
+		DepthCompareOperation DepthCompareOp;
+		bool StencilTestEnable;
+		StencilOpState StencilOpState;
+	};
+
+	class JarPipelineBuilder {
+		public:
+			virtual ~JarPipelineBuilder() = default;
+
+			virtual JarPipelineBuilder* SetShaderStage(ShaderStage shaderStage) = 0;
+
+			virtual JarPipelineBuilder* SetRenderPass(std::shared_ptr<JarRenderPass> renderPass) = 0;
+
+			virtual JarPipelineBuilder* SetVertexInput(VertexInput vertexInput) = 0;
+
+			virtual JarPipelineBuilder* SetInputAssemblyTopology(InputAssemblyTopology topology) = 0;
+
+			virtual JarPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) = 0;
+
+			virtual JarPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachments) = 0;
+
+			virtual JarPipelineBuilder* SetDepthStencilState(DepthStencilState depthStencilState) = 0;
+
+			virtual std::shared_ptr<JarPipeline> Build(std::shared_ptr<JarDevice> device) = 0;
+	};
+
 	class JarPipeline {
 		public:
 			virtual ~JarPipeline() = default;
@@ -177,6 +363,10 @@ namespace Graphics {
 
 			virtual std::shared_ptr<JarRenderPass> GetRenderPass() = 0;
 	};
+
+#pragma endregion JarPipeline }
+
+#pragma region JarCommandBuffer{
 
 	class JarCommandBuffer {
 		public:
@@ -193,9 +383,10 @@ namespace Graphics {
 
 			virtual void Draw() = 0;
 
-			virtual void Present(std::shared_ptr<JarSurface>&surface, std::shared_ptr<JarDevice> device) = 0;
+			virtual void Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) = 0;
 	};
 
+#pragma endregion JarCommandBuffer }
 
 #pragma region CommandQueue{
 
@@ -216,17 +407,14 @@ namespace Graphics {
 
 			virtual void Release() = 0;
 	};
-#pragma endregion CommandQueue}
+
+#pragma endregion CommandQueue }
 
 	class JarDevice {
 		public:
 			virtual ~JarDevice() = default;
 
 			virtual void Release() = 0;
-
-			virtual std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
-			                                                    std::shared_ptr<JarShaderModule> fragmentModule,
-			                                                    std::shared_ptr<JarRenderPass> renderPass) = 0;
 	};
 
 #pragma region Backend{
@@ -237,7 +425,7 @@ namespace Graphics {
 
 			virtual std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* windowHandleProvider) = 0;
 
-			virtual std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>&surface) = 0;
+			virtual std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>& surface) = 0;
 
 			virtual JarShaderModuleBuilder* InitShaderModuleBuilder() = 0;
 
@@ -246,6 +434,8 @@ namespace Graphics {
 			virtual JarCommandQueueBuilder* InitCommandQueueBuilder() = 0;
 
 			virtual JarBufferBuilder* InitBufferBuilder() = 0;
+
+			virtual JarPipelineBuilder* InitPipelineBuilder() = 0;
 	};
 
 #pragma endregion Backend }

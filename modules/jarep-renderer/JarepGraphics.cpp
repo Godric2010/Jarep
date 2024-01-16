@@ -5,7 +5,7 @@
 #include "JarepGraphics.hpp"
 
 namespace Graphics {
-	JarepGraphics::JarepGraphics(const std::vector<const char *>&extensionNames) {
+	JarepGraphics::JarepGraphics(const std::vector<const char*>& extensionNames) {
 		extensions = extensionNames;
 #if defined(__APPLE__) && defined(__MACH__)
 		backend = std::make_shared<Metal::MetalBackend>(Metal::MetalBackend());
@@ -26,9 +26,9 @@ namespace Graphics {
 		queue = commandQueueBuilder->Build(device);
 
 		const std::vector<Vertex> vertices = {
-			{{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-			{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-			{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}
+				{{0.0f,  -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+				{{0.5f,  0.5f,  0.0f}, {0.0f, 1.0f, 0.0f}},
+				{{-0.5f, 0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}}
 		};
 
 		const size_t vertexDataSize = vertices.size() * sizeof(Vertex);
@@ -46,14 +46,61 @@ namespace Graphics {
 		colorAttachment.LoadOp = LoadOp::Clear;
 		colorAttachment.StoreOp = StoreOp::Store;
 		colorAttachment.ClearColor = ClearColor(0, 0, 0, 0);
-		colorAttachment.ImageFormat = ImageFormat::B8G8R8A8_UNORM;
+		colorAttachment.ImageFormat = B8G8R8A8_UNORM;
 
 		JarRenderPassBuilder* rpBuilder = backend->InitRenderPassBuilder();
 		rpBuilder->AddColorAttachment(colorAttachment);
 		renderPass = rpBuilder->Build(device);
 		delete rpBuilder;
 
-		pipeline = device->CreatePipeline(vertexShaderModule, fragmentShaderModule, renderPass);
+		ShaderStage shaderStage{};
+		shaderStage.VertexShaderModule = vertexShaderModule;
+		shaderStage.FragmentShaderModule = fragmentShaderModule;
+		shaderStage.MainFunctionName = "main";
+
+
+		std::vector attributeDescriptions = {AttributeDescription{}, AttributeDescription{}};
+		attributeDescriptions[0].Format = VertexFormat::Float3;
+		attributeDescriptions[0].Offset = 0;
+		attributeDescriptions[0].BindingIndex = 0;
+		attributeDescriptions[0].AttributeLocation = 0;
+
+		attributeDescriptions[1].Format = VertexFormat::Float3;
+		attributeDescriptions[1].Offset = sizeof(float) * 3;
+		attributeDescriptions[1].BindingIndex = 0;
+		attributeDescriptions[1].AttributeLocation = 1;
+
+		std::vector bindingDescriptions = {BindingDescription{}};
+		bindingDescriptions[0].BindingIndex = 0;
+		bindingDescriptions[0].InputRate = VertexInputRate::PerVertex;
+		bindingDescriptions[0].Stride = sizeof(float) * 6;
+		bindingDescriptions[0].StepRate = 1;
+
+		VertexInput vertexInput{};
+		vertexInput.AttributeDescriptions = attributeDescriptions;
+		vertexInput.BindingDescriptions = bindingDescriptions;
+
+		ColorBlendAttachment colorBlendAttachment{};
+		colorBlendAttachment.PixelFormat = PixelFormat::BGRA8_UNORM;
+		colorBlendAttachment.SourceRGBBlendFactor = BlendFactor::One;
+		colorBlendAttachment.DestinationRGBBlendFactor = BlendFactor::Zero;
+		colorBlendAttachment.RGBBlendOperation = BlendOperation::Add;
+		colorBlendAttachment.BlendingEnabled = false;
+		colorBlendAttachment.SourceAlphaBlendFactor = BlendFactor::One;
+		colorBlendAttachment.DestinationAlphaBlendFactor = BlendFactor::Zero;
+		colorBlendAttachment.AlphaBlendOperation = BlendOperation::Add;
+		colorBlendAttachment.WriteMask = ColorWriteMask::All;
+
+
+		JarPipelineBuilder* pipelineBuilder = backend->InitPipelineBuilder();
+		pipelineBuilder->
+				SetShaderStage(shaderStage)->
+				SetRenderPass(renderPass)->
+				SetVertexInput(vertexInput)->
+				SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
+				SetMultisamplingCount(1)->SetColorBlendAttachments(colorBlendAttachment);
+		pipeline = pipelineBuilder->Build(device);
+		delete pipelineBuilder;
 	}
 
 	void JarepGraphics::Render() {
@@ -80,7 +127,7 @@ namespace Graphics {
 	}
 
 	std::shared_ptr<JarShaderModule> JarepGraphics::createShaderModule(const ShaderType shaderType,
-	                                                                   const std::string&shaderName) const {
+	                                                                   const std::string& shaderName) const {
 		const auto shaderDir = "shaders/";
 		const std::string shaderFilePath = shaderDir + shaderName + shaderFileType;
 		const std::string shaderCodeString = readFile(shaderFilePath);
