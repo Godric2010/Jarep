@@ -43,14 +43,14 @@ namespace Graphics {
 		fragmentShaderModule = createShaderModule(FragmentShader, "triangle_frag");
 
 		ColorAttachment colorAttachment;
-		colorAttachment.LoadOp = LoadOp::Clear;
-		colorAttachment.StoreOp = StoreOp::Store;
-		colorAttachment.ClearColor = ClearColor(0, 0, 0, 0);
-		colorAttachment.ImageFormat = B8G8R8A8_UNORM;
+		colorAttachment.LoadOperation = LoadOp::Clear;
+		colorAttachment.StoreOperation = StoreOp::Store;
+		colorAttachment.Clear = ClearColor(0, 0, 0, 0);
+		colorAttachment.Format = B8G8R8A8_UNORM;
 
 		JarRenderPassBuilder* rpBuilder = backend->InitRenderPassBuilder();
 		rpBuilder->AddColorAttachment(colorAttachment);
-		renderPass = rpBuilder->Build(device);
+		renderPass = rpBuilder->Build(device, surface);
 		delete rpBuilder;
 
 		ShaderStage shaderStage{};
@@ -81,7 +81,7 @@ namespace Graphics {
 		vertexInput.BindingDescriptions = bindingDescriptions;
 
 		ColorBlendAttachment colorBlendAttachment{};
-		colorBlendAttachment.PixelFormat = PixelFormat::BGRA8_UNORM;
+		colorBlendAttachment.Format = PixelFormat::BGRA8_UNORM;
 		colorBlendAttachment.SourceRGBBlendFactor = BlendFactor::One;
 		colorBlendAttachment.DestinationRGBBlendFactor = BlendFactor::Zero;
 		colorBlendAttachment.RGBBlendOperation = BlendOperation::Add;

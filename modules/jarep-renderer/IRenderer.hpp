@@ -5,13 +5,12 @@
 #ifndef JAREP_IRENDERER_HPP
 #define JAREP_IRENDERER_HPP
 
-#include <complex.h>
+#include <complex>
 
 #include "NativeWindowHandleProvider.hpp"
 #include <memory>
 #include <string>
 #include <vector>
-#include <sys/kauth.h>
 
 namespace Graphics {
 	class JarDevice;
@@ -27,6 +26,8 @@ namespace Graphics {
 	class JarPipeline;
 
 	class JarBuffer;
+
+	class JarSurface;
 
 	enum ImageFormat {
 		B8G8R8A8_UNORM,
@@ -57,21 +58,21 @@ namespace Graphics {
 
 	struct ColorAttachment {
 		public:
-			ImageFormat ImageFormat;
-			LoadOp LoadOp;
-			StoreOp StoreOp;
-			ClearColor ClearColor;
+			ImageFormat Format;
+			LoadOp LoadOperation;
+			StoreOp StoreOperation;
+			ClearColor Clear;
 
-			ColorAttachment() : ClearColor(0, 0, 0, 0), ImageFormat(ImageFormat::B8G8R8A8_UNORM), LoadOp(LoadOp::Clear),
-			                    StoreOp(StoreOp::DontCare) {
+			ColorAttachment() : Clear(0, 0, 0, 0), Format(ImageFormat::B8G8R8A8_UNORM), LoadOperation(LoadOp::Clear),
+			                    StoreOperation(StoreOp::DontCare) {
 			}
 	};
 
 	//	struct DepthStencilAttachment{
 	//		public:
 	//			ImageFormat ImageFormat;
-	//			StoreOp StencilStoreOp;
-	//			LoadOp StencilLoadOp;
+	//			StoreOperation StencilStoreOp;
+	//			LoadOperation StencilLoadOp;
 	//			float DepthClearValue;
 	//			uint32_t StencilClearValue;
 	//	};
@@ -82,7 +83,8 @@ namespace Graphics {
 
 			virtual JarRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) = 0;
 
-			virtual std::shared_ptr<JarRenderPass> Build(std::shared_ptr<JarDevice> device) = 0;
+			virtual std::shared_ptr<JarRenderPass>
+			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) = 0;
 	};
 
 
@@ -239,9 +241,9 @@ namespace Graphics {
 	};
 
 	struct RasterizationState {
-		PolygonMode PolygonMode;
-		CullMode CullMode;
-		FrontFace FrontFace;
+		PolygonMode polygonMode;
+		CullMode cullMode;
+		FrontFace frontFace;
 	};
 
 	enum class PixelFormat {
@@ -284,7 +286,7 @@ namespace Graphics {
 	};
 
 	enum class ColorWriteMask {
-		None = 0,
+		Non = 0,
 		Red = 1 << 0,
 		Green = 1 << 1,
 		Blue = 1 << 2,
@@ -293,7 +295,7 @@ namespace Graphics {
 	};
 
 	struct ColorBlendAttachment {
-		PixelFormat PixelFormat;
+		PixelFormat Format;
 		bool BlendingEnabled;
 		BlendFactor SourceRGBBlendFactor;
 		BlendFactor DestinationRGBBlendFactor;
@@ -312,7 +314,7 @@ namespace Graphics {
 		Greater,
 		NotEqual,
 		GreaterEqual,
-		Always
+		AllTime,
 	};
 
 	enum class StencilOpState {

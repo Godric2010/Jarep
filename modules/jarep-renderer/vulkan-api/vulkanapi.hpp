@@ -18,8 +18,11 @@
 
 #if defined (__linux__)
 #define VK_USE_PLATFORM_XLIB_KHR
+
 #include <vulkan/vulkan_xlib.h>
+
 #define VK_USE_PLATFORM_WAYLAND_KHR
+
 #include <vulkan/vulkan_wayland.h>
 
 #elif defined(_WIN32)
@@ -29,342 +32,473 @@
 #endif
 
 
-namespace Graphics::Vulkan
-{
-    class VulkanDevice;
-    class VulkanFramebuffer;
-    class VulkanSwapchain;
-    class VulkanRenderPass;
+namespace Graphics::Vulkan {
+	class VulkanDevice;
+
+	class VulkanFramebuffer;
+
+	class VulkanSwapchain;
+
+	class VulkanRenderPass;
+
+	class VulkanRenderPassBuilder;
+
+	class VulkanGraphicsPipelineBuilder;
+
+	class VulkanCommandQueueBuilder;
+
+	class VulkanShaderModuleBuilder;
+
+	class VulkanBufferBuilder;
 
 #pragma region VulkanBackend{
 
-    class VulkanBackend final : public Backend
-    {
-    public:
-        explicit VulkanBackend(const std::vector<const char*>& extensions);
+	class VulkanBackend final : public Backend {
+		public:
+			explicit VulkanBackend(const std::vector<const char*>& extensions);
 
-        ~VulkanBackend() override;
+			~VulkanBackend() override;
 
-        std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* nativeWindowHandleProvider) override;
+			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* nativeWindowHandleProvider) override;
 
-        std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>& surface) override;
+			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>& surface) override;
 
-    private:
-        std::vector<const char*> extensionNames;
-        VkInstance instance;
+			JarShaderModuleBuilder* InitShaderModuleBuilder() override;
 
-        void createInstance();
-    };
+			JarRenderPassBuilder* InitRenderPassBuilder() override;
+
+			JarCommandQueueBuilder* InitCommandQueueBuilder() override;
+
+			JarBufferBuilder* InitBufferBuilder() override;
+
+			JarPipelineBuilder* InitPipelineBuilder() override;
+
+		private:
+			std::vector<const char*> extensionNames;
+			VkInstance instance{};
+
+			void createInstance();
+	};
 
 #pragma endregion VulkanBackend }
 
 #pragma region VulkanSurface{
 
-    struct SwapChainSupportDetails;
+	struct SwapChainSupportDetails;
 
-    class VulkanSurface final : public JarSurface
-    {
-    public:
-        VulkanSurface(VkSurfaceKHR surface, VkExtent2D surfaceExtend);
+	class VulkanSurface final : public JarSurface {
+		public:
+			VulkanSurface(VkSurfaceKHR surface, VkExtent2D surfaceExtend);
 
-        ~VulkanSurface() override;
+			~VulkanSurface() override;
 
-        void Update() override;
+			void Update() override;
 
-        void FinalizeSurface(std::shared_ptr<VulkanDevice> device);
+			void FinalizeSurface(std::shared_ptr<VulkanDevice> device);
 
-        SwapChainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice) const;
+			SwapChainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice) const;
 
-        [[nodiscard]] VkSurfaceKHR getSurface() const { return m_surface; }
+			[[nodiscard]] VkSurfaceKHR getSurface() const { return m_surface; }
 
-        [[nodiscard]] VkExtent2D getSurfaceExtent() const { return m_surfaceExtent; }
+			[[nodiscard]] VkExtent2D getSurfaceExtent() const { return m_surfaceExtent; }
 
-        [[nodiscard]] VulkanSwapchain* getSwapchain() const { return m_swapchain.get(); }
+			[[nodiscard]] VulkanSwapchain* getSwapchain() const { return m_swapchain.get(); }
 
-    private:
-        VkSurfaceKHR m_surface;
-        VkExtent2D m_surfaceExtent;
-        std::unique_ptr<VulkanSwapchain> m_swapchain;
-    };
+		private:
+			VkSurfaceKHR m_surface;
+			VkExtent2D m_surfaceExtent;
+			std::unique_ptr<VulkanSwapchain> m_swapchain;
+	};
 
 
 #pragma endregion VulkanSurface }
 
 #pragma region VulkanDevice{
 
-    class VulkanDevice final : public JarDevice
-    {
-    public:
-        VulkanDevice();
+	class VulkanDevice final : public JarDevice {
+		public:
+			VulkanDevice();
 
-        ~VulkanDevice() override;
+			~VulkanDevice() override;
 
-        void Release() override;
+			void Release() override;
 
-        void CreatePhysicalDevice(VkInstance instance, std::shared_ptr<VulkanSurface>& surface);
+			void CreatePhysicalDevice(VkInstance instance, std::shared_ptr<VulkanSurface>& surface);
 
-        void CreateLogicalDevice();
+			void CreateLogicalDevice();
 
-        std::shared_ptr<JarBuffer> CreateBuffer(size_t bufferSize, const void* data) override;
+			[[nodiscard]] VkDevice getLogicalDevice() const { return m_device; }
 
-        std::shared_ptr<JarShaderModule> CreateShaderModule(std::string fileContent) override;
+			[[nodiscard]] VkPhysicalDevice getPhysicalDevice() const { return m_physicalDevice; }
 
-        std::shared_ptr<JarPipeline> CreatePipeline(std::shared_ptr<JarShaderModule> vertexModule,
-                                                    std::shared_ptr<JarShaderModule> fragmentModule,
-                                                    std::shared_ptr<JarRenderPass> renderPass) override;
+			[[nodiscard]] std::optional<uint32_t> getGraphicsFamilyIndex() const { return m_graphicsFamily; }
 
-        std::shared_ptr<JarCommandQueue> CreateCommandQueue() override;
+			[[nodiscard]] std::optional<uint32_t> getPresentFamilyIndex() const { return m_presentFamily; }
 
-        std::shared_ptr<JarRenderPass> CreateRenderPass(std::shared_ptr<JarSurface> surface) override;
+		private:
+			VkPhysicalDevice m_physicalDevice;
+			VkDevice m_device;
+			std::optional<uint32_t> m_graphicsFamily;
+			std::optional<uint32_t> m_presentFamily;
 
-        [[nodiscard]] VkDevice getLogicalDevice() const { return m_device; }
+			const std::vector<const char*> deviceExtensions = {
+					VK_KHR_SWAPCHAIN_EXTENSION_NAME
+			};
 
-        [[nodiscard]] VkPhysicalDevice getPhysicalDevice() const { return m_physicalDevice; }
+			bool isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface);
 
-        [[nodiscard]] std::optional<uint32_t> getGraphicsFamilyIndex() const { return m_graphicsFamily; }
+			void findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface);
 
-        [[nodiscard]] std::optional<uint32_t> getPresentFamilyIndex() const { return m_presentFamily; }
-
-    private:
-        VkPhysicalDevice m_physicalDevice;
-        VkDevice m_device;
-        std::optional<uint32_t> m_graphicsFamily;
-        std::optional<uint32_t> m_presentFamily;
-
-        const std::vector<const char*> deviceExtensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME
-        };
-
-        bool isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface);
-        void findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface);
-
-        bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice) const;
-    };
+			bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice) const;
+	};
 
 
 #pragma endregion VulkanDevice }
 
 #pragma region VulkanSwapchain{
 
-    class VulkanSwapchain
-    {
-    public:
-        VulkanSwapchain() = default;
-        ~VulkanSwapchain() = default;
+	class VulkanSwapchain {
+		public:
+			VulkanSwapchain() = default;
 
-        void Initialize(const std::shared_ptr<VulkanDevice>& device, VkExtent2D extent,
-                        const SwapChainSupportDetails& swapchainSupport, VkSurfaceKHR surface);
+			~VulkanSwapchain() = default;
+
+			void Initialize(const std::shared_ptr<VulkanDevice>& device, VkExtent2D extent,
+			                const SwapChainSupportDetails& swapchainSupport, VkSurfaceKHR surface);
 
 
-        void CreateFramebuffersFromRenderPass(const std::shared_ptr<VulkanRenderPass>& renderPass);
+			void CreateFramebuffersFromRenderPass(const std::shared_ptr<VulkanRenderPass>& renderPass);
 
-        std::shared_ptr<VulkanFramebuffer> AcquireNewImage(VkSemaphore imageAvailable, VkFence frameInFlight);
+			std::shared_ptr<VulkanFramebuffer> AcquireNewImage(VkSemaphore imageAvailable, VkFence frameInFlight);
 
-        void PresentImage(VkSemaphore imageAvailable, VkSemaphore renderFinished, VkFence frameInFlight,
-                          VkCommandBuffer* cmdBuffer);
+			void PresentImage(VkSemaphore imageAvailable, VkSemaphore renderFinished, VkFence frameInFlight,
+			                  VkCommandBuffer* cmdBuffer);
 
-        void Release();
+			void Release();
 
-        [[nodiscard]] VkFormat getSwapchainImageFormat() const { return m_swapchainImageFormat; }
+			[[nodiscard]] VkFormat getSwapchainImageFormat() const { return m_swapchainImageFormat; }
 
-        [[nodiscard]] uint32_t getCurrentImageIndex() const { return m_currentImageIndex; }
+			[[nodiscard]] uint32_t getCurrentImageIndex() const { return m_currentImageIndex; }
 
-    private:
-        VkExtent2D m_imageExtent;
-        VkQueue m_graphicsQueue;
-        VkQueue m_presentQueue;
-        VkFormat m_swapchainImageFormat;
-        VkSwapchainKHR m_swapchain;
-        std::vector<VkImage> m_swapchainImages;
-        std::vector<VkImageView> m_swapchainImageViews;
-        uint32_t m_currentImageIndex;
-        uint32_t m_swapchainMaxImageCount;
+		private:
+			VkExtent2D m_imageExtent;
+			VkQueue m_graphicsQueue;
+			VkQueue m_presentQueue;
+			VkFormat m_swapchainImageFormat;
+			VkSwapchainKHR m_swapchain;
+			std::vector<VkImage> m_swapchainImages;
+			std::vector<VkImageView> m_swapchainImageViews;
+			uint32_t m_currentImageIndex;
+			uint32_t m_swapchainMaxImageCount;
 
-        std::vector<std::shared_ptr<VulkanFramebuffer>> m_swapchainFramebuffers;
+			std::vector<std::shared_ptr<VulkanFramebuffer>> m_swapchainFramebuffers;
 
-        std::shared_ptr<VulkanDevice> m_device;
+			std::shared_ptr<VulkanDevice> m_device;
 
-        [[nodiscard]] static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
-                                                         VkExtent2D surfaceExtent);
+			[[nodiscard]] static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
+			                                                 VkExtent2D surfaceExtent);
 
-        static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+			static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 
-        static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+			static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 
-        void createImageViews();
-    };
+			void createImageViews();
+	};
 
-#pragma endregion VulkanSwapchain}
+#pragma endregion VulkanSwapchain }
 
 #pragma region VulkanCommandBuffer{
 
-    class VulkanCommandBuffer final : JarCommandBuffer
-    {
-    public:
-        VulkanCommandBuffer(VkCommandBuffer commandBuffer, VkSemaphore imageAvailableSemaphore,
-                            VkSemaphore renderFinishedSemaphore, VkFence frameInFlightFence);
-        ~VulkanCommandBuffer() override;
+	class VulkanCommandBuffer final : JarCommandBuffer {
+		public:
+			VulkanCommandBuffer(VkCommandBuffer commandBuffer, VkSemaphore imageAvailableSemaphore,
+			                    VkSemaphore renderFinishedSemaphore, VkFence frameInFlightFence);
 
-        void StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) override;
-        void EndRecording() override;
-        void BindPipeline(std::shared_ptr<JarPipeline> pipeline) override;
-        void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
-        void Draw() override;
-        void Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) override;
+			~VulkanCommandBuffer() override;
 
-        void Release(VkDevice device);
+			void
+			StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) override;
 
-    private:
-        VkCommandBuffer m_commandBuffer;
-        VkSemaphore m_imageAvailableSemaphore;
-        VkSemaphore m_renderFinishedSemaphore;
-        VkFence m_frameInFlightFence;
-    };
+			void EndRecording() override;
 
-#pragma endregion VulkanCommandBuffer}
+			void BindPipeline(std::shared_ptr<JarPipeline> pipeline) override;
+
+			void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
+
+			void Draw() override;
+
+			void Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) override;
+
+			void Release(VkDevice device);
+
+		private:
+			VkCommandBuffer m_commandBuffer;
+			VkSemaphore m_imageAvailableSemaphore;
+			VkSemaphore m_renderFinishedSemaphore;
+			VkFence m_frameInFlightFence;
+	};
+
+#pragma endregion VulkanCommandBuffer }
 
 #pragma  region VulkanCommandQueue{
 
-    class VulkanCommandQueue final : public JarCommandQueue
-    {
-    public:
-        VulkanCommandQueue();
-        ~VulkanCommandQueue() override;
+	class VulkanCommandQueueBuilder final : public JarCommandQueueBuilder {
+		public:
+			VulkanCommandQueueBuilder() = default;
 
-        void CreateVulkanCommandQueue(VkDevice& device, uint32_t graphicsFamilyIndex);
+			~VulkanCommandQueueBuilder() override;
 
-        JarCommandBuffer* getNextCommandBuffer() override;
+			VulkanCommandQueueBuilder* SetCommandBufferAmount(uint32_t commandBufferAmount) override;
 
-        void Release(std::shared_ptr<JarDevice> device) override;
+			std::shared_ptr<JarCommandQueue> Build(std::shared_ptr<JarDevice> device) override;
 
-    private:
-        const int MaxFramesInFlight = 2;
+		private:
+			std::optional<uint32_t> m_amountOfCommandBuffers;
+			const uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 3;
+	};
 
-        uint32_t m_graphicsFamily;
-        VkCommandPool m_commandPool;
-        std::vector<VulkanCommandBuffer*> m_commandBuffers;
+	class VulkanCommandQueue final : public JarCommandQueue {
+		public:
+			VulkanCommandQueue(std::shared_ptr<VulkanDevice>& device, VkCommandPool commandPool,
+			                   std::vector<VulkanCommandBuffer*> commandBuffers) : m_device(device),
+			                                                                       m_commandPool(commandPool),
+			                                                                       m_commandBuffers(
+					                                                                       std::move(commandBuffers)) {
+				m_currentBufferIndexInUse = 0;
+			};
 
-        int m_currentBufferIndexInUse;
+			~VulkanCommandQueue() override;
 
-        void createCommandBuffers(VkDevice& device);
-    };
+			JarCommandBuffer* getNextCommandBuffer() override;
 
-#pragma endregion VulkanCommandQueue}
+			void Release() override;
+
+		private:
+			std::shared_ptr<VulkanDevice> m_device;
+			VkCommandPool m_commandPool;
+			std::vector<VulkanCommandBuffer*> m_commandBuffers;
+
+			uint32_t m_currentBufferIndexInUse;
+	};
+
+#pragma endregion VulkanCommandQueue }
 
 #pragma region VulkanBuffer{
 
-    class VulkanBuffer final : public JarBuffer
-    {
-    public:
-        VulkanBuffer() = default;
-        ~VulkanBuffer() override;
+	class VulkanBufferBuilder final : public JarBufferBuilder {
 
-        void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, const size_t bufferSize, const void* data);
-        static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
-                                       VkMemoryPropertyFlags properties);
+		public:
+			VulkanBufferBuilder() = default;
 
-        [[nodiscard]] VkBuffer getBuffer() const { return m_buffer; }
+			~VulkanBufferBuilder() override;
 
-    private:
-        VkBuffer m_buffer;
-        VkDeviceMemory m_bufferMemory;
-    };
+			VulkanBufferBuilder* SetUsageFlags(BufferUsage usageFlags) override;
 
-#pragma endregion VulkanBuffer}
+			VulkanBufferBuilder* SetMemoryProperties(MemoryProperties memProps) override;
+
+			VulkanBufferBuilder* SetBufferData(const void* data, size_t bufferSize) override;
+
+			std::shared_ptr<JarBuffer> Build(std::shared_ptr<JarDevice> device) override;
+
+		private:
+			std::optional<VkBufferUsageFlags> m_bufferUsageFlags;
+			std::optional<VkMemoryPropertyFlags> m_memoryPropertiesFlags;
+			std::optional<size_t> m_bufferSize;
+			std::optional<const void*> m_data;
+
+			static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
+			                               VkMemoryPropertyFlags properties);
+	};
+
+
+	class VulkanBuffer final : public JarBuffer {
+		public:
+			VulkanBuffer(VkBuffer buffer, VkDeviceMemory deviceMemory) : m_buffer(buffer),
+			                                                             m_bufferMemory(deviceMemory) {};
+
+			~VulkanBuffer() override;
+
+			[[nodiscard]] VkBuffer getBuffer() const { return m_buffer; }
+
+		private:
+			VkBuffer m_buffer;
+			VkDeviceMemory m_bufferMemory;
+	};
+
+#pragma endregion VulkanBuffer }
 
 #pragma region VulkanShaderModule{
 
-    class VulkanShaderModule final : public JarShaderModule
-    {
-    public:
-        VulkanShaderModule() = default;
-        ~VulkanShaderModule() override;
+	class VulkanShaderModuleBuilder final : public JarShaderModuleBuilder {
+		public:
+			VulkanShaderModuleBuilder() = default;
 
-        void CreateShaderModule(VkDevice device, std::string shaderContent);
-        void Release(std::shared_ptr<JarDevice> jarDevice) override;
+			~VulkanShaderModuleBuilder() override;
 
-        [[nodiscard]] VkShaderModule getShaderModule() const { return m_shaderModule; }
+			VulkanShaderModuleBuilder* SetShader(std::string shaderCode) override;
 
-    private:
-        VkShaderModule m_shaderModule;
-    };
+			VulkanShaderModuleBuilder* SetShaderType(ShaderType shaderType) override;
 
-#pragma endregion VulkanShaderModule}
+			std::shared_ptr<JarShaderModule> Build(std::shared_ptr<JarDevice> device) override;
+
+		private:
+			std::optional<std::string> m_shaderCodeStr;
+			std::optional<ShaderType> m_shaderType;
+
+	};
+
+
+	class VulkanShaderModule final : public JarShaderModule {
+		public:
+			VulkanShaderModule(std::shared_ptr<VulkanDevice>& device, VkShaderModule shaderModule,
+			                   ShaderType shaderType) : m_device(device), m_shaderModule(shaderModule),
+			                                            m_shaderType(shaderType) {};
+
+			~VulkanShaderModule() override;
+
+			void Release() override;
+
+			[[nodiscard]] VkShaderModule getShaderModule() const { return m_shaderModule; }
+
+			[[nodiscard]] ShaderType getShaderType() const { return m_shaderType; }
+
+		private:
+			VkShaderModule m_shaderModule;
+			ShaderType m_shaderType;
+			std::shared_ptr<VulkanDevice> m_device;
+	};
+
+#pragma endregion VulkanShaderModule }
 
 #pragma region VulkanFramebuffer{
 
-    class VulkanFramebuffer final : public JarFramebuffer
-    {
-    public:
-        explicit VulkanFramebuffer(const VkExtent2D framebufferExtent)
-        {
-            m_framebuffer = nullptr;
-            m_framebufferExtent = framebufferExtent;
-        }
+	class VulkanFramebuffer final : public JarFramebuffer {
+		public:
+			explicit VulkanFramebuffer(const VkExtent2D framebufferExtent) {
+				m_framebuffer = nullptr;
+				m_framebufferExtent = framebufferExtent;
+			}
 
-        ~VulkanFramebuffer() override;
+			~VulkanFramebuffer() override;
 
-        void CreateFramebuffer(VkDevice device, VkRenderPass renderPass,
-                               VkImageView swapchainImageView);
+			void CreateFramebuffer(VkDevice device, VkRenderPass renderPass,
+			                       VkImageView swapchainImageView);
 
-        [[nodiscard]] VkFramebuffer getFramebuffer() const { return m_framebuffer; }
-        [[nodiscard]] VkExtent2D getFramebufferExtent() const { return m_framebufferExtent; }
+			[[nodiscard]] VkFramebuffer getFramebuffer() const { return m_framebuffer; }
 
-        void Release(std::shared_ptr<JarDevice> device) override;
+			[[nodiscard]] VkExtent2D getFramebufferExtent() const { return m_framebufferExtent; }
 
-    private:
-        VkFramebuffer m_framebuffer;
-        VkExtent2D m_framebufferExtent;
-    };
+			void Release(std::shared_ptr<JarDevice> device) override;
 
-#pragma endregion VulkanFrambuffer}
+		private:
+			VkFramebuffer m_framebuffer;
+			VkExtent2D m_framebufferExtent{};
+	};
+
+#pragma endregion VulkanFrambuffer }
 
 #pragma region VulkanRenderPass{
 
-    class VulkanRenderPass final : public JarRenderPass
-    {
-    public:
-        VulkanRenderPass() = default;
-        ~VulkanRenderPass() override;
+	class VulkanRenderPassBuilder final : public JarRenderPassBuilder {
+		public :
+			VulkanRenderPassBuilder() = default;
 
-        void CreateRenderPass(VkDevice device, VkFormat imageFormat);
+			~VulkanRenderPassBuilder() override;
 
-        void Release(std::shared_ptr<JarDevice> jarDevice) override;
+			VulkanRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) override;
 
-        [[nodiscard]] VkRenderPass getRenderPass() const { return m_renderPass; }
+			std::shared_ptr<JarRenderPass>
+			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) override;
 
-    private:
-        VkRenderPass m_renderPass;
-    };
+		private:
+			std::optional<VkAttachmentDescription> m_colorAttachment;
+			std::optional<VkAttachmentReference> m_colorAttachmentRef;
 
-#pragma endregion VulkanRenderPass}
+
+	};
+
+	class VulkanRenderPass final : public JarRenderPass {
+		public:
+			VulkanRenderPass(std::shared_ptr<VulkanDevice>& device, VkRenderPass renderPass) : m_device(device),
+			                                                                                   m_renderPass(
+					                                                                                   renderPass) {};
+
+			~VulkanRenderPass() override;
+
+			void Release() override;
+
+			[[nodiscard]] VkRenderPass getRenderPass() const { return m_renderPass; }
+
+		private:
+			std::shared_ptr<VulkanDevice> m_device;
+			VkRenderPass m_renderPass;
+	};
+
+#pragma endregion VulkanRenderPass }
 
 #pragma region VulkanGraphicsPipeline{
 
-    class VulkanGraphicsPipeline final : public JarPipeline
-    {
-    public:
-        VulkanGraphicsPipeline() = default;
-        ~VulkanGraphicsPipeline() override;
+	class VulkanGraphicsPipelineBuilder final : public JarPipelineBuilder {
+		public:
+			VulkanGraphicsPipelineBuilder() = default;
 
-        void CreateGraphicsPipeline(VkDevice device, VkShaderModule vertexSahderModule,
-                                    VkShaderModule fragmentShaderModule, std::shared_ptr<VulkanRenderPass> renderPass);
+			~VulkanGraphicsPipelineBuilder() override;
 
-        void Release() override;
-        std::shared_ptr<JarRenderPass> GetRenderPass() override;
+			VulkanGraphicsPipelineBuilder* SetShaderStage(ShaderStage shaderStage) override;
 
-        [[nodiscard]] VkPipeline getPipeline() const { return m_graphicsPipeline; }
+			VulkanGraphicsPipelineBuilder* SetRenderPass(std::shared_ptr<JarRenderPass> renderPass) override;
 
-    private:
-        VkPipelineLayout m_pipelineLayout;
-        VkPipeline m_graphicsPipeline;
-        std::shared_ptr<VulkanRenderPass> m_renderPass;
+			VulkanGraphicsPipelineBuilder* SetVertexInput(VertexInput vertexInput) override;
 
-        static VkVertexInputBindingDescription getBindingDescription();
-        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
-    };
+			VulkanGraphicsPipelineBuilder* SetInputAssemblyTopology(InputAssemblyTopology topology) override;
 
-#pragma endregion VulkanGraphicsPipeline};
+			VulkanGraphicsPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) override;
+
+			VulkanGraphicsPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachment) override;
+
+			VulkanGraphicsPipelineBuilder* SetDepthStencilState(DepthStencilState depthStencilState) override;
+
+			std::shared_ptr<JarPipeline> Build(std::shared_ptr<JarDevice> device) override;
+
+		private:
+			std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages;
+			std::vector<VkVertexInputBindingDescription> m_bindingDescriptions;
+			std::vector<VkVertexInputAttributeDescription> m_attributeDescriptions;
+			std::optional<VkPipelineVertexInputStateCreateInfo> m_vertexInput;
+			std::optional<VkPipelineInputAssemblyStateCreateInfo> m_inputAssembly;
+			std::optional<VkPipelineMultisampleStateCreateInfo> m_multisampling;
+			std::optional<VkPipelineColorBlendStateCreateInfo> m_colorBlend;
+			std::optional<VkPipelineDepthStencilStateCreateInfo> m_depthStencil;
+			std::shared_ptr<VulkanRenderPass> m_renderPass;
+			VkPipelineLayout m_pipelineLayout;
+			VkPipeline m_pipeline;
+
+			static VkColorComponentFlags convertToColorComponentFlagBits(ColorWriteMask colorWriteMask);
+	};
+
+
+	class VulkanGraphicsPipeline final : public JarPipeline {
+		public:
+			VulkanGraphicsPipeline(std::shared_ptr<VulkanDevice>& device, VkPipelineLayout pipelineLayout,
+			                       VkPipeline pipeline, std::shared_ptr<VulkanRenderPass>& renderPass) : m_device(
+					device), m_pipelineLayout(pipelineLayout), m_graphicsPipeline(pipeline), m_renderPass(renderPass) {}
+
+			~VulkanGraphicsPipeline() override;
+
+			void Release() override;
+
+			std::shared_ptr<JarRenderPass> GetRenderPass() override;
+
+			[[nodiscard]] VkPipeline getPipeline() const { return m_graphicsPipeline; }
+
+		private:
+			std::shared_ptr<VulkanDevice> m_device;
+			VkPipelineLayout m_pipelineLayout;
+			VkPipeline m_graphicsPipeline;
+			std::shared_ptr<VulkanRenderPass> m_renderPass;
+	};
+
+#pragma endregion VulkanGraphicsPipeline };
 }
 
 #endif

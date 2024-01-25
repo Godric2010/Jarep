@@ -67,29 +67,29 @@ namespace Graphics::Metal {
 			MTL::RenderPassDescriptor* m_renderPassDescriptor;
 			std::optional<ColorAttachment> m_colorAttachment;
 
-			static MTL::StoreAction storeActionToMetal(const StoreOp storeOp) {
+			static MTL::StoreAction storeActionToMetal(const StoreOperation storeOp) {
 				switch (storeOp) {
-					case StoreOp::Store:
+					case StoreOperation::Store:
 						return MTL::StoreActionStore;
-					case StoreOp::DontCare:
+					case StoreOperation::DontCare:
 						return MTL::StoreActionDontCare;
 				}
 				return {};
 			}
 
-			static MTL::LoadAction loadActionToMetal(const LoadOp loadOp) {
+			static MTL::LoadAction loadActionToMetal(const LoadOperation loadOp) {
 				switch (loadOp) {
-					case LoadOp::Load:
+					case LoadOperation::Load:
 						return MTL::LoadActionLoad;
-					case LoadOp::Clear:
+					case LoadOperation::Clear:
 						return MTL::LoadActionClear;
-					case LoadOp::DontCare:
+					case LoadOperation::DontCare:
 						return MTL::LoadActionDontCare;
 				}
 				return {};
 			}
 
-			static MTL::ClearColor clearColorToMetal(ClearColor clearColor) {
+			static MTL::Clear clearColorToMetal(Clear clearColor) {
 				return {clearColor.r, clearColor.g, clearColor.b, clearColor.a};
 			}
 	};
