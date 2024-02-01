@@ -58,21 +58,21 @@ namespace Graphics {
 
 	struct ColorAttachment {
 		public:
-			ImageFormat Format;
-			LoadOp LoadOperation;
-			StoreOp StoreOperation;
-			ClearColor Clear;
+			ImageFormat imageFormat;
+			LoadOp loadOp;
+			StoreOp storeOp;
+			ClearColor clearColor;
 
-			ColorAttachment() : Clear(0, 0, 0, 0), Format(ImageFormat::B8G8R8A8_UNORM), LoadOperation(LoadOp::Clear),
-			                    StoreOperation(StoreOp::DontCare) {
+			ColorAttachment() : clearColor(0, 0, 0, 0), imageFormat(ImageFormat::B8G8R8A8_UNORM), loadOp(LoadOp::Clear),
+			                    storeOp(StoreOp::DontCare) {
 			}
 	};
 
 	//	struct DepthStencilAttachment{
 	//		public:
 	//			ImageFormat ImageFormat;
-	//			StoreOperation StencilStoreOp;
-	//			LoadOperation StencilLoadOp;
+	//			storeOp StencilStoreOp;
+	//			loadOp StencilLoadOp;
 	//			float DepthClearValue;
 	//			uint32_t StencilClearValue;
 	//	};
@@ -182,9 +182,9 @@ namespace Graphics {
 #pragma region JarPipeline{
 
 	struct ShaderStage {
-		std::shared_ptr<JarShaderModule> VertexShaderModule;
-		std::shared_ptr<JarShaderModule> FragmentShaderModule;
-		std::string MainFunctionName;
+		std::shared_ptr<JarShaderModule> vertexShaderModule;
+		std::shared_ptr<JarShaderModule> fragmentShaderModule;
+		std::string mainFunctionName;
 
 	};
 
@@ -194,10 +194,10 @@ namespace Graphics {
 	};
 
 	struct BindingDescription {
-		uint32_t BindingIndex;
-		uint32_t Stride;
-		VertexInputRate InputRate;
-		uint32_t StepRate;
+		uint32_t bindingIndex;
+		uint32_t stride;
+		VertexInputRate inputRate;
+		uint32_t stepRate;
 	};
 
 	enum class VertexFormat {
@@ -212,15 +212,15 @@ namespace Graphics {
 	};
 
 	struct AttributeDescription {
-		uint32_t BindingIndex;
-		uint32_t AttributeLocation;
-		uint32_t Offset;
-		VertexFormat Format;
+		uint32_t bindingIndex;
+		uint32_t attributeLocation;
+		uint32_t offset;
+		VertexFormat vertexFormat;
 	};
 
 	struct VertexInput {
-		std::vector<BindingDescription> BindingDescriptions;
-		std::vector<AttributeDescription> AttributeDescriptions;
+		std::vector<BindingDescription> bindingDescriptions;
+		std::vector<AttributeDescription> attributeDescriptions;
 	};
 
 	enum class InputAssemblyTopology {
@@ -295,15 +295,15 @@ namespace Graphics {
 	};
 
 	struct ColorBlendAttachment {
-		PixelFormat Format;
-		bool BlendingEnabled;
-		BlendFactor SourceRGBBlendFactor;
-		BlendFactor DestinationRGBBlendFactor;
-		BlendOperation RGBBlendOperation;
-		BlendFactor SourceAlphaBlendFactor;
-		BlendFactor DestinationAlphaBlendFactor;
-		BlendOperation AlphaBlendOperation;
-		ColorWriteMask WriteMask;
+		PixelFormat pixelFormat;
+		bool blendingEnabled;
+		BlendFactor sourceRgbBlendFactor;
+		BlendFactor destinationRgbBlendFactor;
+		BlendOperation rgbBlendOperation;
+		BlendFactor sourceAlphaBlendFactor;
+		BlendFactor destinationAlphaBlendFactor;
+		BlendOperation alphaBlendOperation;
+		ColorWriteMask colorWriteMask;
 	};
 
 	enum class DepthCompareOperation {
@@ -329,11 +329,11 @@ namespace Graphics {
 	};
 
 	struct DepthStencilState {
-		bool DepthTestEnable;
-		bool DepthWriteEnable;
-		DepthCompareOperation DepthCompareOp;
-		bool StencilTestEnable;
-		StencilOpState StencilOpState;
+		bool depthTestEnable;
+		bool depthWriteEnable;
+		DepthCompareOperation depthCompareOp;
+		bool stencilTestEnable;
+		StencilOpState stencilOpState;
 	};
 
 	class JarPipelineBuilder {

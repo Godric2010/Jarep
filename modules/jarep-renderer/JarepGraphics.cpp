@@ -43,10 +43,10 @@ namespace Graphics {
 		fragmentShaderModule = createShaderModule(FragmentShader, "triangle_frag");
 
 		ColorAttachment colorAttachment;
-		colorAttachment.LoadOperation = LoadOp::Clear;
-		colorAttachment.StoreOperation = StoreOp::Store;
-		colorAttachment.Clear = ClearColor(0, 0, 0, 0);
-		colorAttachment.Format = B8G8R8A8_UNORM;
+		colorAttachment.loadOp = LoadOp::Clear;
+		colorAttachment.storeOp = StoreOp::Store;
+		colorAttachment.clearColor = ClearColor(0, 0, 0, 0);
+		colorAttachment.imageFormat = B8G8R8A8_UNORM;
 
 		JarRenderPassBuilder* rpBuilder = backend->InitRenderPassBuilder();
 		rpBuilder->AddColorAttachment(colorAttachment);
@@ -54,42 +54,42 @@ namespace Graphics {
 		delete rpBuilder;
 
 		ShaderStage shaderStage{};
-		shaderStage.VertexShaderModule = vertexShaderModule;
-		shaderStage.FragmentShaderModule = fragmentShaderModule;
-		shaderStage.MainFunctionName = "main";
+		shaderStage.vertexShaderModule = vertexShaderModule;
+		shaderStage.fragmentShaderModule = fragmentShaderModule;
+		shaderStage.mainFunctionName = "main";
 
 
 		std::vector attributeDescriptions = {AttributeDescription{}, AttributeDescription{}};
-		attributeDescriptions[0].Format = VertexFormat::Float3;
-		attributeDescriptions[0].Offset = 0;
-		attributeDescriptions[0].BindingIndex = 0;
-		attributeDescriptions[0].AttributeLocation = 0;
+		attributeDescriptions[0].vertexFormat = VertexFormat::Float3;
+		attributeDescriptions[0].offset = 0;
+		attributeDescriptions[0].bindingIndex = 0;
+		attributeDescriptions[0].attributeLocation = 0;
 
-		attributeDescriptions[1].Format = VertexFormat::Float3;
-		attributeDescriptions[1].Offset = sizeof(float) * 3;
-		attributeDescriptions[1].BindingIndex = 0;
-		attributeDescriptions[1].AttributeLocation = 1;
+		attributeDescriptions[1].vertexFormat = VertexFormat::Float3;
+		attributeDescriptions[1].offset = sizeof(float) * 3;
+		attributeDescriptions[1].bindingIndex = 0;
+		attributeDescriptions[1].attributeLocation = 1;
 
 		std::vector bindingDescriptions = {BindingDescription{}};
-		bindingDescriptions[0].BindingIndex = 0;
-		bindingDescriptions[0].InputRate = VertexInputRate::PerVertex;
-		bindingDescriptions[0].Stride = sizeof(float) * 6;
-		bindingDescriptions[0].StepRate = 1;
+		bindingDescriptions[0].bindingIndex = 0;
+		bindingDescriptions[0].inputRate = VertexInputRate::PerVertex;
+		bindingDescriptions[0].stride = sizeof(float) * 6;
+		bindingDescriptions[0].stepRate = 1;
 
 		VertexInput vertexInput{};
-		vertexInput.AttributeDescriptions = attributeDescriptions;
-		vertexInput.BindingDescriptions = bindingDescriptions;
+		vertexInput.attributeDescriptions = attributeDescriptions;
+		vertexInput.bindingDescriptions = bindingDescriptions;
 
 		ColorBlendAttachment colorBlendAttachment{};
-		colorBlendAttachment.Format = PixelFormat::BGRA8_UNORM;
-		colorBlendAttachment.SourceRGBBlendFactor = BlendFactor::One;
-		colorBlendAttachment.DestinationRGBBlendFactor = BlendFactor::Zero;
-		colorBlendAttachment.RGBBlendOperation = BlendOperation::Add;
-		colorBlendAttachment.BlendingEnabled = false;
-		colorBlendAttachment.SourceAlphaBlendFactor = BlendFactor::One;
-		colorBlendAttachment.DestinationAlphaBlendFactor = BlendFactor::Zero;
-		colorBlendAttachment.AlphaBlendOperation = BlendOperation::Add;
-		colorBlendAttachment.WriteMask = ColorWriteMask::All;
+		colorBlendAttachment.pixelFormat = PixelFormat::BGRA8_UNORM;
+		colorBlendAttachment.sourceRgbBlendFactor = BlendFactor::One;
+		colorBlendAttachment.destinationRgbBlendFactor = BlendFactor::Zero;
+		colorBlendAttachment.rgbBlendOperation = BlendOperation::Add;
+		colorBlendAttachment.blendingEnabled = false;
+		colorBlendAttachment.sourceAlphaBlendFactor = BlendFactor::One;
+		colorBlendAttachment.destinationAlphaBlendFactor = BlendFactor::Zero;
+		colorBlendAttachment.alphaBlendOperation = BlendOperation::Add;
+		colorBlendAttachment.colorWriteMask = ColorWriteMask::All;
 
 
 		JarPipelineBuilder* pipelineBuilder = backend->InitPipelineBuilder();

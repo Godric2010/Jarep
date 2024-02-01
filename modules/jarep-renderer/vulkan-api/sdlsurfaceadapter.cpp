@@ -62,7 +62,7 @@ namespace Graphics::Vulkan
 		auto xcbWindowHandle = dynamic_cast<XlibWindowHandleProvider *>(nativeWindowHandleProvider);
 
 		VkXlibSurfaceCreateInfoKHR xlibCreateInfo = {};
-		xlibCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+		xlibCreateInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
 		xlibCreateInfo.dpy = xcbWindowHandle->getDisplayConnection();
 		xlibCreateInfo.window = xcbWindowHandle->getXcbWindow();
 

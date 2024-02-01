@@ -12,7 +12,19 @@ namespace Graphics::Vulkan {
 
 	VulkanBackend::VulkanBackend(const std::vector<const char*>& extensions) {
 		extensionNames = extensions;
-		createInstance();
+
+		bool enable_debug_mode = false;
+#ifdef ENABLE_VALIDATION_LAYERS
+		enable_debug_mode = true;
+#endif
+
+		if (enable_debug_mode) {
+			enableValidationLayers();
+			createInstance();
+			createDebugCallbackSender();
+		} else {
+			createInstance();
+		}
 	}
 
 	VulkanBackend::~VulkanBackend() = default;
@@ -73,10 +85,65 @@ namespace Graphics::Vulkan {
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensionNames.size());
 		createInfo.ppEnabledExtensionNames = extensionNames.data();
+		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+		createInfo.ppEnabledLayerNames = validationLayers.data();
 		createInfo.pApplicationInfo = &appInfo;
 
 		if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
 			throw std::runtime_error("failed to create instance!");
+
+
+	}
+
+	void VulkanBackend::enableValidationLayers() {
+		extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+		uint32_t layer_count;
+		vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+
+		std::vector<VkLayerProperties> available_layers(layer_count);
+		vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
+
+		validationLayers = {
+				"VK_LAYER_KHRONOS_validation"
+		};
+
+		for (const char* layer_name: validationLayers) {
+			bool layer_found = false;
+
+			for (const auto& layer_properties: available_layers) {
+				if (strcmp(layer_name, layer_properties.layerName) == 0) {
+					layer_found = true;
+					break;
+				}
+			}
+
+			if (!layer_found)
+				throw std::runtime_error("Layer not found");
+		}
+	}
+
+	void VulkanBackend::createDebugCallbackSender() {
+		PFN_vkCreateDebugUtilsMessengerEXT create_debug_utils_messenger_ext = nullptr;
+		create_debug_utils_messenger_ext = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(
+				instance, "vkCreateDebugUtilsMessengerEXT"));
+
+		if (!create_debug_utils_messenger_ext)
+			throw std::runtime_error("Failed to load vkCreateDebugUtilsMessengerEXT");
+
+
+		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+		debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+		debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+		                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+		                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+		                              VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+		                              VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+		debugCreateInfo.pfnUserCallback = debugCallback;
+		if (create_debug_utils_messenger_ext(instance, &debugCreateInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+			throw std::runtime_error("failed to set up debug messenger!");
+		}
 	}
 
 #pragma endregion VulkanBackend }
@@ -404,7 +471,7 @@ namespace Graphics::Vulkan {
 	VkSurfaceFormatKHR VulkanSwapchain::chooseSwapSurfaceFormat(
 			const std::vector<VkSurfaceFormatKHR>& availableFormats) {
 		for (const auto& availableFormat: availableFormats) {
-			if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
+			if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
 			    availableFormat.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR) {
 				return availableFormat;
 			}
@@ -848,20 +915,20 @@ namespace Graphics::Vulkan {
 
 	VulkanGraphicsPipelineBuilder* VulkanGraphicsPipelineBuilder::SetShaderStage(Graphics::ShaderStage shaderStage) {
 
-		auto vulkanVertexShaderModule = reinterpret_cast<std::shared_ptr<VulkanShaderModule>&>(shaderStage.VertexShaderModule);
-		auto vulkanFragmentShaderModule = reinterpret_cast<std::shared_ptr<VulkanShaderModule>&>(shaderStage.FragmentShaderModule);
+		auto vulkanVertexShaderModule = reinterpret_cast<std::shared_ptr<VulkanShaderModule>&>(shaderStage.vertexShaderModule);
+		auto vulkanFragmentShaderModule = reinterpret_cast<std::shared_ptr<VulkanShaderModule>&>(shaderStage.fragmentShaderModule);
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		vertShaderStageInfo.module = vulkanVertexShaderModule->getShaderModule();
-		vertShaderStageInfo.pName = shaderStage.MainFunctionName.c_str();
+		vertShaderStageInfo.pName = shaderStage.mainFunctionName.c_str();
 
 		VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
 		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		fragShaderStageInfo.module = vulkanVertexShaderModule->getShaderModule();
-		fragShaderStageInfo.pName = shaderStage.MainFunctionName.c_str();
+		fragShaderStageInfo.module = vulkanFragmentShaderModule->getShaderModule();
+		fragShaderStageInfo.pName = shaderStage.mainFunctionName.c_str();
 
 		m_shaderStages = std::vector<VkPipelineShaderStageCreateInfo>();
 		m_shaderStages.push_back(vertShaderStageInfo);
@@ -878,20 +945,20 @@ namespace Graphics::Vulkan {
 	VulkanGraphicsPipelineBuilder* VulkanGraphicsPipelineBuilder::SetVertexInput(Graphics::VertexInput vertexInput) {
 
 		m_bindingDescriptions = std::vector<VkVertexInputBindingDescription>();
-		for (auto bindingDescData: vertexInput.BindingDescriptions) {
+		for (auto bindingDescData: vertexInput.bindingDescriptions) {
 			VkVertexInputBindingDescription bindingDescription{};
-			bindingDescription.binding = bindingDescData.BindingIndex;
-			bindingDescription.stride = bindingDescData.Stride;
-			bindingDescription.inputRate = inputRateMap[bindingDescData.InputRate];
+			bindingDescription.binding = bindingDescData.bindingIndex;
+			bindingDescription.stride = bindingDescData.stride;
+			bindingDescription.inputRate = inputRateMap[bindingDescData.inputRate];
 			m_bindingDescriptions.push_back(bindingDescription);
 		}
 		m_attributeDescriptions = std::vector<VkVertexInputAttributeDescription>();
-		for (auto attributeDescData: vertexInput.AttributeDescriptions) {
+		for (auto attributeDescData: vertexInput.attributeDescriptions) {
 			VkVertexInputAttributeDescription attributeDescription{};
 			attributeDescription.binding = attributeDescription.binding;
-			attributeDescription.location = attributeDescData.AttributeLocation;
-			attributeDescription.format = vertexFormatMap[attributeDescData.Format];
-			attributeDescription.offset = attributeDescData.Offset;
+			attributeDescription.location = attributeDescData.attributeLocation;
+			attributeDescription.format = vertexFormatMap[attributeDescData.vertexFormat];
+			attributeDescription.offset = attributeDescData.offset;
 			m_attributeDescriptions.push_back(attributeDescription);
 		}
 
@@ -959,21 +1026,24 @@ namespace Graphics::Vulkan {
 	VulkanGraphicsPipelineBuilder*
 	VulkanGraphicsPipelineBuilder::SetColorBlendAttachments(Graphics::ColorBlendAttachment colorBlendAttachment) {
 		VkPipelineColorBlendAttachmentState colorBlendAttachmentState{};
-		colorBlendAttachmentState.colorBlendOp = blendOpMap[colorBlendAttachment.RGBBlendOperation];
-		colorBlendAttachmentState.alphaBlendOp = blendOpMap[colorBlendAttachment.AlphaBlendOperation];
-		colorBlendAttachmentState.blendEnable = colorBlendAttachment.BlendingEnabled;
-		colorBlendAttachmentState.srcColorBlendFactor = blendFactorMap[colorBlendAttachment.SourceRGBBlendFactor];
-		colorBlendAttachmentState.srcAlphaBlendFactor = blendFactorMap[colorBlendAttachment.SourceAlphaBlendFactor];
-		colorBlendAttachmentState.dstColorBlendFactor = blendFactorMap[colorBlendAttachment.DestinationRGBBlendFactor];
-		colorBlendAttachmentState.dstAlphaBlendFactor = blendFactorMap[colorBlendAttachment.DestinationAlphaBlendFactor];
-		colorBlendAttachmentState.colorWriteMask = convertToColorComponentFlagBits(colorBlendAttachment.WriteMask);
+		colorBlendAttachmentState.colorBlendOp = blendOpMap[colorBlendAttachment.rgbBlendOperation];
+		colorBlendAttachmentState.alphaBlendOp = blendOpMap[colorBlendAttachment.alphaBlendOperation];
+		colorBlendAttachmentState.blendEnable = static_cast<VkBool32>(colorBlendAttachment.blendingEnabled);
+		colorBlendAttachmentState.srcColorBlendFactor = blendFactorMap[colorBlendAttachment.sourceRgbBlendFactor];
+		colorBlendAttachmentState.srcAlphaBlendFactor = blendFactorMap[colorBlendAttachment.sourceAlphaBlendFactor];
+		colorBlendAttachmentState.dstColorBlendFactor = blendFactorMap[colorBlendAttachment.destinationRgbBlendFactor];
+		colorBlendAttachmentState.dstAlphaBlendFactor = blendFactorMap[colorBlendAttachment.destinationAlphaBlendFactor];
+		colorBlendAttachmentState.colorWriteMask = convertToColorComponentFlagBits(colorBlendAttachment.colorWriteMask);
+
+		m_colorBlendAttachmentStates = std::vector<VkPipelineColorBlendAttachmentState>();
+		m_colorBlendAttachmentStates.push_back(colorBlendAttachmentState);
 
 		VkPipelineColorBlendStateCreateInfo colorBlending{};
 		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		colorBlending.logicOpEnable = VK_FALSE;
 		colorBlending.logicOp = VK_LOGIC_OP_COPY;
-		colorBlending.attachmentCount = 1;
-		colorBlending.pAttachments = &colorBlendAttachmentState;
+		colorBlending.attachmentCount = m_colorBlendAttachmentStates.size();
+		colorBlending.pAttachments = m_colorBlendAttachmentStates.data();
 
 		m_colorBlend = std::make_optional(colorBlending);
 		return this;
@@ -984,12 +1054,12 @@ namespace Graphics::Vulkan {
 
 		/*	VkPipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo {};
 			depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-			depthStencilStateCreateInfo.depthTestEnable = depthStencilState.DepthTestEnable;
-			depthStencilStateCreateInfo.depthCompareOp = depthStencilState.DepthCompareOp;
-			depthStencilStateCreateInfo.depthWriteEnable = depthStencilState.DepthWriteEnable;
-			depthStencilStateCreateInfo.stencilTestEnable = depthStencilState.StencilTestEnable;*/
+			depthStencilStateCreateInfo.depthTestEnable = depthStencilState.depthTestEnable;
+			depthStencilStateCreateInfo.depthCompareOp = depthStencilState.depthCompareOp;
+			depthStencilStateCreateInfo.depthWriteEnable = depthStencilState.depthWriteEnable;
+			depthStencilStateCreateInfo.stencilTestEnable = depthStencilState.stencilTestEnable;*/
 
-		m_depthStencil = std::nullopt;//std::make_optional(depthStencilStateCreateInfo);
+		//m_depthStencil = nullptr;//std::make_optional(depthStencilStateCreateInfo);
 		return this;
 	}
 
@@ -1032,6 +1102,8 @@ namespace Graphics::Vulkan {
 		rasterizer.depthBiasClamp = 0.0f;
 		rasterizer.depthBiasSlopeFactor = 0.0f;
 
+		auto data = m_shaderStages;
+
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineInfo.stageCount = m_shaderStages.size();
@@ -1050,8 +1122,10 @@ namespace Graphics::Vulkan {
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 		pipelineInfo.basePipelineIndex = -1;
 
-		if (vkCreateGraphicsPipelines(vulkanDevice->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
-		                              &m_pipeline) != VK_SUCCESS) {
+		auto result = vkCreateGraphicsPipelines(vulkanDevice->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo,
+		                                        nullptr,
+		                                        &m_pipeline);
+		if (result != VK_SUCCESS) {
 			throw std::runtime_error("failed to create graphics pipeline");
 		}
 
@@ -1252,10 +1326,10 @@ namespace Graphics::Vulkan {
 
 	VulkanRenderPassBuilder* VulkanRenderPassBuilder::AddColorAttachment(Graphics::ColorAttachment colorAttachment) {
 		VkAttachmentDescription colorAttachmentDesc{};
-		colorAttachmentDesc.format = imageFormatMap[colorAttachment.Format];
+		colorAttachmentDesc.format = imageFormatMap[colorAttachment.imageFormat];
 		colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachmentDesc.loadOp = loadOpMap[colorAttachment.LoadOperation];
-		colorAttachmentDesc.storeOp = storeOpMap[colorAttachment.StoreOperation];
+		colorAttachmentDesc.loadOp = loadOpMap[colorAttachment.loadOp];
+		colorAttachmentDesc.storeOp = storeOpMap[colorAttachment.storeOp];
 		colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;

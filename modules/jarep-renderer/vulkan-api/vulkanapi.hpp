@@ -75,9 +75,24 @@ namespace Graphics::Vulkan {
 
 		private:
 			std::vector<const char*> extensionNames;
+			std::vector<const char*> validationLayers;
 			VkInstance instance{};
+			VkDebugUtilsMessengerEXT debugMessenger;
 
 			void createInstance();
+
+			void enableValidationLayers();
+
+			void createDebugCallbackSender();
+
+			static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+			                                                    VkDebugUtilsMessageTypeFlagsEXT messageType,
+			                                                    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+			                                                    void* pUserData) {
+				std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+				return VK_FALSE;
+			}
 	};
 
 #pragma endregion VulkanBackend }
@@ -467,6 +482,7 @@ namespace Graphics::Vulkan {
 			std::optional<VkPipelineVertexInputStateCreateInfo> m_vertexInput;
 			std::optional<VkPipelineInputAssemblyStateCreateInfo> m_inputAssembly;
 			std::optional<VkPipelineMultisampleStateCreateInfo> m_multisampling;
+			std::vector<VkPipelineColorBlendAttachmentState> m_colorBlendAttachmentStates;
 			std::optional<VkPipelineColorBlendStateCreateInfo> m_colorBlend;
 			std::optional<VkPipelineDepthStencilStateCreateInfo> m_depthStencil;
 			std::shared_ptr<VulkanRenderPass> m_renderPass;
