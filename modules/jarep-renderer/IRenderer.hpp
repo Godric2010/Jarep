@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <optional>
 
 namespace Graphics {
 	class JarDevice;
@@ -31,6 +32,8 @@ namespace Graphics {
 
 	enum ImageFormat {
 		B8G8R8A8_UNORM,
+		D32_SFLOAT,
+		D24_UNORM_S8_UINT,
 	};
 #pragma region JarRenderPass{
 
@@ -68,20 +71,28 @@ namespace Graphics {
 			}
 	};
 
-	//	struct DepthStencilAttachment{
-	//		public:
-	//			ImageFormat ImageFormat;
-	//			storeOp StencilStoreOp;
-	//			loadOp StencilLoadOp;
-	//			float DepthClearValue;
-	//			uint32_t StencilClearValue;
-	//	};
+	struct StencilAttachment {
+		StoreOp StencilStoreOp;
+		LoadOp StencilLoadOp;
+		uint32_t StencilClearValue;
+	};
+	struct DepthAttachment {
+		public:
+			ImageFormat Format;
+			StoreOp DepthStoreOp;
+			LoadOp DepthLoadOp;
+			float DepthClearValue;
+			std::optional<StencilAttachment> Stencil;
+	};
+
 
 	class JarRenderPassBuilder {
 		public:
 			virtual ~JarRenderPassBuilder() = default;
 
 			virtual JarRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) = 0;
+
+			virtual JarRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) = 0;
 
 			virtual std::shared_ptr<JarRenderPass>
 			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) = 0;

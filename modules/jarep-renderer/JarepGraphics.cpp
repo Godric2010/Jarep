@@ -48,6 +48,19 @@ namespace Graphics {
 		colorAttachment.clearColor = ClearColor(0, 0, 0, 0);
 		colorAttachment.imageFormat = B8G8R8A8_UNORM;
 
+		StencilAttachment stencilAttachment = {};
+		stencilAttachment.StencilLoadOp = LoadOp::DontCare;
+		stencilAttachment.StencilStoreOp = StoreOp::DontCare;
+		stencilAttachment.StencilClearValue = 0;
+
+		DepthAttachment depthStencilAttachment;
+		depthStencilAttachment.Format = ImageFormat::D24_UNORM_S8_UINT;
+		depthStencilAttachment.DepthLoadOp = LoadOp::Clear,
+		depthStencilAttachment.DepthStoreOp = StoreOp::DontCare,
+		depthStencilAttachment.DepthClearValue = 0.0f;
+		depthStencilAttachment.Stencil = std::make_optional(stencilAttachment);
+
+
 		JarRenderPassBuilder* rpBuilder = backend->InitRenderPassBuilder();
 		rpBuilder->AddColorAttachment(colorAttachment);
 		renderPass = rpBuilder->Build(device, surface);

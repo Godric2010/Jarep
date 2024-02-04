@@ -403,6 +403,12 @@ namespace Graphics::Vulkan {
 			                               m_swapchainImageView);
 			m_swapchainFramebuffers.push_back(framebuffer);
 		}
+
+		if (renderPass->depthTestEnabled() && !m_depthStencilImage.has_value()) {
+			auto vulkanDepthImage = VulkanDepthStencilImage();
+			vulkanDepthImage.Create(m_device, renderPass->getDepthImageFormat(), m_imageExtent);
+			m_depthStencilImage = std::make_optional(vulkanDepthImage);
+		}
 	}
 
 	std::shared_ptr<VulkanFramebuffer> VulkanSwapchain::AcquireNewImage(VkSemaphore imageAvailable,
@@ -459,6 +465,10 @@ namespace Graphics::Vulkan {
 
 		vkQueueWaitIdle(m_graphicsQueue);
 		vkQueueWaitIdle(m_presentQueue);
+
+		if (m_depthStencilImage.has_value()) {
+			m_depthStencilImage->Release();
+		}
 
 		for (const auto& framebuffer: m_swapchainFramebuffers) {
 			framebuffer->Release(m_device);
@@ -531,6 +541,58 @@ namespace Graphics::Vulkan {
 				throw std::runtime_error("failed to create image views");
 			}
 		}
+	}
+
+	void
+	VulkanDepthStencilImage::Create(std::shared_ptr<VulkanDevice> device, VkFormat format, VkExtent2D imageExtent) {
+		m_device = device;
+
+		VkImageCreateInfo imageInfo = {};
+		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		imageInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageInfo.extent.width = imageExtent.width;
+		imageInfo.extent.height = imageExtent.height;
+		imageInfo.extent.depth = 1;
+		imageInfo.mipLevels = 1;
+		imageInfo.arrayLayers = 1;
+		imageInfo.format = format;
+		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		vkCreateImage(m_device->getLogicalDevice(), &imageInfo, nullptr, &m_depthImage);
+
+		VkMemoryRequirements memoryRequirements;
+		vkGetImageMemoryRequirements(m_device->getLogicalDevice(), m_depthImage, &memoryRequirements);
+
+		VkMemoryAllocateInfo allocateInfo = {};
+		allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocateInfo.allocationSize = memoryRequirements.size;
+		allocateInfo.memoryTypeIndex = 1;
+
+		vkAllocateMemory(m_device->getLogicalDevice(), &allocateInfo, nullptr, &m_depthImageMemory);
+		vkBindImageMemory(m_device->getLogicalDevice(), m_depthImage, m_depthImageMemory, 0);
+
+		VkImageViewCreateInfo viewInfo = {};
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = m_depthImage;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = imageInfo.format;
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+
+		vkCreateImageView(m_device->getLogicalDevice(), &viewInfo, nullptr, &m_depthImageView);
+	}
+
+	void VulkanDepthStencilImage::Release() {
+		vkDestroyImageView(m_device->getLogicalDevice(), m_depthImageView, nullptr);
+		vkFreeMemory(m_device->getLogicalDevice(), m_depthImageMemory, nullptr);
+		vkDestroyImage(m_device->getLogicalDevice(), m_depthImage, nullptr);
 	}
 
 #pragma endregion VulkanSwapchain }
@@ -922,6 +984,28 @@ namespace Graphics::Vulkan {
 			{BlendOperation::Max,             VK_BLEND_OP_MAX},
 	};
 
+	static std::unordered_map<DepthCompareOperation, VkCompareOp> depthCompareOpMap = {
+			{DepthCompareOperation::Never,        VK_COMPARE_OP_NEVER},
+			{DepthCompareOperation::Less,         VK_COMPARE_OP_LESS},
+			{DepthCompareOperation::LessEqual,    VK_COMPARE_OP_LESS_OR_EQUAL},
+			{DepthCompareOperation::Equal,        VK_COMPARE_OP_EQUAL},
+			{DepthCompareOperation::GreaterEqual, VK_COMPARE_OP_GREATER_OR_EQUAL},
+			{DepthCompareOperation::Greater,      VK_COMPARE_OP_GREATER},
+			{DepthCompareOperation::NotEqual,     VK_COMPARE_OP_NOT_EQUAL},
+			{DepthCompareOperation::AllTime,      VK_COMPARE_OP_ALWAYS},
+	};
+
+	static std::unordered_map<StencilOpState, VkStencilOp> stencilCompareOpMap = {
+			{StencilOpState::Zero, VK_STENCIL_OP_ZERO},
+			{StencilOpState::DecrementAndClamp, VK_STENCIL_OP_DECREMENT_AND_CLAMP},
+			{StencilOpState::DecrementAndWrap, VK_STENCIL_OP_DECREMENT_AND_WRAP},
+			{StencilOpState::IncrementAndClamp, VK_STENCIL_OP_INCREMENT_AND_CLAMP},
+			{StencilOpState::IncrementAndWrap, VK_STENCIL_OP_INCREMENT_AND_WRAP},
+			{StencilOpState::Invert, VK_STENCIL_OP_INVERT},
+			{StencilOpState::Keep, VK_STENCIL_OP_KEEP},
+			{StencilOpState::Replace, VK_STENCIL_OP_REPLACE},
+	};
+
 	VulkanGraphicsPipelineBuilder::~VulkanGraphicsPipelineBuilder() = default;
 
 	VulkanGraphicsPipelineBuilder* VulkanGraphicsPipelineBuilder::SetShaderStage(Graphics::ShaderStage shaderStage) {
@@ -1063,14 +1147,30 @@ namespace Graphics::Vulkan {
 	VulkanGraphicsPipelineBuilder*
 	VulkanGraphicsPipelineBuilder::SetDepthStencilState(Graphics::DepthStencilState depthStencilState) {
 
-		/*	VkPipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo {};
-			depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-			depthStencilStateCreateInfo.depthTestEnable = depthStencilState.depthTestEnable;
-			depthStencilStateCreateInfo.depthCompareOp = depthStencilState.depthCompareOp;
-			depthStencilStateCreateInfo.depthWriteEnable = depthStencilState.depthWriteEnable;
-			depthStencilStateCreateInfo.stencilTestEnable = depthStencilState.stencilTestEnable;*/
+		VkPipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo{};
+		depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencilStateCreateInfo.depthTestEnable = static_cast<VkBool32>(depthStencilState.depthTestEnable);
+		depthStencilStateCreateInfo.depthCompareOp = depthCompareOpMap[depthStencilState.depthCompareOp];
+		depthStencilStateCreateInfo.depthWriteEnable = static_cast<VkBool32>(depthStencilState.depthWriteEnable);
+		depthStencilStateCreateInfo.stencilTestEnable = static_cast<VkBool32>(depthStencilState.stencilTestEnable);
+		if (depthStencilState.stencilTestEnable) {
+			depthStencilStateCreateInfo.front.failOp = stencilCompareOpMap[depthStencilState.stencilOpState];
+			depthStencilStateCreateInfo.front.passOp = stencilCompareOpMap[depthStencilState.stencilOpState];
+			depthStencilStateCreateInfo.front.depthFailOp = stencilCompareOpMap[depthStencilState.stencilOpState];
+			depthStencilStateCreateInfo.front.compareOp = VK_COMPARE_OP_ALWAYS;
+			depthStencilStateCreateInfo.front.compareMask = 0xFF;
+			depthStencilStateCreateInfo.front.writeMask = 0xFF;
+			depthStencilStateCreateInfo.front.reference = 1;
 
-		//m_depthStencil = nullptr;//std::make_optional(depthStencilStateCreateInfo);
+			depthStencilStateCreateInfo.back.failOp = stencilCompareOpMap[depthStencilState.stencilOpState];
+			depthStencilStateCreateInfo.back.passOp = stencilCompareOpMap[depthStencilState.stencilOpState];
+			depthStencilStateCreateInfo.back.depthFailOp = stencilCompareOpMap[depthStencilState.stencilOpState];
+			depthStencilStateCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
+			depthStencilStateCreateInfo.back.compareMask = 0xFF;
+			depthStencilStateCreateInfo.back.writeMask = 0xFF;
+			depthStencilStateCreateInfo.back.reference = 1;
+		}
+		m_depthStencil = std::make_optional(depthStencilStateCreateInfo);
 		return this;
 	}
 
@@ -1113,8 +1213,6 @@ namespace Graphics::Vulkan {
 		rasterizer.depthBiasClamp = 0.0f;
 		rasterizer.depthBiasSlopeFactor = 0.0f;
 
-		auto data = m_shaderStages;
-
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineInfo.stageCount = m_shaderStages.size();
@@ -1124,7 +1222,9 @@ namespace Graphics::Vulkan {
 		pipelineInfo.pViewportState = &viewportState;
 		pipelineInfo.pRasterizationState = &rasterizer;
 		pipelineInfo.pMultisampleState = &m_multisampling.value();
-		pipelineInfo.pDepthStencilState = nullptr;
+		if (m_depthStencil.has_value()) {
+			pipelineInfo.pDepthStencilState = &m_depthStencil.value();
+		}
 		pipelineInfo.pColorBlendState = &m_colorBlend.value();
 		pipelineInfo.pDynamicState = &dynamicState;
 		pipelineInfo.layout = m_pipelineLayout;
@@ -1207,7 +1307,9 @@ namespace Graphics::Vulkan {
 #pragma region VulkanRenderPass{
 
 	static std::unordered_map<ImageFormat, VkFormat> imageFormatMap = {
-			{ImageFormat::B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_UNORM},
+			{ImageFormat::B8G8R8A8_UNORM,    VK_FORMAT_B8G8R8A8_UNORM},
+			{ImageFormat::D32_SFLOAT,        VK_FORMAT_D32_SFLOAT},
+			{ImageFormat::D24_UNORM_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
 	};
 
 	static std::unordered_map<StoreOp, VkAttachmentStoreOp> storeOpMap = {
@@ -1244,6 +1346,34 @@ namespace Graphics::Vulkan {
 		return this;
 	}
 
+	VulkanRenderPassBuilder* VulkanRenderPassBuilder::AddDepthStencilAttachment(
+			Graphics::DepthAttachment depthStencilAttachment) {
+
+		VkAttachmentDescription depthStencilAttachmentDesc = {};
+		depthStencilAttachmentDesc.format = imageFormatMap[depthStencilAttachment.Format];
+		depthStencilAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthStencilAttachmentDesc.loadOp = loadOpMap[depthStencilAttachment.DepthLoadOp];
+		depthStencilAttachmentDesc.storeOp = storeOpMap[depthStencilAttachment.DepthStoreOp];
+		depthStencilAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthStencilAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		if (depthStencilAttachment.Stencil.has_value()) {
+			auto stencil = depthStencilAttachment.Stencil.value();
+			depthStencilAttachmentDesc.stencilLoadOp = loadOpMap[stencil.StencilLoadOp];
+			depthStencilAttachmentDesc.stencilStoreOp = storeOpMap[stencil.StencilStoreOp];
+			m_stencilTestEnabled = true;
+		}
+
+		m_depthStencilAttachment = std::make_optional(depthStencilAttachmentDesc);
+
+		VkAttachmentReference depthStencilAttachmentRef = {};
+		depthStencilAttachmentRef.attachment = 1;
+		depthStencilAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		m_depthStencilAttachmentRef = std::optional(depthStencilAttachmentRef);
+		return this;
+	}
+
 	std::shared_ptr<JarRenderPass>
 	VulkanRenderPassBuilder::Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) {
 
@@ -1253,10 +1383,20 @@ namespace Graphics::Vulkan {
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
 		auto vulkanSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
 
+		std::vector<VkAttachmentDescription> attachments = std::vector<VkAttachmentDescription>();
+		attachments.push_back(m_colorAttachment.value());
+
 		VkSubpassDescription subpass{};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &m_colorAttachmentRef.value();
+
+		std::optional<VkFormat> depthImageFormat = std::nullopt;
+		if (m_depthStencilAttachment.has_value()) {
+			subpass.pDepthStencilAttachment = &m_depthStencilAttachmentRef.value();
+			attachments.push_back(m_depthStencilAttachment.value());
+			depthImageFormat = std::make_optional(m_depthStencilAttachment.value().format);
+		}
 
 		VkSubpassDependency dependency{};
 		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -1268,8 +1408,8 @@ namespace Graphics::Vulkan {
 
 		VkRenderPassCreateInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.attachmentCount = 1;
-		renderPassInfo.pAttachments = &m_colorAttachment.value();
+		renderPassInfo.attachmentCount = attachments.size();
+		renderPassInfo.pAttachments = attachments.data();
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
 		renderPassInfo.dependencyCount = 1;
@@ -1280,7 +1420,8 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("failed to create render pass!");
 		}
 
-		auto vulkanRenderPass = std::make_shared<VulkanRenderPass>(vulkanDevice, renderPass);
+		auto vulkanRenderPass = std::make_shared<VulkanRenderPass>(vulkanDevice, renderPass, depthImageFormat,
+		                                                           m_stencilTestEnabled);
 		vulkanSurface->getSwapchain()->CreateFramebuffersFromRenderPass(vulkanRenderPass);
 
 		return vulkanRenderPass;

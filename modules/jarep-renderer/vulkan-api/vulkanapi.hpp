@@ -174,6 +174,23 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanSwapchain{
 
+	class VulkanDepthStencilImage {
+		public:
+			VulkanDepthStencilImage() = default;
+
+			~VulkanDepthStencilImage() = default;
+
+			void Create(std::shared_ptr<VulkanDevice> device, VkFormat format, VkExtent2D imageExtent);
+
+			void Release();
+
+		private:
+			std::shared_ptr<VulkanDevice> m_device;
+			VkImage m_depthImage;
+			VkDeviceMemory m_depthImageMemory;
+			VkImageView m_depthImageView;
+	};
+
 	class VulkanSwapchain {
 		public:
 			VulkanSwapchain() = default;
@@ -205,6 +222,7 @@ namespace Graphics::Vulkan {
 			VkSwapchainKHR m_swapchain;
 			std::vector<VkImage> m_swapchainImages;
 			std::vector<VkImageView> m_swapchainImageViews;
+			std::optional<VulkanDepthStencilImage> m_depthStencilImage;
 			uint32_t m_currentImageIndex;
 			uint32_t m_swapchainMaxImageCount;
 
@@ -330,7 +348,8 @@ namespace Graphics::Vulkan {
 
 	class VulkanBuffer final : public JarBuffer {
 		public:
-			VulkanBuffer(std::shared_ptr<VulkanDevice>& device, VkBuffer buffer, VkDeviceMemory deviceMemory) : m_device(
+			VulkanBuffer(std::shared_ptr<VulkanDevice>& device, VkBuffer buffer, VkDeviceMemory deviceMemory)
+					: m_device(
 					device), m_buffer(buffer), m_bufferMemory(deviceMemory) {};
 
 			~VulkanBuffer() override;
@@ -427,6 +446,8 @@ namespace Graphics::Vulkan {
 
 			VulkanRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) override;
 
+			VulkanRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) override;
+
 			std::shared_ptr<JarRenderPass>
 			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) override;
 
@@ -434,14 +455,21 @@ namespace Graphics::Vulkan {
 			std::optional<VkAttachmentDescription> m_colorAttachment;
 			std::optional<VkAttachmentReference> m_colorAttachmentRef;
 
+			std::optional<VkAttachmentDescription> m_depthStencilAttachment;
+			std::optional<VkAttachmentReference> m_depthStencilAttachmentRef;
+			std::optional<VkFormat> m_depthImageFormat;
+			bool m_stencilTestEnabled;
+
 
 	};
 
 	class VulkanRenderPass final : public JarRenderPass {
 		public:
-			VulkanRenderPass(std::shared_ptr<VulkanDevice>& device, VkRenderPass renderPass) : m_device(device),
-			                                                                                   m_renderPass(
-					                                                                                   renderPass) {};
+			VulkanRenderPass(std::shared_ptr<VulkanDevice>& device, VkRenderPass renderPass,
+			                 std::optional<VkFormat> depthImageFormat,
+			                 bool stencilTestEnabled)
+					: m_device(device), m_renderPass(renderPass), m_depthImageFormat(depthImageFormat),
+					  m_stencilTestEnabled(stencilTestEnabled) {};
 
 			~VulkanRenderPass() override;
 
@@ -449,9 +477,17 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkRenderPass getRenderPass() const { return m_renderPass; }
 
+			bool depthTestEnabled() const { return m_depthImageFormat.has_value(); }
+
+			VkFormat getDepthImageFormat() const { return m_depthImageFormat.value(); }
+
+			bool stencilTestEnabled() const { return m_stencilTestEnabled; }
+
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
 			VkRenderPass m_renderPass;
+			std::optional<VkFormat> m_depthImageFormat;
+			bool m_stencilTestEnabled;
 	};
 
 #pragma endregion VulkanRenderPass }
