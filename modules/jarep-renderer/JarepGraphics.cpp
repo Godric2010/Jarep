@@ -116,12 +116,18 @@ namespace Graphics {
 	}
 
 	void JarepGraphics::Shutdown() {
+
+		surface->ReleaseSwapchain();
+
 		pipeline->Release();
 		vertexShaderModule->Release();
 		fragmentShaderModule->Release();
 
+		vertexBuffer->Release();
+
 		queue->Release();
 		device->Release();
+
 
 		std::cout << "Shutdown renderer" << std::endl;
 	}

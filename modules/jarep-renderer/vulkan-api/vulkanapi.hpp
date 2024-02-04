@@ -109,6 +109,8 @@ namespace Graphics::Vulkan {
 
 			void Update() override;
 
+			void ReleaseSwapchain() override;
+
 			void FinalizeSurface(std::shared_ptr<VulkanDevice> device);
 
 			SwapChainSupportDetails QuerySwapchainSupport(VkPhysicalDevice physicalDevice) const;
@@ -121,7 +123,7 @@ namespace Graphics::Vulkan {
 
 		private:
 			VkSurfaceKHR m_surface;
-			VkExtent2D m_surfaceExtent;
+			VkExtent2D m_surfaceExtent{};
 			std::unique_ptr<VulkanSwapchain> m_swapchain;
 	};
 
@@ -328,16 +330,19 @@ namespace Graphics::Vulkan {
 
 	class VulkanBuffer final : public JarBuffer {
 		public:
-			VulkanBuffer(VkBuffer buffer, VkDeviceMemory deviceMemory) : m_buffer(buffer),
-			                                                             m_bufferMemory(deviceMemory) {};
+			VulkanBuffer(std::shared_ptr<VulkanDevice>& device, VkBuffer buffer, VkDeviceMemory deviceMemory) : m_device(
+					device), m_buffer(buffer), m_bufferMemory(deviceMemory) {};
 
 			~VulkanBuffer() override;
+
+			void Release() override;
 
 			[[nodiscard]] VkBuffer getBuffer() const { return m_buffer; }
 
 		private:
 			VkBuffer m_buffer;
 			VkDeviceMemory m_bufferMemory;
+			std::shared_ptr<VulkanDevice> m_device;
 	};
 
 #pragma endregion VulkanBuffer }

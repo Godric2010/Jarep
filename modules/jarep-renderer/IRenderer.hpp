@@ -109,6 +109,8 @@ namespace Graphics {
 			virtual ~JarSurface() = default;
 
 			virtual void Update() = 0;
+
+			virtual void ReleaseSwapchain() = 0;
 	};
 
 
@@ -147,6 +149,8 @@ namespace Graphics {
 	class JarBuffer {
 		public:
 			virtual ~JarBuffer() = default;
+
+			virtual void Release() = 0;
 	};
 
 #pragma endregion Buffer }

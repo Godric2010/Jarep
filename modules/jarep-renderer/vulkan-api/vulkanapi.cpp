@@ -166,6 +166,10 @@ namespace Graphics::Vulkan {
 	void VulkanSurface::Update() {
 	}
 
+	void VulkanSurface::ReleaseSwapchain() {
+		m_swapchain->Release();
+	}
+
 	void VulkanSurface::FinalizeSurface(std::shared_ptr<VulkanDevice> device) {
 		auto swapchainSupport = QuerySwapchainSupport(device->getPhysicalDevice());
 
@@ -452,16 +456,16 @@ namespace Graphics::Vulkan {
 	}
 
 	void VulkanSwapchain::Release() {
+
+		vkQueueWaitIdle(m_graphicsQueue);
+		vkQueueWaitIdle(m_presentQueue);
+
 		for (const auto& framebuffer: m_swapchainFramebuffers) {
 			framebuffer->Release(m_device);
 		}
 
 		for (const auto imageView: m_swapchainImageViews) {
 			vkDestroyImageView(m_device->getLogicalDevice(), imageView, nullptr);
-		}
-
-		for (const auto image: m_swapchainImages) {
-			vkDestroyImage(m_device->getLogicalDevice(), image, nullptr);
 		}
 
 		vkDestroySwapchainKHR(m_device->getLogicalDevice(), m_swapchain, nullptr);
@@ -612,6 +616,7 @@ namespace Graphics::Vulkan {
 	}
 
 	void VulkanCommandQueue::Release() {
+
 		for (auto& m_commandBuffer: m_commandBuffers) {
 			m_commandBuffer->Release(m_device->getLogicalDevice());
 		}
@@ -711,6 +716,7 @@ namespace Graphics::Vulkan {
 	}
 
 	void VulkanCommandBuffer::Release(VkDevice device) {
+
 		vkDestroySemaphore(device, m_imageAvailableSemaphore, nullptr);
 		vkDestroySemaphore(device, m_renderFinishedSemaphore, nullptr);
 		vkDestroyFence(device, m_frameInFlightFence, nullptr);
@@ -796,7 +802,7 @@ namespace Graphics::Vulkan {
 		memcpy(mappedData, m_data.value(), m_bufferSize.value());
 		vkUnmapMemory(vulkanDevice->getLogicalDevice(), bufferMemory);
 
-		return std::make_shared<VulkanBuffer>(buffer, bufferMemory);
+		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory);
 	}
 
 	uint32_t VulkanBufferBuilder::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
@@ -813,6 +819,11 @@ namespace Graphics::Vulkan {
 	}
 
 	VulkanBuffer::~VulkanBuffer() = default;
+
+	void VulkanBuffer::Release() {
+		vkFreeMemory(m_device->getLogicalDevice(), m_bufferMemory, nullptr);
+		vkDestroyBuffer(m_device->getLogicalDevice(), m_buffer, nullptr);
+	}
 
 
 #pragma endregion VulkanBuffer }
@@ -1150,127 +1161,15 @@ namespace Graphics::Vulkan {
 
 	VulkanGraphicsPipeline::~VulkanGraphicsPipeline() = default;
 
-/*	void VulkanGraphicsPipeline::CreateGraphicsPipeline(VkDevice device, VkShaderModule vertexShaderModule,
-	                                                    VkShaderModule fragmentShaderModule,
-	                                                    std::shared_ptr<VulkanRenderPass> renderPass) {
-		m_renderPass = renderPass;
-
-		auto shaderModules = std::vector<VkShaderModule>();
-		shaderModules.push_back(vertexShaderModule);
-		shaderModules.push_back(fragmentShaderModule);
-
-		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-		vertShaderStageInfo.module = vertexShaderModule;
-		vertShaderStageInfo.pName = "main";
-
-		VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		fragShaderStageInfo.module = fragmentShaderModule;
-		fragShaderStageInfo.pName = "main";
-
-		VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-
-		std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-		VkPipelineDynamicStateCreateInfo dynamicState{};
-		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-		dynamicState.pDynamicStates = dynamicStates.data();
-
-		auto bindingDescriptions = getBindingDescription();
-		auto attributeDescriptions = getAttributeDescriptions();
-
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 1;
-		vertexInputInfo.pVertexBindingDescriptions = &bindingDescriptions;
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-
-		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-
-		VkPipelineViewportStateCreateInfo viewportState{};
-		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportState.viewportCount = 1;
-		viewportState.scissorCount = 1;
-
-		VkPipelineRasterizationStateCreateInfo rasterizer{};
-		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizer.depthClampEnable = VK_FALSE;
-		rasterizer.rasterizerDiscardEnable = VK_FALSE;
-		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-		rasterizer.depthBiasEnable = VK_FALSE;
-		rasterizer.depthBiasConstantFactor = 0.0f;
-		rasterizer.depthBiasClamp = 0.0f;
-		rasterizer.depthBiasSlopeFactor = 0.0f;
-
-		VkPipelineMultisampleStateCreateInfo multisampling{};
-		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampling.sampleShadingEnable = VK_FALSE;
-		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-		VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-		colorBlendAttachment.colorWriteMask =
-				VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-				VK_COLOR_COMPONENT_A_BIT;
-		colorBlendAttachment.blendEnable = VK_FALSE;
-
-		VkPipelineColorBlendStateCreateInfo colorBlending{};
-		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlending.logicOpEnable = VK_FALSE;
-		colorBlending.logicOp = VK_LOGIC_OP_COPY;
-		colorBlending.attachmentCount = 1;
-		colorBlending.pAttachments = &colorBlendAttachment;
-
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
-		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 0;
-		pipelineLayoutCreateInfo.pSetLayouts = nullptr;
-		pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-		pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
-
-		if (vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create pipeline layout");
-		}
-
-		VkGraphicsPipelineCreateInfo pipelineInfo{};
-		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineInfo.stageCount = 2;
-		pipelineInfo.pStages = shaderStages;
-		pipelineInfo.pVertexInputState = &vertexInputInfo;
-		pipelineInfo.pInputAssemblyState = &inputAssembly;
-		pipelineInfo.pViewportState = &viewportState;
-		pipelineInfo.pRasterizationState = &rasterizer;
-		pipelineInfo.pMultisampleState = &multisampling;
-		pipelineInfo.pDepthStencilState = nullptr;
-		pipelineInfo.pColorBlendState = &colorBlending;
-		pipelineInfo.pDynamicState = &dynamicState;
-		pipelineInfo.layout = m_pipelineLayout;
-		pipelineInfo.renderPass = renderPass->getRenderPass();
-		pipelineInfo.subpass = 0;
-		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-		pipelineInfo.basePipelineIndex = -1;
-
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) !=
-		    VK_SUCCESS) {
-			throw std::runtime_error("failed to create graphics pipeline");
-		}
-	}*/
-
 	std::shared_ptr<JarRenderPass> VulkanGraphicsPipeline::GetRenderPass() {
 		return m_renderPass;
 	}
 
 	void VulkanGraphicsPipeline::Release() {
+
+		m_renderPass->Release();
+		vkDestroyPipelineLayout(m_device->getLogicalDevice(), m_pipelineLayout, nullptr);
+		vkDestroyPipeline(m_device->getLogicalDevice(), m_graphicsPipeline, nullptr);
 	}
 
 #pragma endregion VulkanGraphicsPipeline }
