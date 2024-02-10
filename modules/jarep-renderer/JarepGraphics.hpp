@@ -37,6 +37,7 @@ namespace Graphics {
 			std::shared_ptr<JarDevice> device;
 			std::shared_ptr<JarCommandQueue> queue;
 			std::shared_ptr<JarBuffer> vertexBuffer;
+			std::shared_ptr<JarBuffer> indexBuffer;
 			std::shared_ptr<JarShaderModule> vertexShaderModule;
 			std::shared_ptr<JarShaderModule> fragmentShaderModule;
 			std::shared_ptr<JarPipeline> pipeline;

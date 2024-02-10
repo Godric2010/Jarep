@@ -736,14 +736,6 @@ namespace Graphics::Vulkan {
 			{BufferUsage::TransferDest,  VK_BUFFER_USAGE_TRANSFER_DST_BIT},
 	};
 
-	static std::unordered_map<MemoryProperties, VkMemoryPropertyFlags> memoryPropertiesMap{
-			{MemoryProperties::HostVisible,      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT},
-			{MemoryProperties::HostCoherent,     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT},
-			{MemoryProperties::HostCached,       VK_MEMORY_PROPERTY_HOST_CACHED_BIT},
-			{MemoryProperties::DeviceLocal,      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
-			{MemoryProperties::LazilyAllocation, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT},
-	};
-
 	VulkanBufferBuilder::~VulkanBufferBuilder() = default;
 
 	VulkanBufferBuilder* VulkanBufferBuilder::SetUsageFlags(Graphics::BufferUsage usageFlags) {
@@ -752,7 +744,16 @@ namespace Graphics::Vulkan {
 	}
 
 	VulkanBufferBuilder* VulkanBufferBuilder::SetMemoryProperties(Graphics::MemoryProperties memProps) {
-		m_memoryPropertiesFlags = std::make_optional<VkMemoryPropertyFlags>(memoryPropertiesMap[memProps]);
+
+		VkMemoryPropertyFlags vkFlags = 0;
+
+		if (memProps.flags & MemoryProperties::DeviceLocal) vkFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		if (memProps.flags & MemoryProperties::HostVisible) vkFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		if (memProps.flags & MemoryProperties::HostCoherent) vkFlags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		if (memProps.flags & MemoryProperties::HostCached) vkFlags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+		if (memProps.flags & MemoryProperties::LazilyAllocation) vkFlags |= VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+
+		m_memoryPropertiesFlags = std::make_optional(vkFlags);
 		return this;
 	}
 
@@ -769,14 +770,32 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("Buffer not correctly initialized! All fields must be set!");
 
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
+		VkBuffer buffer;
+		VkDeviceMemory bufferMemory;
 
+		createBuffer(vulkanDevice, m_bufferSize.value(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer, bufferMemory);
+
+
+		void* mappedData;
+		vkMapMemory(vulkanDevice->getLogicalDevice(), bufferMemory, 0, m_bufferSize.value(), 0, &mappedData);
+		memcpy(mappedData, m_data.value(), m_bufferSize.value());
+		vkUnmapMemory(vulkanDevice->getLogicalDevice(), bufferMemory);
+
+		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory);
+	}
+
+	void VulkanBufferBuilder::createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size,
+	                                       VkBufferUsageFlags usage,
+	                                       VkMemoryPropertyFlags properties, VkBuffer& buffer,
+	                                       VkDeviceMemory& bufferMemory) {
 		VkBufferCreateInfo bufferInfo = {};
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bufferInfo.size = m_bufferSize.value();
-		bufferInfo.usage = m_bufferUsageFlags.value();
+		bufferInfo.size = size;
+		bufferInfo.usage = usage;
 		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		VkBuffer buffer;
+
 		if (vkCreateBuffer(vulkanDevice->getLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create vertex buffer!");
 		}
@@ -788,21 +807,14 @@ namespace Graphics::Vulkan {
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memoryRequirements.size;
 		allocInfo.memoryTypeIndex = findMemoryType(vulkanDevice->getPhysicalDevice(), memoryRequirements.memoryTypeBits,
-		                                           m_memoryPropertiesFlags.value());
+		                                           properties);
 
-		VkDeviceMemory bufferMemory;
+
 		if (vkAllocateMemory(vulkanDevice->getLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to allocate vertex buffer memory!");
 		}
 
 		vkBindBufferMemory(vulkanDevice->getLogicalDevice(), buffer, bufferMemory, 0);
-
-		void* mappedData;
-		vkMapMemory(vulkanDevice->getLogicalDevice(), bufferMemory, 0, m_bufferSize.value(), 0, &mappedData);
-		memcpy(mappedData, m_data.value(), m_bufferSize.value());
-		vkUnmapMemory(vulkanDevice->getLogicalDevice(), bufferMemory);
-
-		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory);
 	}
 
 	uint32_t VulkanBufferBuilder::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,

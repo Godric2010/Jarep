@@ -26,18 +26,28 @@ namespace Graphics {
 		queue = commandQueueBuilder->Build(device);
 
 		const std::vector<Vertex> vertices = {
-				{{0.0f,  -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-				{{0.5f,  0.5f,  0.0f}, {0.0f, 1.0f, 0.0f}},
-				{{-0.5f, 0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}}
+				{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+				{{0.5f,  -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+				{{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}},
+				{{-0.5f, 0.5f,  0.0f}, {1.0f, 1.0f, 1.0f}},
+		};
+
+		const std::vector<uint16_t> indices = {
+				0, 1, 2, 2, 3, 0
 		};
 
 		const size_t vertexDataSize = vertices.size() * sizeof(Vertex);
 
+		MemoryProperties memoryProps = MemoryProperties::HostVisible | MemoryProperties::HostCoherent;
+
 		const auto bufferBuilder = backend->InitBufferBuilder();
 		bufferBuilder->SetBufferData(vertices.data(), vertexDataSize);
-		bufferBuilder->SetMemoryProperties(MemoryProperties::HostVisible);
+		bufferBuilder->SetMemoryProperties(memoryProps);
 		bufferBuilder->SetUsageFlags(BufferUsage::VertexBuffer);
 		vertexBuffer = bufferBuilder->Build(device);
+
+		const size_t indexBufferSize = sizeof(indices[0]) * indices.size();
+
 
 		vertexShaderModule = createShaderModule(VertexShader, "triangle_vert");
 		fragmentShaderModule = createShaderModule(FragmentShader, "triangle_frag");

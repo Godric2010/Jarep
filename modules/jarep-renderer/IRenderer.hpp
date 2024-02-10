@@ -125,13 +125,47 @@ namespace Graphics {
 		TransferDest,
 	};
 
-	enum class MemoryProperties {
-		HostVisible,
-		HostCoherent,
-		HostCached,
-		DeviceLocal,
-		LazilyAllocation,
+	class MemoryProperties {
+		public:
+			enum FlagBits {
+				DeviceLocal = 0x1,
+				HostVisible = 0x2,
+				HostCoherent = 0x4,
+				HostCached = 0x8,
+				LazilyAllocation = 0x10,
+			};
+
+			using BitType = uint32_t;
+			BitType flags;
+
+			MemoryProperties() : flags(0) {}
+
+			MemoryProperties(BitType flag) : flags(flag) {}
+
+			MemoryProperties(std::initializer_list<BitType> flags) : flags(0) {
+				for (auto flag: flags) {
+					this->flags |= flag;
+				}
+			};
+
+			MemoryProperties operator|(MemoryProperties rhs) const {
+				return {static_cast<BitType>(this->flags | rhs.flags)};
+			}
+
+			MemoryProperties& operator|=(MemoryProperties rhs) {
+				this->flags |= rhs.flags;
+				return *this;
+			}
+
+			operator BitType() const { return flags; }
+
+
 	};
+
+	inline MemoryProperties operator|(MemoryProperties::FlagBits lhs, MemoryProperties::FlagBits rhs) {
+		return MemoryProperties(
+				static_cast<MemoryProperties::BitType>(lhs) | static_cast<MemoryProperties::BitType>(rhs));
+	}
 
 	class JarBufferBuilder {
 		public:

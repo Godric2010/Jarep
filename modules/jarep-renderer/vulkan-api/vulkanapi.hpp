@@ -323,6 +323,10 @@ namespace Graphics::Vulkan {
 			std::optional<size_t> m_bufferSize;
 			std::optional<const void*> m_data;
 
+
+			void createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size, VkBufferUsageFlags usage,
+			                  VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
 			static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
 			                               VkMemoryPropertyFlags properties);
 	};
@@ -330,7 +334,8 @@ namespace Graphics::Vulkan {
 
 	class VulkanBuffer final : public JarBuffer {
 		public:
-			VulkanBuffer(std::shared_ptr<VulkanDevice>& device, VkBuffer buffer, VkDeviceMemory deviceMemory) : m_device(
+			VulkanBuffer(std::shared_ptr<VulkanDevice>& device, VkBuffer buffer, VkDeviceMemory deviceMemory)
+					: m_device(
 					device), m_buffer(buffer), m_bufferMemory(deviceMemory) {};
 
 			~VulkanBuffer() override;
