@@ -51,6 +51,8 @@ namespace Graphics::Vulkan {
 
 	class VulkanBufferBuilder;
 
+	class VulkanCommandQueue;
+
 #pragma region VulkanBackend{
 
 	class VulkanBackend final : public Backend {
@@ -73,11 +75,24 @@ namespace Graphics::Vulkan {
 
 			JarPipelineBuilder* InitPipelineBuilder() override;
 
+			// Staging Buffer CommandPool management
+			void onRegisterNewBuffer();
+
+			void onDestroyBuffer();
+
+			std::shared_ptr<VulkanCommandQueue> getStagingCommandQueue();
+
 		private:
 			std::vector<const char*> extensionNames;
 			std::vector<const char*> validationLayers;
 			VkInstance instance{};
 			VkDebugUtilsMessengerEXT debugMessenger;
+
+			std::shared_ptr<VulkanDevice> m_device;
+
+			// Staging command pool management;
+			std::shared_ptr<VulkanCommandQueue> m_stagingCommandQueue;
+			uint32_t m_bufferCount;
 
 			void createInstance();
 
@@ -339,9 +354,10 @@ namespace Graphics::Vulkan {
 
 	class VulkanBuffer final : public JarBuffer {
 		public:
-			VulkanBuffer(std::shared_ptr<VulkanDevice>& device, VkBuffer buffer, VkDeviceMemory deviceMemory)
-					: m_device(
-					device), m_buffer(buffer), m_bufferMemory(deviceMemory) {};
+			VulkanBuffer(std::shared_ptr<VulkanDevice>& device, VkBuffer buffer, VkDeviceMemory deviceMemory,
+			             const std::function<void()>& bufferReleasedCallback)
+					: m_device(device), m_buffer(buffer), m_bufferMemory(deviceMemory),
+					  m_bufferReleasedCallback(bufferReleasedCallback) {};
 
 			~VulkanBuffer() override;
 
@@ -353,6 +369,7 @@ namespace Graphics::Vulkan {
 			VkBuffer m_buffer;
 			VkDeviceMemory m_bufferMemory;
 			std::shared_ptr<VulkanDevice> m_device;
+			std::function<void()> m_bufferReleasedCallback;
 	};
 
 #pragma endregion VulkanBuffer }

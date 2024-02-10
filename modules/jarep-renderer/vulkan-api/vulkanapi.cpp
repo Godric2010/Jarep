@@ -25,6 +25,8 @@ namespace Graphics::Vulkan {
 		} else {
 			createInstance();
 		}
+
+		m_bufferCount = 0;
 	}
 
 	VulkanBackend::~VulkanBackend() = default;
@@ -43,13 +45,12 @@ namespace Graphics::Vulkan {
 	std::shared_ptr<JarDevice> VulkanBackend::CreateDevice(std::shared_ptr<JarSurface>& surface) {
 		auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
 
-		auto device = std::make_shared<VulkanDevice>();
-		device->CreatePhysicalDevice(instance, vkSurface);
-		device->CreateLogicalDevice();
+		m_device = std::make_shared<VulkanDevice>();
+		m_device->CreatePhysicalDevice(instance, vkSurface);
+		m_device->CreateLogicalDevice();
 
-		vkSurface->FinalizeSurface(device);
-
-		return device;
+		vkSurface->FinalizeSurface(m_device);
+		return m_device;
 	}
 
 	JarShaderModuleBuilder* VulkanBackend::InitShaderModuleBuilder() {
@@ -71,6 +72,25 @@ namespace Graphics::Vulkan {
 	JarPipelineBuilder* VulkanBackend::InitPipelineBuilder() {
 		return new VulkanGraphicsPipelineBuilder();
 	}
+
+	std::shared_ptr<VulkanCommandQueue> VulkanBackend::getStagingCommandQueue() {
+		if (m_stagingCommandQueue == nullptr) {
+			auto jarQueue = VulkanCommandQueueBuilder().SetCommandBufferAmount(1)->Build(m_device);
+			m_stagingCommandQueue = reinterpret_cast<std::shared_ptr<VulkanCommandQueue>&>(jarQueue);
+		}
+		return m_stagingCommandQueue;
+	}
+
+	void VulkanBackend::onRegisterNewBuffer() {
+		m_bufferCount++;
+	}
+
+	void VulkanBackend::onDestroyBuffer() {
+		m_bufferCount--;
+		if (m_bufferCount <= 0)
+			m_stagingCommandQueue->Release();
+	}
+
 
 	void VulkanBackend::createInstance() {
 		VkApplicationInfo appInfo{};
@@ -770,6 +790,7 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("Buffer not correctly initialized! All fields must be set!");
 
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
+		m_backend->onRegisterNewBuffer();
 		auto size = m_bufferSize.value();
 
 		VkBuffer stagingBuffer;
@@ -794,7 +815,8 @@ namespace Graphics::Vulkan {
 		vkDestroyBuffer(vulkanDevice->getLogicalDevice(), stagingBuffer, nullptr);
 		vkFreeMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, nullptr);
 
-		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory);
+		auto releasedCallback = [this]() { m_backend->onDestroyBuffer(); };
+		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory, releasedCallback);
 	}
 
 	void VulkanBufferBuilder::createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size,
@@ -832,8 +854,7 @@ namespace Graphics::Vulkan {
 	VulkanBufferBuilder::copyBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer srcBuffer, VkBuffer dstBuffer,
 	                                VkDeviceSize size) {
 
-		auto commandQueue = m_backend->InitCommandQueueBuilder()->Build(vulkanDevice);
-		auto vulkanCommandPool = reinterpret_cast<std::shared_ptr<VulkanCommandQueue>&>(commandQueue);
+		auto vulkanCommandPool = m_backend->getStagingCommandQueue();
 
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -869,7 +890,6 @@ namespace Graphics::Vulkan {
 		vkQueueWaitIdle(graphicsQueue);
 
 		vkFreeCommandBuffers(vulkanDevice->getLogicalDevice(), vulkanCommandPool->getCommandPool(), 1, &commandBuffer);
-		vulkanCommandPool->Release();
 	}
 
 	uint32_t VulkanBufferBuilder::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
@@ -890,6 +910,8 @@ namespace Graphics::Vulkan {
 	void VulkanBuffer::Release() {
 		vkFreeMemory(m_device->getLogicalDevice(), m_bufferMemory, nullptr);
 		vkDestroyBuffer(m_device->getLogicalDevice(), m_buffer, nullptr);
+
+		m_bufferReleasedCallback();
 	}
 
 
