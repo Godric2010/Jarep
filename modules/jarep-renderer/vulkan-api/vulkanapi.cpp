@@ -65,7 +65,7 @@ namespace Graphics::Vulkan {
 	};
 
 	JarBufferBuilder* VulkanBackend::InitBufferBuilder() {
-		return new VulkanBufferBuilder();
+		return new VulkanBufferBuilder(static_cast<std::shared_ptr<VulkanBackend>>(this));
 	}
 
 	JarPipelineBuilder* VulkanBackend::InitPipelineBuilder() {
@@ -770,17 +770,29 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("Buffer not correctly initialized! All fields must be set!");
 
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
+		auto size = m_bufferSize.value();
+
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		createBuffer(vulkanDevice, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
+		             stagingBufferMemory);
+
+		void* stagingData;
+		vkMapMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, 0, size, 0, &stagingData);
+		memcpy(stagingData, m_data.value(), size);
+		vkUnmapMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory);
+
+
 		VkBuffer buffer;
 		VkDeviceMemory bufferMemory;
+		createBuffer(vulkanDevice, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		             m_memoryPropertiesFlags.value(), buffer, bufferMemory);
 
-		createBuffer(vulkanDevice, m_bufferSize.value(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer, bufferMemory);
+		copyBuffer(vulkanDevice, stagingBuffer, buffer, size);
 
-
-		void* mappedData;
-		vkMapMemory(vulkanDevice->getLogicalDevice(), bufferMemory, 0, m_bufferSize.value(), 0, &mappedData);
-		memcpy(mappedData, m_data.value(), m_bufferSize.value());
-		vkUnmapMemory(vulkanDevice->getLogicalDevice(), bufferMemory);
+		vkDestroyBuffer(vulkanDevice->getLogicalDevice(), stagingBuffer, nullptr);
+		vkFreeMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, nullptr);
 
 		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory);
 	}
@@ -794,7 +806,6 @@ namespace Graphics::Vulkan {
 		bufferInfo.size = size;
 		bufferInfo.usage = usage;
 		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
 
 		if (vkCreateBuffer(vulkanDevice->getLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create vertex buffer!");
@@ -815,6 +826,50 @@ namespace Graphics::Vulkan {
 		}
 
 		vkBindBufferMemory(vulkanDevice->getLogicalDevice(), buffer, bufferMemory, 0);
+	}
+
+	void
+	VulkanBufferBuilder::copyBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer srcBuffer, VkBuffer dstBuffer,
+	                                VkDeviceSize size) {
+
+		auto commandQueue = m_backend->InitCommandQueueBuilder()->Build(vulkanDevice);
+		auto vulkanCommandPool = reinterpret_cast<std::shared_ptr<VulkanCommandQueue>&>(commandQueue);
+
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandPool = vulkanCommandPool->getCommandPool();
+		allocInfo.commandBufferCount = 1;
+
+		VkQueue graphicsQueue;
+		vkGetDeviceQueue(vulkanDevice->getLogicalDevice(), vulkanDevice->getGraphicsFamilyIndex().value(), 0,
+		                 &graphicsQueue);
+
+		VkCommandBuffer commandBuffer;
+		vkAllocateCommandBuffers(vulkanDevice->getLogicalDevice(), &allocInfo, &commandBuffer);
+
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+		vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+		VkBufferCopy copyRegion{};
+		copyRegion.size = size;
+		vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+		vkEndCommandBuffer(commandBuffer);
+
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(graphicsQueue);
+
+		vkFreeCommandBuffers(vulkanDevice->getLogicalDevice(), vulkanCommandPool->getCommandPool(), 1, &commandBuffer);
+		vulkanCommandPool->Release();
 	}
 
 	uint32_t VulkanBufferBuilder::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,

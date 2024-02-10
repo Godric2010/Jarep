@@ -38,11 +38,9 @@ namespace Graphics {
 
 		const size_t vertexDataSize = vertices.size() * sizeof(Vertex);
 
-		MemoryProperties memoryProps = MemoryProperties::HostVisible | MemoryProperties::HostCoherent;
-
 		const auto bufferBuilder = backend->InitBufferBuilder();
 		bufferBuilder->SetBufferData(vertices.data(), vertexDataSize);
-		bufferBuilder->SetMemoryProperties(memoryProps);
+		bufferBuilder->SetMemoryProperties(MemoryProperties::DeviceLocal);
 		bufferBuilder->SetUsageFlags(BufferUsage::VertexBuffer);
 		vertexBuffer = bufferBuilder->Build(device);
 

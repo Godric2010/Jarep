@@ -288,6 +288,8 @@ namespace Graphics::Vulkan {
 
 			JarCommandBuffer* getNextCommandBuffer() override;
 
+			VkCommandPool getCommandPool() { return m_commandPool; }
+
 			void Release() override;
 
 		private:
@@ -305,7 +307,7 @@ namespace Graphics::Vulkan {
 	class VulkanBufferBuilder final : public JarBufferBuilder {
 
 		public:
-			VulkanBufferBuilder() = default;
+			VulkanBufferBuilder(std::shared_ptr<VulkanBackend> backend) : m_backend(backend) {}
 
 			~VulkanBufferBuilder() override;
 
@@ -318,14 +320,17 @@ namespace Graphics::Vulkan {
 			std::shared_ptr<JarBuffer> Build(std::shared_ptr<JarDevice> device) override;
 
 		private:
+			std::shared_ptr<VulkanBackend> m_backend;
 			std::optional<VkBufferUsageFlags> m_bufferUsageFlags;
 			std::optional<VkMemoryPropertyFlags> m_memoryPropertiesFlags;
 			std::optional<size_t> m_bufferSize;
 			std::optional<const void*> m_data;
 
-
 			void createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size, VkBufferUsageFlags usage,
 			                  VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
+			void copyBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer srcBuffer, VkBuffer dstBuffer,
+			                VkDeviceSize size);
 
 			static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
 			                               VkMemoryPropertyFlags properties);
