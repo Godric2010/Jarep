@@ -257,7 +257,11 @@ namespace Graphics::Vulkan {
 
 			void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
 
+			void BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) override;
+
 			void Draw() override;
+
+			void DrawIndexed(size_t indexAmount) override;
 
 			void Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) override;
 

@@ -75,7 +75,7 @@ namespace Graphics::Vulkan {
 
 	std::shared_ptr<VulkanCommandQueue> VulkanBackend::getStagingCommandQueue() {
 		if (m_stagingCommandQueue == nullptr) {
-			auto jarQueue = VulkanCommandQueueBuilder().SetCommandBufferAmount(1)->Build(m_device);
+			auto jarQueue = VulkanCommandQueueBuilder().SetCommandBufferAmount(2)->Build(m_device);
 			m_stagingCommandQueue = reinterpret_cast<std::shared_ptr<VulkanCommandQueue>&>(jarQueue);
 		}
 		return m_stagingCommandQueue;
@@ -717,6 +717,10 @@ namespace Graphics::Vulkan {
 		vkCmdDraw(m_commandBuffer, 3, 1, 0, 0);
 	}
 
+	void VulkanCommandBuffer::DrawIndexed(size_t indexAmount) {
+		vkCmdDrawIndexed(m_commandBuffer, indexAmount, 1, 0, 0, 0);
+	}
+
 	void VulkanCommandBuffer::Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) {
 		const auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
 		vkSurface->getSwapchain()->PresentImage(m_imageAvailableSemaphore, m_renderFinishedSemaphore,
@@ -733,6 +737,11 @@ namespace Graphics::Vulkan {
 		const VkBuffer vertexBuffers[] = {vulkanBuffer->getBuffer()};
 		const VkDeviceSize offsets[] = {0};
 		vkCmdBindVertexBuffers(m_commandBuffer, 0, 1, vertexBuffers, offsets);
+	}
+
+	void VulkanCommandBuffer::BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) {
+		const auto vulkanBuffer = reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(indexBuffer);
+		vkCmdBindIndexBuffer(m_commandBuffer, vulkanBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
 	}
 
 	void VulkanCommandBuffer::Release(VkDevice device) {
@@ -807,7 +816,7 @@ namespace Graphics::Vulkan {
 
 		VkBuffer buffer;
 		VkDeviceMemory bufferMemory;
-		createBuffer(vulkanDevice, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		createBuffer(vulkanDevice, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | m_bufferUsageFlags.value(),
 		             m_memoryPropertiesFlags.value(), buffer, bufferMemory);
 
 		copyBuffer(vulkanDevice, stagingBuffer, buffer, size);

@@ -17,11 +17,16 @@ namespace Core {
 	class CoreManager {
 		public:
 			CoreManager() = default;
+
 			~CoreManager() = default;
 
 			void Initialize();
+
 			void Run();
+
 			void Shutdown();
+
+			[[nodiscard]] std::shared_ptr<Graphics::JarepGraphics> getRenderer() const { return window->getRenderer(); }
 
 		private:
 			std::unique_ptr<Window::IWindow> window;

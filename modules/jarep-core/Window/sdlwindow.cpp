@@ -63,7 +63,7 @@ namespace Core::Window
 #else
         graphicsExtensions = getVulkanWindowExtensionsCStr();
 #endif
-        renderer = std::make_unique<Graphics::JarepGraphics>(graphicsExtensions);
+        renderer = std::make_shared<Graphics::JarepGraphics>(graphicsExtensions);
 
         const auto nativeWindowHandleProvider = getNativeWindowHandle(windowWidth, windowHeight);
         if (!nativeWindowHandleProvider.has_value()) throw std::exception();
@@ -134,6 +134,10 @@ namespace Core::Window
         renderer->Shutdown();
         SDL_Quit();
     }
+
+	std::shared_ptr<Graphics::JarepGraphics> SdlWindow::getRenderer() const {
+		return renderer;
+	}
 
     std::vector<DisplayOpts> SdlWindow::GetAvailableDisplayOpts()
     {

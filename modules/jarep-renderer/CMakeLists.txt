@@ -6,6 +6,7 @@ set(SOURCE_FILES JarepGraphics.cpp
         Vertex.hpp
         vulkan-api/sdlsurfaceadapter.cpp
         vulkan-api/sdlsurfaceadapter.hpp
+        Mesh.hpp
 )
 
 if(APPLE)

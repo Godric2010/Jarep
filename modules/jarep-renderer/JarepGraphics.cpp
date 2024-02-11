@@ -25,28 +25,6 @@ namespace Graphics {
 		const auto commandQueueBuilder = backend->InitCommandQueueBuilder();
 		queue = commandQueueBuilder->Build(device);
 
-		const std::vector<Vertex> vertices = {
-				{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-				{{0.5f,  -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-				{{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}},
-				{{-0.5f, 0.5f,  0.0f}, {1.0f, 1.0f, 1.0f}},
-		};
-
-		const std::vector<uint16_t> indices = {
-				0, 1, 2, 2, 3, 0
-		};
-
-		const size_t vertexDataSize = vertices.size() * sizeof(Vertex);
-
-		const auto bufferBuilder = backend->InitBufferBuilder();
-		bufferBuilder->SetBufferData(vertices.data(), vertexDataSize);
-		bufferBuilder->SetMemoryProperties(MemoryProperties::DeviceLocal);
-		bufferBuilder->SetUsageFlags(BufferUsage::VertexBuffer);
-		vertexBuffer = bufferBuilder->Build(device);
-
-		const size_t indexBufferSize = sizeof(indices[0]) * indices.size();
-
-
 		vertexShaderModule = createShaderModule(VertexShader, "triangle_vert");
 		fragmentShaderModule = createShaderModule(FragmentShader, "triangle_frag");
 
@@ -111,13 +89,38 @@ namespace Graphics {
 		delete pipelineBuilder;
 	}
 
+	void JarepGraphics::AddMesh(Mesh& mesh) {
+
+		const size_t vertexDataSize = mesh.getVertices().size() * sizeof(Vertex);
+
+		const auto vertexBufferBuilder = backend->InitBufferBuilder();
+		vertexBufferBuilder->SetBufferData(mesh.getVertices().data(), vertexDataSize);
+		vertexBufferBuilder->SetMemoryProperties(MemoryProperties::DeviceLocal);
+		vertexBufferBuilder->SetUsageFlags(BufferUsage::VertexBuffer);
+		std::shared_ptr<JarBuffer> vertexBuffer = vertexBufferBuilder->Build(device);
+
+		const size_t indexBufferSize = sizeof(mesh.getIndices()[0]) * mesh.getIndices().size();
+		const auto indexBufferBuilder = backend->
+				InitBufferBuilder()->
+				SetBufferData(mesh.getIndices().data(), indexBufferSize)->
+				SetMemoryProperties(MemoryProperties::DeviceLocal)->
+				SetUsageFlags(BufferUsage::IndexBuffer);
+		std::shared_ptr<JarBuffer> indexBuffer = indexBufferBuilder->Build(device);
+
+		meshes.push_back(Internal::JarMesh(mesh, vertexBuffer, indexBuffer));
+	}
+
 	void JarepGraphics::Render() {
 		const auto commandBuffer = queue->getNextCommandBuffer();
 		commandBuffer->StartRecording(surface, renderPass);
 
 		commandBuffer->BindPipeline(pipeline);
-		commandBuffer->BindVertexBuffer(vertexBuffer);
-		commandBuffer->Draw();
+
+		for (auto& mesh: meshes) {
+			commandBuffer->BindVertexBuffer(mesh.getVertexBuffer());
+			commandBuffer->BindIndexBuffer(mesh.getIndexBuffer());
+			commandBuffer->DrawIndexed(mesh.getIndexLength());
+		}
 
 		commandBuffer->EndRecording();
 		commandBuffer->Present(surface, device);
@@ -131,7 +134,9 @@ namespace Graphics {
 		vertexShaderModule->Release();
 		fragmentShaderModule->Release();
 
-		vertexBuffer->Release();
+		for (auto& mesh: meshes) {
+				mesh.Destroy();
+		}
 
 		queue->Release();
 		device->Release();

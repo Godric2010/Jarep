@@ -421,7 +421,11 @@ namespace Graphics {
 
 			virtual void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) = 0;
 
+			virtual void BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) = 0;
+
 			virtual void Draw() = 0;
+
+			virtual void DrawIndexed(size_t indexAmount) = 0;
 
 			virtual void Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) = 0;
 	};
