@@ -29,6 +29,8 @@ namespace Graphics {
 
 	class JarSurface;
 
+	class JarDescriptorSet;
+
 	enum ImageFormat {
 		B8G8R8A8_UNORM,
 	};
@@ -104,6 +106,12 @@ namespace Graphics {
 			virtual void Release(std::shared_ptr<JarDevice> device) = 0;
 	};
 
+	struct JarExtent{
+		public:
+			float Width;
+			float Height;
+	};
+
 	class JarSurface {
 		public:
 			virtual ~JarSurface() = default;
@@ -111,6 +119,10 @@ namespace Graphics {
 			virtual void Update() = 0;
 
 			virtual void ReleaseSwapchain() = 0;
+
+			virtual uint32_t GetSwapchainImageAmount() = 0;
+
+			virtual JarExtent GetSurfaceExtent() = 0;
 	};
 
 
@@ -185,6 +197,8 @@ namespace Graphics {
 			virtual ~JarBuffer() = default;
 
 			virtual void Release() = 0;
+
+			virtual void Update(const void* data, size_t bufferSize) = 0;
 	};
 
 #pragma endregion Buffer }
@@ -388,6 +402,8 @@ namespace Graphics {
 
 			virtual JarPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) = 0;
 
+			virtual JarPipelineBuilder* SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) = 0;
+
 			virtual JarPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachments) = 0;
 
 			virtual JarPipelineBuilder* SetDepthStencilState(DepthStencilState depthStencilState) = 0;
@@ -422,6 +438,8 @@ namespace Graphics {
 			virtual void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) = 0;
 
 			virtual void BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) = 0;
+
+			virtual void BindUniformBuffer(std::shared_ptr<JarBuffer> uniformBuffer) = 0;
 
 			virtual void Draw() = 0;
 

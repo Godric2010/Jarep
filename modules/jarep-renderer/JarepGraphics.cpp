@@ -25,6 +25,16 @@ namespace Graphics {
 		const auto commandQueueBuilder = backend->InitCommandQueueBuilder();
 		queue = commandQueueBuilder->Build(device);
 
+
+		Internal::JarModelViewProjection mvp{};
+		auto bufferBuilder = backend->InitBufferBuilder()->SetUsageFlags(
+				BufferUsage::UniformBuffer)->SetMemoryProperties(
+				MemoryProperties::HostVisible | MemoryProperties::HostCoherent)->SetBufferData(
+				&mvp, sizeof(Internal::JarModelViewProjection));
+		for (int i = 0; i < surface->GetSwapchainImageAmount(); ++i) {
+			uniformBuffers.push_back(bufferBuilder->Build(device));
+		}
+
 		vertexShaderModule = createShaderModule(VertexShader, "triangle_vert");
 		fragmentShaderModule = createShaderModule(FragmentShader, "triangle_frag");
 
@@ -43,7 +53,6 @@ namespace Graphics {
 		shaderStage.vertexShaderModule = vertexShaderModule;
 		shaderStage.fragmentShaderModule = fragmentShaderModule;
 		shaderStage.mainFunctionName = "main";
-
 
 		std::vector attributeDescriptions = {AttributeDescription{}, AttributeDescription{}};
 		attributeDescriptions[0].vertexFormat = VertexFormat::Float3;
@@ -84,7 +93,9 @@ namespace Graphics {
 				SetRenderPass(renderPass)->
 				SetVertexInput(vertexInput)->
 				SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
-				SetMultisamplingCount(1)->SetColorBlendAttachments(colorBlendAttachment);
+				SetMultisamplingCount(1)->
+				SetUniformBuffers(uniformBuffers)->
+				SetColorBlendAttachments(colorBlendAttachment);
 		pipeline = pipelineBuilder->Build(device);
 		delete pipelineBuilder;
 	}
@@ -111,6 +122,10 @@ namespace Graphics {
 	}
 
 	void JarepGraphics::Render() {
+		frameCounter = (frameCounter + 1) % surface->GetSwapchainImageAmount();
+
+		prepareModelViewProjectionForFrame();
+
 		const auto commandBuffer = queue->getNextCommandBuffer();
 		commandBuffer->StartRecording(surface, renderPass);
 
@@ -130,12 +145,16 @@ namespace Graphics {
 
 		surface->ReleaseSwapchain();
 
+		for (auto& uniformBuffer: uniformBuffers) {
+			uniformBuffer->Release();
+		}
+
 		pipeline->Release();
 		vertexShaderModule->Release();
 		fragmentShaderModule->Release();
 
 		for (auto& mesh: meshes) {
-				mesh.Destroy();
+			mesh.Destroy();
 		}
 
 		queue->Release();
@@ -143,6 +162,23 @@ namespace Graphics {
 
 
 		std::cout << "Shutdown renderer" << std::endl;
+	}
+
+	void JarepGraphics::prepareModelViewProjectionForFrame() {
+		static auto startTime = std::chrono::high_resolution_clock::now();
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+		auto surfaceExtent = surface->GetSurfaceExtent();
+
+		Internal::JarModelViewProjection mvp{};
+		mvp.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		mvp.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		mvp.projection = glm::perspective(glm::radians(45.0f), surfaceExtent.Width / surfaceExtent.Height, 0.1f, 10.0f);
+
+		mvp.projection[1][1] *= -1;
+
+		uniformBuffers[frameCounter]->Update(&mvp, sizeof(Internal::JarModelViewProjection));
 	}
 
 	std::shared_ptr<JarShaderModule> JarepGraphics::createShaderModule(const ShaderType shaderType,

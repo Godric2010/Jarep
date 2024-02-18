@@ -17,6 +17,8 @@
 #include "vulkan-api/vulkanapi.hpp"
 #include "Vertex.hpp"
 #include "Mesh.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Graphics {
 
@@ -43,6 +45,13 @@ namespace Graphics {
 				Mesh mesh;
 				std::shared_ptr<JarBuffer> vertexBuffer;
 				std::shared_ptr<JarBuffer> indexBuffer;
+		};
+
+		class JarModelViewProjection{
+			public:
+				glm::mat4 model;
+				glm::mat4 view;
+				glm::mat4 projection;
 		};
 	}
 
@@ -71,11 +80,17 @@ namespace Graphics {
 			std::shared_ptr<JarShaderModule> fragmentShaderModule;
 			std::shared_ptr<JarPipeline> pipeline;
 			std::shared_ptr<JarRenderPass> renderPass;
+			std::vector<std::shared_ptr<JarBuffer>> uniformBuffers;
 
 			std::vector<Internal::JarMesh> meshes;
 
+			int frameCounter = 0;
+
+
 			[[nodiscard]] std::shared_ptr<JarShaderModule> createShaderModule(
 					ShaderType shaderType, const std::string& shaderName) const;
+
+			void prepareModelViewProjectionForFrame();
 
 			static std::string readFile(const std::string& filename) {
 				std::ifstream file(filename, std::ios::ate | std::ios::binary);

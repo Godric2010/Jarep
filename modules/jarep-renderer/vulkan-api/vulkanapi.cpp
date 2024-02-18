@@ -190,6 +190,18 @@ namespace Graphics::Vulkan {
 		m_swapchain->Release();
 	}
 
+	uint32_t VulkanSurface::GetSwapchainImageAmount() {
+		uint32_t maxSwapchainImages = m_swapchain->getMaxSwapchainImageCount();
+		return maxSwapchainImages;
+	}
+
+	JarExtent VulkanSurface::GetSurfaceExtent() {
+		JarExtent extent{};
+		extent.Width = m_surfaceExtent.width;
+		extent.Height = m_surfaceExtent.height;
+		return extent;
+	}
+
 	void VulkanSurface::FinalizeSurface(std::shared_ptr<VulkanDevice> device) {
 		auto swapchainSupport = QuerySwapchainSupport(device->getPhysicalDevice());
 
@@ -730,6 +742,10 @@ namespace Graphics::Vulkan {
 	void VulkanCommandBuffer::BindPipeline(std::shared_ptr<JarPipeline> pipeline) {
 		const auto vkPipeline = reinterpret_cast<std::shared_ptr<VulkanGraphicsPipeline>&>(pipeline);
 		vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->getPipeline());
+
+		//	auto const descriptorSets = vkPipeline->getDecscriptorSets();
+		//	vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->getPipelineLayout(), 0, 1,
+		//	                       descriptorSets.data(), 0, nullptr);
 	}
 
 	void VulkanCommandBuffer::BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) {
@@ -742,6 +758,10 @@ namespace Graphics::Vulkan {
 	void VulkanCommandBuffer::BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) {
 		const auto vulkanBuffer = reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(indexBuffer);
 		vkCmdBindIndexBuffer(m_commandBuffer, vulkanBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
+	}
+
+	void VulkanCommandBuffer::BindUniformBuffer(std::shared_ptr<JarBuffer> uniformBuffer) {
+		throw std::runtime_error("Binding uniform buffers is currently not implemented");
 	}
 
 	void VulkanCommandBuffer::Release(VkDevice device) {
@@ -799,6 +819,10 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("Buffer not correctly initialized! All fields must be set!");
 
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
+		if (m_bufferUsageFlags.value() == VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) {
+			return BuildUniformBuffer(vulkanDevice);
+		}
+
 		m_backend->onRegisterNewBuffer();
 		auto size = m_bufferSize.value();
 
@@ -809,8 +833,9 @@ namespace Graphics::Vulkan {
 		             stagingBufferMemory);
 
 		void* stagingData;
+		void* data = const_cast<void*>(m_data.value());
 		vkMapMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, 0, size, 0, &stagingData);
-		memcpy(stagingData, m_data.value(), size);
+		memcpy(stagingData, data, size);
 		vkUnmapMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory);
 
 
@@ -825,7 +850,7 @@ namespace Graphics::Vulkan {
 		vkFreeMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, nullptr);
 
 		auto releasedCallback = [this]() { m_backend->onDestroyBuffer(); };
-		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory, releasedCallback);
+		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory, data, releasedCallback);
 	}
 
 	void VulkanBufferBuilder::createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size,
@@ -914,6 +939,21 @@ namespace Graphics::Vulkan {
 		throw std::runtime_error("Failed to find suitable memory type!");
 	}
 
+	std::shared_ptr<JarBuffer> VulkanBufferBuilder::BuildUniformBuffer(std::shared_ptr<VulkanDevice> vulkanDevice) {
+
+		VkBuffer buffer;
+		VkDeviceMemory bufferMemory;
+
+
+		createBuffer(vulkanDevice, m_bufferSize.value(), m_bufferUsageFlags.value(), m_memoryPropertiesFlags.value(),
+		             buffer, bufferMemory);
+		void* data;
+		vkMapMemory(vulkanDevice->getLogicalDevice(), bufferMemory, 0, m_bufferSize.value(), 0, &data);
+
+		auto releasedCallback = []() {};
+		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory, data, releasedCallback);
+	}
+
 	VulkanBuffer::~VulkanBuffer() = default;
 
 	void VulkanBuffer::Release() {
@@ -923,8 +963,37 @@ namespace Graphics::Vulkan {
 		m_bufferReleasedCallback();
 	}
 
+	void VulkanBuffer::Update(const void* data, size_t bufferSize) {
+		memcpy(m_data, &data, bufferSize);
+	}
+
 
 #pragma endregion VulkanBuffer }
+
+#pragma region VulkanDescriptorSet{
+
+	void VulkanDescriptorSet::CreateDescriptorsFromUniformBuffers(
+			std::vector<std::shared_ptr<VulkanBuffer>> uniformBufferObjects) {
+		throw std::runtime_error("Not implemented yet");
+	}
+
+	void VulkanDescriptorSet::Release() {
+		throw std::runtime_error("Not implemented yet");
+	}
+
+	void VulkanDescriptorSet::createLayout() {
+
+	}
+
+	void VulkanDescriptorSet::createPool() {
+
+	}
+
+	void VulkanDescriptorSet::createSets() {
+
+	}
+
+#pragma endregion VulkanDescriptorSet }
 
 #pragma region VulkanShaderModule {
 
@@ -1133,6 +1202,15 @@ namespace Graphics::Vulkan {
 	}
 
 	VulkanGraphicsPipelineBuilder*
+	VulkanGraphicsPipelineBuilder::SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) {
+		for (auto& uniformBuffer: uniformBuffers) {
+			std::shared_ptr<VulkanBuffer> vulkanBuffer = reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(uniformBuffer);
+			m_uniformBuffers.push_back(vulkanBuffer);
+		}
+		return this;
+	}
+
+	VulkanGraphicsPipelineBuilder*
 	VulkanGraphicsPipelineBuilder::SetColorBlendAttachments(Graphics::ColorBlendAttachment colorBlendAttachment) {
 		VkPipelineColorBlendAttachmentState colorBlendAttachmentState{};
 		colorBlendAttachmentState.colorBlendOp = blendOpMap[colorBlendAttachment.rgbBlendOperation];
@@ -1176,10 +1254,13 @@ namespace Graphics::Vulkan {
 
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
 
+		auto vulkanDescriptorSet = std::make_shared<VulkanDescriptorSet>(vulkanDevice);
+		vulkanDescriptorSet->CreateDescriptorsFromUniformBuffers(m_uniformBuffers);
+
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 0;
-		pipelineLayoutCreateInfo.pSetLayouts = nullptr;
+		pipelineLayoutCreateInfo.setLayoutCount = 1;
+		pipelineLayoutCreateInfo.pSetLayouts = reinterpret_cast<VkDescriptorSetLayout const*>(vulkanDescriptorSet->getDescriptorSetLayout());
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 		pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
@@ -1238,7 +1319,8 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("failed to create graphics pipeline");
 		}
 
-		return std::make_shared<VulkanGraphicsPipeline>(vulkanDevice, m_pipelineLayout, m_pipeline, m_renderPass);
+		return std::make_shared<VulkanGraphicsPipeline>(vulkanDevice, m_pipelineLayout, m_pipeline, m_renderPass,
+		                                                vulkanDescriptorSet);
 	}
 
 	VkColorComponentFlags
