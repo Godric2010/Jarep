@@ -43,6 +43,8 @@ namespace Graphics::Vulkan {
 
 	class VulkanRenderPassBuilder;
 
+	class VulkanGraphicsPipeline;
+
 	class VulkanGraphicsPipelineBuilder;
 
 	class VulkanCommandQueueBuilder;
@@ -280,6 +282,8 @@ namespace Graphics::Vulkan {
 			VkSemaphore m_imageAvailableSemaphore;
 			VkSemaphore m_renderFinishedSemaphore;
 			VkFence m_frameInFlightFence;
+
+			std::shared_ptr<VulkanGraphicsPipeline> m_lastBoundPipeline;
 	};
 
 #pragma endregion VulkanCommandBuffer }
@@ -352,6 +356,7 @@ namespace Graphics::Vulkan {
 			std::optional<VkMemoryPropertyFlags> m_memoryPropertiesFlags;
 			std::optional<size_t> m_bufferSize;
 			std::optional<const void*> m_data;
+			static inline uint32_t nextBufferId = 0;
 
 			void createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size, VkBufferUsageFlags usage,
 			                  VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
@@ -369,11 +374,14 @@ namespace Graphics::Vulkan {
 
 	class VulkanBuffer final : public JarBuffer {
 		public:
-			VulkanBuffer(std::shared_ptr<VulkanDevice>& device, VkBuffer buffer, VkDeviceMemory deviceMemory,
-			             void* data,
-			             const std::function<void()>& bufferReleasedCallback)
-					: m_device(device), m_buffer(buffer), m_bufferMemory(deviceMemory), m_data(data),
-					  m_bufferReleasedCallback(bufferReleasedCallback) {};
+			VulkanBuffer(std::shared_ptr<VulkanDevice>& device, uint32_t bufferId, VkBuffer buffer, size_t bufferSize,
+			             VkDeviceMemory deviceMemory,
+			             void* data, const std::function<void()>& bufferReleasedCallback)
+					: m_device(device), m_buffer(buffer), m_bufferSize(bufferSize), m_bufferMemory(deviceMemory),
+					  m_data(data),
+					  m_bufferReleasedCallback(bufferReleasedCallback), id(bufferId) {
+
+			};
 
 			~VulkanBuffer() override;
 
@@ -383,11 +391,22 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkBuffer getBuffer() const { return m_buffer; }
 
+			[[nodiscard]] size_t getBufferSize() const { return m_bufferSize; }
+
+			uint32_t getBufferId() const { return id; }
+
 		private:
+			// Buffer ID management
+			uint32_t id;
+
+			// Buffer data
 			VkBuffer m_buffer;
 			VkDeviceMemory m_bufferMemory;
+			size_t m_bufferSize;
 			void* m_data;
 			std::shared_ptr<VulkanDevice> m_device;
+
+			// Buffer callbacks
 			std::function<void()> m_bufferReleasedCallback;
 	};
 
@@ -397,29 +416,31 @@ namespace Graphics::Vulkan {
 
 	class VulkanDescriptorSet {
 		public:
-			VulkanDescriptorSet(std::shared_ptr<VulkanDevice>& device) {}
+			VulkanDescriptorSet(std::shared_ptr<VulkanDevice>& device) : m_device(device) {}
 
 			~VulkanDescriptorSet() = default;
 
-			void CreateDescriptorsFromUniformBuffers(std::vector<std::shared_ptr<VulkanBuffer>> uniformBufferObjects);
+			void
+			CreateDescriptorsFromUniformBuffers(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBufferObjects);
 
 			void Release();
 
-			VkDescriptorSet getDescriptorSetAtIndex(size_t index) { return m_descriptorSets[index]; }
+			[[nodiscard]] VkDescriptorSet const* getDescriptorSetOfBufferIndex(uint32_t bufferId);
 
-			const VkDescriptorSetLayout getDescriptorSetLayout() const { return m_descriptorSetLayout; }
+			[[nodiscard]] VkDescriptorSetLayout const* getDescriptorSetLayout() const { return &m_descriptorSetLayout; }
 
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
 			VkDescriptorSetLayout m_descriptorSetLayout;
 			VkDescriptorPool m_descriptorPool;
 			std::vector<VkDescriptorSet> m_descriptorSets;
+			std::unordered_map<uint32_t, size_t> m_bufferIDToDescriptorSetIndexMap;
 
 			void createLayout();
 
-			void createPool();
+			void createPool(size_t size);
 
-			void createSets();
+			void createSets(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers);
 	};
 
 #pragma endregion VulkanDescriptorSet }
@@ -597,8 +618,11 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
 
-			[[nodiscard]] VkDescriptorSet
-			getDecscriptorSetFromIndex(size_t index) const { return m_descriptorSet->getDescriptorSetAtIndex(index); }
+			[[nodiscard]] VkDescriptorSet const*
+			getDecscriptorSetFromBufferIndex(size_t bufferIndex) const {
+				return m_descriptorSet->getDescriptorSetOfBufferIndex(
+						bufferIndex);
+			}
 
 		private:
 			std::shared_ptr<VulkanDevice> m_device;

@@ -742,10 +742,7 @@ namespace Graphics::Vulkan {
 	void VulkanCommandBuffer::BindPipeline(std::shared_ptr<JarPipeline> pipeline) {
 		const auto vkPipeline = reinterpret_cast<std::shared_ptr<VulkanGraphicsPipeline>&>(pipeline);
 		vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->getPipeline());
-
-		//	auto const descriptorSets = vkPipeline->getDecscriptorSets();
-		//	vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->getPipelineLayout(), 0, 1,
-		//	                       descriptorSets.data(), 0, nullptr);
+		m_lastBoundPipeline = vkPipeline;
 	}
 
 	void VulkanCommandBuffer::BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) {
@@ -761,7 +758,14 @@ namespace Graphics::Vulkan {
 	}
 
 	void VulkanCommandBuffer::BindUniformBuffer(std::shared_ptr<JarBuffer> uniformBuffer) {
-		throw std::runtime_error("Binding uniform buffers is currently not implemented");
+		const auto vulkanBuffer = reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(uniformBuffer);
+
+		auto pipelineLayout = m_lastBoundPipeline->getPipelineLayout();
+		auto bufferDescriptorSet = m_lastBoundPipeline->getDecscriptorSetFromBufferIndex(vulkanBuffer->getBufferId());
+
+		vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+		                        bufferDescriptorSet, 0, nullptr);
+
 	}
 
 	void VulkanCommandBuffer::Release(VkDevice device) {
@@ -850,7 +854,9 @@ namespace Graphics::Vulkan {
 		vkFreeMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, nullptr);
 
 		auto releasedCallback = [this]() { m_backend->onDestroyBuffer(); };
-		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory, data, releasedCallback);
+		return std::make_shared<VulkanBuffer>(vulkanDevice, nextBufferId++, buffer, m_bufferSize.value(), bufferMemory,
+		                                      data,
+		                                      releasedCallback);
 	}
 
 	void VulkanBufferBuilder::createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size,
@@ -951,7 +957,9 @@ namespace Graphics::Vulkan {
 		vkMapMemory(vulkanDevice->getLogicalDevice(), bufferMemory, 0, m_bufferSize.value(), 0, &data);
 
 		auto releasedCallback = []() {};
-		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory, data, releasedCallback);
+		return std::make_shared<VulkanBuffer>(vulkanDevice, nextBufferId++, buffer, m_bufferSize.value(), bufferMemory,
+		                                      data,
+		                                      releasedCallback);
 	}
 
 	VulkanBuffer::~VulkanBuffer() = default;
@@ -964,7 +972,8 @@ namespace Graphics::Vulkan {
 	}
 
 	void VulkanBuffer::Update(const void* data, size_t bufferSize) {
-		memcpy(m_data, &data, bufferSize);
+		memcpy(m_data, data, bufferSize);
+		m_bufferSize = bufferSize;
 	}
 
 
@@ -973,23 +982,97 @@ namespace Graphics::Vulkan {
 #pragma region VulkanDescriptorSet{
 
 	void VulkanDescriptorSet::CreateDescriptorsFromUniformBuffers(
-			std::vector<std::shared_ptr<VulkanBuffer>> uniformBufferObjects) {
-		throw std::runtime_error("Not implemented yet");
+			const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBufferObjects) {
+
+		createLayout();
+		createPool(uniformBufferObjects.size());
+		createSets(uniformBufferObjects);
 	}
 
 	void VulkanDescriptorSet::Release() {
-		throw std::runtime_error("Not implemented yet");
+
+		vkDestroyDescriptorPool(m_device->getLogicalDevice(), m_descriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(m_device->getLogicalDevice(), m_descriptorSetLayout, nullptr);
+	}
+
+	const VkDescriptorSet* VulkanDescriptorSet::getDescriptorSetOfBufferIndex(uint32_t bufferId) {
+		size_t descriptorSetIndex = m_bufferIDToDescriptorSetIndexMap[bufferId];
+		return &m_descriptorSets[descriptorSetIndex];
 	}
 
 	void VulkanDescriptorSet::createLayout() {
+		VkDescriptorSetLayoutBinding uboLayoutBinding{};
+		uboLayoutBinding.binding = 0;
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboLayoutBinding.descriptorCount = 1;
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		uboLayoutBinding.pImmutableSamplers = nullptr;
 
+		VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
+		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutCreateInfo.bindingCount = 1;
+		layoutCreateInfo.pBindings = &uboLayoutBinding;
+
+		if (vkCreateDescriptorSetLayout(m_device->getLogicalDevice(), &layoutCreateInfo, nullptr,
+		                                &m_descriptorSetLayout) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create descriptor set layout!");
+		}
 	}
 
-	void VulkanDescriptorSet::createPool() {
+	void VulkanDescriptorSet::createPool(size_t size) {
+		VkDescriptorPoolSize poolSize{};
+		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSize.descriptorCount = static_cast<uint32_t>(size);
 
+		VkDescriptorPoolCreateInfo poolCreateInfo{};
+		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolCreateInfo.poolSizeCount = 1;
+		poolCreateInfo.pPoolSizes = &poolSize;
+		poolCreateInfo.maxSets = static_cast<uint32_t>(size);
+
+		if (vkCreateDescriptorPool(m_device->getLogicalDevice(), &poolCreateInfo, nullptr, &m_descriptorPool) !=
+		    VK_SUCCESS) {
+			throw std::runtime_error("Failed to create descriptor pool!");
+		}
 	}
 
-	void VulkanDescriptorSet::createSets() {
+	void VulkanDescriptorSet::createSets(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers) {
+		std::vector<VkDescriptorSetLayout> layouts(uniformBuffers.size(), m_descriptorSetLayout);
+		VkDescriptorSetAllocateInfo allocateInfo{};
+		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocateInfo.descriptorPool = m_descriptorPool;
+		allocateInfo.descriptorSetCount = static_cast<uint32_t>(uniformBuffers.size());
+		allocateInfo.pSetLayouts = layouts.data();
+
+		m_descriptorSets.resize(uniformBuffers.size());
+		if (vkAllocateDescriptorSets(m_device->getLogicalDevice(), &allocateInfo, m_descriptorSets.data()) !=
+		    VK_SUCCESS) {
+			throw std::runtime_error("Failed to create descriptor sets!");
+		}
+
+		m_bufferIDToDescriptorSetIndexMap = std::unordered_map<uint32_t, size_t>();
+		for (int i = 0; i < uniformBuffers.size(); ++i) {
+			VkDescriptorBufferInfo bufferInfo{};
+			bufferInfo.buffer = uniformBuffers[i]->getBuffer();
+			bufferInfo.offset = 0;
+			bufferInfo.range = uniformBuffers[i]->getBufferSize();
+
+			VkWriteDescriptorSet descriptorWrite{};
+			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite.dstSet = m_descriptorSets[i];
+			descriptorWrite.dstBinding = 0;
+			descriptorWrite.dstArrayElement = 0;
+			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrite.descriptorCount = 1;
+			descriptorWrite.pBufferInfo = &bufferInfo;
+			descriptorWrite.pImageInfo = nullptr;
+			descriptorWrite.pTexelBufferView = nullptr;
+
+			uint32_t bufferId = uniformBuffers[i]->getBufferId();
+			m_bufferIDToDescriptorSetIndexMap.insert({bufferId, i});
+
+			vkUpdateDescriptorSets(m_device->getLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
+		}
 
 	}
 
@@ -1255,12 +1338,20 @@ namespace Graphics::Vulkan {
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
 
 		auto vulkanDescriptorSet = std::make_shared<VulkanDescriptorSet>(vulkanDevice);
-		vulkanDescriptorSet->CreateDescriptorsFromUniformBuffers(m_uniformBuffers);
+		VkDescriptorSetLayout const* descriptorLayouts = nullptr;
+		size_t descriptorCount = 0;
+
+		if (!m_uniformBuffers.empty()) {
+			vulkanDescriptorSet->CreateDescriptorsFromUniformBuffers(m_uniformBuffers);
+			descriptorLayouts = vulkanDescriptorSet->getDescriptorSetLayout();
+			descriptorCount = 1;
+		}
+
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = reinterpret_cast<VkDescriptorSetLayout const*>(vulkanDescriptorSet->getDescriptorSetLayout());
+		pipelineLayoutCreateInfo.setLayoutCount = descriptorCount;
+		pipelineLayoutCreateInfo.pSetLayouts = descriptorLayouts;
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 		pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
@@ -1286,13 +1377,11 @@ namespace Graphics::Vulkan {
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.depthBiasConstantFactor = 0.0f;
 		rasterizer.depthBiasClamp = 0.0f;
 		rasterizer.depthBiasSlopeFactor = 0.0f;
-
-		auto data = m_shaderStages;
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -1348,6 +1437,7 @@ namespace Graphics::Vulkan {
 	void VulkanGraphicsPipeline::Release() {
 
 		m_renderPass->Release();
+		m_descriptorSet->Release();
 		vkDestroyPipelineLayout(m_device->getLogicalDevice(), m_pipelineLayout, nullptr);
 		vkDestroyPipeline(m_device->getLogicalDevice(), m_graphicsPipeline, nullptr);
 	}

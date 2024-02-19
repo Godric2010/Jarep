@@ -25,7 +25,6 @@ namespace Graphics {
 		const auto commandQueueBuilder = backend->InitCommandQueueBuilder();
 		queue = commandQueueBuilder->Build(device);
 
-
 		Internal::JarModelViewProjection mvp{};
 		auto bufferBuilder = backend->InitBufferBuilder()->SetUsageFlags(
 				BufferUsage::UniformBuffer)->SetMemoryProperties(
@@ -122,7 +121,7 @@ namespace Graphics {
 	}
 
 	void JarepGraphics::Render() {
-		frameCounter = (frameCounter + 1) % surface->GetSwapchainImageAmount();
+
 
 		prepareModelViewProjectionForFrame();
 
@@ -130,6 +129,7 @@ namespace Graphics {
 		commandBuffer->StartRecording(surface, renderPass);
 
 		commandBuffer->BindPipeline(pipeline);
+		commandBuffer->BindUniformBuffer(uniformBuffers[frameCounter]);
 
 		for (auto& mesh: meshes) {
 			commandBuffer->BindVertexBuffer(mesh.getVertexBuffer());
@@ -139,6 +139,7 @@ namespace Graphics {
 
 		commandBuffer->EndRecording();
 		commandBuffer->Present(surface, device);
+		frameCounter = (frameCounter + 1) % surface->GetSwapchainImageAmount();
 	}
 
 	void JarepGraphics::Shutdown() {
@@ -172,9 +173,10 @@ namespace Graphics {
 		auto surfaceExtent = surface->GetSurfaceExtent();
 
 		Internal::JarModelViewProjection mvp{};
-		mvp.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		mvp.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		mvp.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		mvp.projection = glm::perspective(glm::radians(45.0f), surfaceExtent.Width / surfaceExtent.Height, 0.1f, 10.0f);
+		mvp.projection = glm::perspective(glm::radians(45.0f), surfaceExtent.Width / surfaceExtent.Height, 0.1f,
+		                                  100.0f);
 
 		mvp.projection[1][1] *= -1;
 
