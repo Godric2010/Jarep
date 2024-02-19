@@ -30,6 +30,8 @@ namespace Graphics {
 
 	class JarSurface;
 
+	class JarDescriptorSet;
+
 	enum ImageFormat {
 		B8G8R8A8_UNORM,
 		D32_SFLOAT,
@@ -115,6 +117,12 @@ namespace Graphics {
 			virtual void Release(std::shared_ptr<JarDevice> device) = 0;
 	};
 
+	struct JarExtent{
+		public:
+			float Width;
+			float Height;
+	};
+
 	class JarSurface {
 		public:
 			virtual ~JarSurface() = default;
@@ -122,6 +130,10 @@ namespace Graphics {
 			virtual void Update() = 0;
 
 			virtual void ReleaseSwapchain() = 0;
+
+			virtual uint32_t GetSwapchainImageAmount() = 0;
+
+			virtual JarExtent GetSurfaceExtent() = 0;
 	};
 
 
@@ -136,13 +148,47 @@ namespace Graphics {
 		TransferDest,
 	};
 
-	enum class MemoryProperties {
-		HostVisible,
-		HostCoherent,
-		HostCached,
-		DeviceLocal,
-		LazilyAllocation,
+	class MemoryProperties {
+		public:
+			enum FlagBits {
+				DeviceLocal = 0x1,
+				HostVisible = 0x2,
+				HostCoherent = 0x4,
+				HostCached = 0x8,
+				LazilyAllocation = 0x10,
+			};
+
+			using BitType = uint32_t;
+			BitType flags;
+
+			MemoryProperties() : flags(0) {}
+
+			MemoryProperties(BitType flag) : flags(flag) {}
+
+			MemoryProperties(std::initializer_list<BitType> flags) : flags(0) {
+				for (auto flag: flags) {
+					this->flags |= flag;
+				}
+			};
+
+			MemoryProperties operator|(MemoryProperties rhs) const {
+				return {static_cast<BitType>(this->flags | rhs.flags)};
+			}
+
+			MemoryProperties& operator|=(MemoryProperties rhs) {
+				this->flags |= rhs.flags;
+				return *this;
+			}
+
+			operator BitType() const { return flags; }
+
+
 	};
+
+	inline MemoryProperties operator|(MemoryProperties::FlagBits lhs, MemoryProperties::FlagBits rhs) {
+		return MemoryProperties(
+				static_cast<MemoryProperties::BitType>(lhs) | static_cast<MemoryProperties::BitType>(rhs));
+	}
 
 	class JarBufferBuilder {
 		public:
@@ -162,6 +208,8 @@ namespace Graphics {
 			virtual ~JarBuffer() = default;
 
 			virtual void Release() = 0;
+
+			virtual void Update(const void* data, size_t bufferSize) = 0;
 	};
 
 #pragma endregion Buffer }
@@ -365,6 +413,8 @@ namespace Graphics {
 
 			virtual JarPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) = 0;
 
+			virtual JarPipelineBuilder* SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) = 0;
+
 			virtual JarPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachments) = 0;
 
 			virtual JarPipelineBuilder* SetDepthStencilState(DepthStencilState depthStencilState) = 0;
@@ -398,7 +448,13 @@ namespace Graphics {
 
 			virtual void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) = 0;
 
+			virtual void BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) = 0;
+
+			virtual void BindUniformBuffer(std::shared_ptr<JarBuffer> uniformBuffer) = 0;
+
 			virtual void Draw() = 0;
+
+			virtual void DrawIndexed(size_t indexAmount) = 0;
 
 			virtual void Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) = 0;
 	};

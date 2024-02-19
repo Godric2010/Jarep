@@ -25,6 +25,8 @@ namespace Graphics::Vulkan {
 		} else {
 			createInstance();
 		}
+
+		m_bufferCount = 0;
 	}
 
 	VulkanBackend::~VulkanBackend() = default;
@@ -43,13 +45,12 @@ namespace Graphics::Vulkan {
 	std::shared_ptr<JarDevice> VulkanBackend::CreateDevice(std::shared_ptr<JarSurface>& surface) {
 		auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
 
-		auto device = std::make_shared<VulkanDevice>();
-		device->CreatePhysicalDevice(instance, vkSurface);
-		device->CreateLogicalDevice();
+		m_device = std::make_shared<VulkanDevice>();
+		m_device->CreatePhysicalDevice(instance, vkSurface);
+		m_device->CreateLogicalDevice();
 
-		vkSurface->FinalizeSurface(device);
-
-		return device;
+		vkSurface->FinalizeSurface(m_device);
+		return m_device;
 	}
 
 	JarShaderModuleBuilder* VulkanBackend::InitShaderModuleBuilder() {
@@ -65,12 +66,31 @@ namespace Graphics::Vulkan {
 	};
 
 	JarBufferBuilder* VulkanBackend::InitBufferBuilder() {
-		return new VulkanBufferBuilder();
+		return new VulkanBufferBuilder(static_cast<std::shared_ptr<VulkanBackend>>(this));
 	}
 
 	JarPipelineBuilder* VulkanBackend::InitPipelineBuilder() {
 		return new VulkanGraphicsPipelineBuilder();
 	}
+
+	std::shared_ptr<VulkanCommandQueue> VulkanBackend::getStagingCommandQueue() {
+		if (m_stagingCommandQueue == nullptr) {
+			auto jarQueue = VulkanCommandQueueBuilder().SetCommandBufferAmount(2)->Build(m_device);
+			m_stagingCommandQueue = reinterpret_cast<std::shared_ptr<VulkanCommandQueue>&>(jarQueue);
+		}
+		return m_stagingCommandQueue;
+	}
+
+	void VulkanBackend::onRegisterNewBuffer() {
+		m_bufferCount++;
+	}
+
+	void VulkanBackend::onDestroyBuffer() {
+		m_bufferCount--;
+		if (m_bufferCount <= 0)
+			m_stagingCommandQueue->Release();
+	}
+
 
 	void VulkanBackend::createInstance() {
 		VkApplicationInfo appInfo{};
@@ -168,6 +188,18 @@ namespace Graphics::Vulkan {
 
 	void VulkanSurface::ReleaseSwapchain() {
 		m_swapchain->Release();
+	}
+
+	uint32_t VulkanSurface::GetSwapchainImageAmount() {
+		uint32_t maxSwapchainImages = m_swapchain->getMaxSwapchainImageCount();
+		return maxSwapchainImages;
+	}
+
+	JarExtent VulkanSurface::GetSurfaceExtent() {
+		JarExtent extent{};
+		extent.Width = m_surfaceExtent.width;
+		extent.Height = m_surfaceExtent.height;
+		return extent;
 	}
 
 	void VulkanSurface::FinalizeSurface(std::shared_ptr<VulkanDevice> device) {
@@ -759,6 +791,10 @@ namespace Graphics::Vulkan {
 		vkCmdDraw(m_commandBuffer, 3, 1, 0, 0);
 	}
 
+	void VulkanCommandBuffer::DrawIndexed(size_t indexAmount) {
+		vkCmdDrawIndexed(m_commandBuffer, indexAmount, 1, 0, 0, 0);
+	}
+
 	void VulkanCommandBuffer::Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) {
 		const auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
 		vkSurface->getSwapchain()->PresentImage(m_imageAvailableSemaphore, m_renderFinishedSemaphore,
@@ -768,6 +804,7 @@ namespace Graphics::Vulkan {
 	void VulkanCommandBuffer::BindPipeline(std::shared_ptr<JarPipeline> pipeline) {
 		const auto vkPipeline = reinterpret_cast<std::shared_ptr<VulkanGraphicsPipeline>&>(pipeline);
 		vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->getPipeline());
+		m_lastBoundPipeline = vkPipeline;
 	}
 
 	void VulkanCommandBuffer::BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) {
@@ -775,6 +812,22 @@ namespace Graphics::Vulkan {
 		const VkBuffer vertexBuffers[] = {vulkanBuffer->getBuffer()};
 		const VkDeviceSize offsets[] = {0};
 		vkCmdBindVertexBuffers(m_commandBuffer, 0, 1, vertexBuffers, offsets);
+	}
+
+	void VulkanCommandBuffer::BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) {
+		const auto vulkanBuffer = reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(indexBuffer);
+		vkCmdBindIndexBuffer(m_commandBuffer, vulkanBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
+	}
+
+	void VulkanCommandBuffer::BindUniformBuffer(std::shared_ptr<JarBuffer> uniformBuffer) {
+		const auto vulkanBuffer = reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(uniformBuffer);
+
+		auto pipelineLayout = m_lastBoundPipeline->getPipelineLayout();
+		auto bufferDescriptorSet = m_lastBoundPipeline->getDecscriptorSetFromBufferIndex(vulkanBuffer->getBufferId());
+
+		vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+		                        bufferDescriptorSet, 0, nullptr);
+
 	}
 
 	void VulkanCommandBuffer::Release(VkDevice device) {
@@ -798,14 +851,6 @@ namespace Graphics::Vulkan {
 			{BufferUsage::TransferDest,  VK_BUFFER_USAGE_TRANSFER_DST_BIT},
 	};
 
-	static std::unordered_map<MemoryProperties, VkMemoryPropertyFlags> memoryPropertiesMap{
-			{MemoryProperties::HostVisible,      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT},
-			{MemoryProperties::HostCoherent,     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT},
-			{MemoryProperties::HostCached,       VK_MEMORY_PROPERTY_HOST_CACHED_BIT},
-			{MemoryProperties::DeviceLocal,      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
-			{MemoryProperties::LazilyAllocation, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT},
-	};
-
 	VulkanBufferBuilder::~VulkanBufferBuilder() = default;
 
 	VulkanBufferBuilder* VulkanBufferBuilder::SetUsageFlags(Graphics::BufferUsage usageFlags) {
@@ -814,7 +859,16 @@ namespace Graphics::Vulkan {
 	}
 
 	VulkanBufferBuilder* VulkanBufferBuilder::SetMemoryProperties(Graphics::MemoryProperties memProps) {
-		m_memoryPropertiesFlags = std::make_optional<VkMemoryPropertyFlags>(memoryPropertiesMap[memProps]);
+
+		VkMemoryPropertyFlags vkFlags = 0;
+
+		if (memProps.flags & MemoryProperties::DeviceLocal) vkFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		if (memProps.flags & MemoryProperties::HostVisible) vkFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		if (memProps.flags & MemoryProperties::HostCoherent) vkFlags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		if (memProps.flags & MemoryProperties::HostCached) vkFlags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+		if (memProps.flags & MemoryProperties::LazilyAllocation) vkFlags |= VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+
+		m_memoryPropertiesFlags = std::make_optional(vkFlags);
 		return this;
 	}
 
@@ -831,14 +885,52 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("Buffer not correctly initialized! All fields must be set!");
 
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
+		if (m_bufferUsageFlags.value() == VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) {
+			return BuildUniformBuffer(vulkanDevice);
+		}
 
-		VkBufferCreateInfo bufferInfo = {};
-		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bufferInfo.size = m_bufferSize.value();
-		bufferInfo.usage = m_bufferUsageFlags.value();
-		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		m_backend->onRegisterNewBuffer();
+		auto size = m_bufferSize.value();
+
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		createBuffer(vulkanDevice, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
+		             stagingBufferMemory);
+
+		void* stagingData;
+		void* data = const_cast<void*>(m_data.value());
+		vkMapMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, 0, size, 0, &stagingData);
+		memcpy(stagingData, data, size);
+		vkUnmapMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory);
+
 
 		VkBuffer buffer;
+		VkDeviceMemory bufferMemory;
+		createBuffer(vulkanDevice, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | m_bufferUsageFlags.value(),
+		             m_memoryPropertiesFlags.value(), buffer, bufferMemory);
+
+		copyBuffer(vulkanDevice, stagingBuffer, buffer, size);
+
+		vkDestroyBuffer(vulkanDevice->getLogicalDevice(), stagingBuffer, nullptr);
+		vkFreeMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, nullptr);
+
+		auto releasedCallback = [this]() { m_backend->onDestroyBuffer(); };
+		return std::make_shared<VulkanBuffer>(vulkanDevice, nextBufferId++, buffer, m_bufferSize.value(), bufferMemory,
+		                                      data,
+		                                      releasedCallback);
+	}
+
+	void VulkanBufferBuilder::createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size,
+	                                       VkBufferUsageFlags usage,
+	                                       VkMemoryPropertyFlags properties, VkBuffer& buffer,
+	                                       VkDeviceMemory& bufferMemory) {
+		VkBufferCreateInfo bufferInfo = {};
+		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufferInfo.size = size;
+		bufferInfo.usage = usage;
+		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
 		if (vkCreateBuffer(vulkanDevice->getLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create vertex buffer!");
 		}
@@ -850,21 +942,56 @@ namespace Graphics::Vulkan {
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memoryRequirements.size;
 		allocInfo.memoryTypeIndex = findMemoryType(vulkanDevice->getPhysicalDevice(), memoryRequirements.memoryTypeBits,
-		                                           m_memoryPropertiesFlags.value());
+		                                           properties);
 
-		VkDeviceMemory bufferMemory;
+
 		if (vkAllocateMemory(vulkanDevice->getLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to allocate vertex buffer memory!");
 		}
 
 		vkBindBufferMemory(vulkanDevice->getLogicalDevice(), buffer, bufferMemory, 0);
+	}
 
-		void* mappedData;
-		vkMapMemory(vulkanDevice->getLogicalDevice(), bufferMemory, 0, m_bufferSize.value(), 0, &mappedData);
-		memcpy(mappedData, m_data.value(), m_bufferSize.value());
-		vkUnmapMemory(vulkanDevice->getLogicalDevice(), bufferMemory);
+	void
+	VulkanBufferBuilder::copyBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer srcBuffer, VkBuffer dstBuffer,
+	                                VkDeviceSize size) {
 
-		return std::make_shared<VulkanBuffer>(vulkanDevice, buffer, bufferMemory);
+		auto vulkanCommandPool = m_backend->getStagingCommandQueue();
+
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandPool = vulkanCommandPool->getCommandPool();
+		allocInfo.commandBufferCount = 1;
+
+		VkQueue graphicsQueue;
+		vkGetDeviceQueue(vulkanDevice->getLogicalDevice(), vulkanDevice->getGraphicsFamilyIndex().value(), 0,
+		                 &graphicsQueue);
+
+		VkCommandBuffer commandBuffer;
+		vkAllocateCommandBuffers(vulkanDevice->getLogicalDevice(), &allocInfo, &commandBuffer);
+
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+		vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+		VkBufferCopy copyRegion{};
+		copyRegion.size = size;
+		vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+		vkEndCommandBuffer(commandBuffer);
+
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(graphicsQueue);
+
+		vkFreeCommandBuffers(vulkanDevice->getLogicalDevice(), vulkanCommandPool->getCommandPool(), 1, &commandBuffer);
 	}
 
 	uint32_t VulkanBufferBuilder::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
@@ -880,15 +1007,138 @@ namespace Graphics::Vulkan {
 		throw std::runtime_error("Failed to find suitable memory type!");
 	}
 
+	std::shared_ptr<JarBuffer> VulkanBufferBuilder::BuildUniformBuffer(std::shared_ptr<VulkanDevice> vulkanDevice) {
+
+		VkBuffer buffer;
+		VkDeviceMemory bufferMemory;
+
+
+		createBuffer(vulkanDevice, m_bufferSize.value(), m_bufferUsageFlags.value(), m_memoryPropertiesFlags.value(),
+		             buffer, bufferMemory);
+		void* data;
+		vkMapMemory(vulkanDevice->getLogicalDevice(), bufferMemory, 0, m_bufferSize.value(), 0, &data);
+
+		auto releasedCallback = []() {};
+		return std::make_shared<VulkanBuffer>(vulkanDevice, nextBufferId++, buffer, m_bufferSize.value(), bufferMemory,
+		                                      data,
+		                                      releasedCallback);
+	}
+
 	VulkanBuffer::~VulkanBuffer() = default;
 
 	void VulkanBuffer::Release() {
 		vkFreeMemory(m_device->getLogicalDevice(), m_bufferMemory, nullptr);
 		vkDestroyBuffer(m_device->getLogicalDevice(), m_buffer, nullptr);
+
+		m_bufferReleasedCallback();
+	}
+
+	void VulkanBuffer::Update(const void* data, size_t bufferSize) {
+		memcpy(m_data, data, bufferSize);
+		m_bufferSize = bufferSize;
 	}
 
 
 #pragma endregion VulkanBuffer }
+
+#pragma region VulkanDescriptorSet{
+
+	void VulkanDescriptorSet::CreateDescriptorsFromUniformBuffers(
+			const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBufferObjects) {
+
+		createLayout();
+		createPool(uniformBufferObjects.size());
+		createSets(uniformBufferObjects);
+	}
+
+	void VulkanDescriptorSet::Release() {
+
+		vkDestroyDescriptorPool(m_device->getLogicalDevice(), m_descriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(m_device->getLogicalDevice(), m_descriptorSetLayout, nullptr);
+	}
+
+	const VkDescriptorSet* VulkanDescriptorSet::getDescriptorSetOfBufferIndex(uint32_t bufferId) {
+		size_t descriptorSetIndex = m_bufferIDToDescriptorSetIndexMap[bufferId];
+		return &m_descriptorSets[descriptorSetIndex];
+	}
+
+	void VulkanDescriptorSet::createLayout() {
+		VkDescriptorSetLayoutBinding uboLayoutBinding{};
+		uboLayoutBinding.binding = 0;
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboLayoutBinding.descriptorCount = 1;
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		uboLayoutBinding.pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
+		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutCreateInfo.bindingCount = 1;
+		layoutCreateInfo.pBindings = &uboLayoutBinding;
+
+		if (vkCreateDescriptorSetLayout(m_device->getLogicalDevice(), &layoutCreateInfo, nullptr,
+		                                &m_descriptorSetLayout) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create descriptor set layout!");
+		}
+	}
+
+	void VulkanDescriptorSet::createPool(size_t size) {
+		VkDescriptorPoolSize poolSize{};
+		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSize.descriptorCount = static_cast<uint32_t>(size);
+
+		VkDescriptorPoolCreateInfo poolCreateInfo{};
+		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolCreateInfo.poolSizeCount = 1;
+		poolCreateInfo.pPoolSizes = &poolSize;
+		poolCreateInfo.maxSets = static_cast<uint32_t>(size);
+
+		if (vkCreateDescriptorPool(m_device->getLogicalDevice(), &poolCreateInfo, nullptr, &m_descriptorPool) !=
+		    VK_SUCCESS) {
+			throw std::runtime_error("Failed to create descriptor pool!");
+		}
+	}
+
+	void VulkanDescriptorSet::createSets(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers) {
+		std::vector<VkDescriptorSetLayout> layouts(uniformBuffers.size(), m_descriptorSetLayout);
+		VkDescriptorSetAllocateInfo allocateInfo{};
+		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocateInfo.descriptorPool = m_descriptorPool;
+		allocateInfo.descriptorSetCount = static_cast<uint32_t>(uniformBuffers.size());
+		allocateInfo.pSetLayouts = layouts.data();
+
+		m_descriptorSets.resize(uniformBuffers.size());
+		if (vkAllocateDescriptorSets(m_device->getLogicalDevice(), &allocateInfo, m_descriptorSets.data()) !=
+		    VK_SUCCESS) {
+			throw std::runtime_error("Failed to create descriptor sets!");
+		}
+
+		m_bufferIDToDescriptorSetIndexMap = std::unordered_map<uint32_t, size_t>();
+		for (int i = 0; i < uniformBuffers.size(); ++i) {
+			VkDescriptorBufferInfo bufferInfo{};
+			bufferInfo.buffer = uniformBuffers[i]->getBuffer();
+			bufferInfo.offset = 0;
+			bufferInfo.range = uniformBuffers[i]->getBufferSize();
+
+			VkWriteDescriptorSet descriptorWrite{};
+			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite.dstSet = m_descriptorSets[i];
+			descriptorWrite.dstBinding = 0;
+			descriptorWrite.dstArrayElement = 0;
+			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrite.descriptorCount = 1;
+			descriptorWrite.pBufferInfo = &bufferInfo;
+			descriptorWrite.pImageInfo = nullptr;
+			descriptorWrite.pTexelBufferView = nullptr;
+
+			uint32_t bufferId = uniformBuffers[i]->getBufferId();
+			m_bufferIDToDescriptorSetIndexMap.insert({bufferId, i});
+
+			vkUpdateDescriptorSets(m_device->getLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
+		}
+
+	}
+
+#pragma endregion VulkanDescriptorSet }
 
 #pragma region VulkanShaderModule {
 
@@ -1119,6 +1369,15 @@ namespace Graphics::Vulkan {
 	}
 
 	VulkanGraphicsPipelineBuilder*
+	VulkanGraphicsPipelineBuilder::SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) {
+		for (auto& uniformBuffer: uniformBuffers) {
+			std::shared_ptr<VulkanBuffer> vulkanBuffer = reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(uniformBuffer);
+			m_uniformBuffers.push_back(vulkanBuffer);
+		}
+		return this;
+	}
+
+	VulkanGraphicsPipelineBuilder*
 	VulkanGraphicsPipelineBuilder::SetColorBlendAttachments(Graphics::ColorBlendAttachment colorBlendAttachment) {
 		VkPipelineColorBlendAttachmentState colorBlendAttachmentState{};
 		colorBlendAttachmentState.colorBlendOp = blendOpMap[colorBlendAttachment.rgbBlendOperation];
@@ -1178,10 +1437,21 @@ namespace Graphics::Vulkan {
 
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
 
+		auto vulkanDescriptorSet = std::make_shared<VulkanDescriptorSet>(vulkanDevice);
+		VkDescriptorSetLayout const* descriptorLayouts = nullptr;
+		size_t descriptorCount = 0;
+
+		if (!m_uniformBuffers.empty()) {
+			vulkanDescriptorSet->CreateDescriptorsFromUniformBuffers(m_uniformBuffers);
+			descriptorLayouts = vulkanDescriptorSet->getDescriptorSetLayout();
+			descriptorCount = 1;
+		}
+
+
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 0;
-		pipelineLayoutCreateInfo.pSetLayouts = nullptr;
+		pipelineLayoutCreateInfo.setLayoutCount = descriptorCount;
+		pipelineLayoutCreateInfo.pSetLayouts = descriptorLayouts;
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 		pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
@@ -1207,7 +1477,7 @@ namespace Graphics::Vulkan {
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.depthBiasConstantFactor = 0.0f;
 		rasterizer.depthBiasClamp = 0.0f;
@@ -1240,7 +1510,8 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("failed to create graphics pipeline");
 		}
 
-		return std::make_shared<VulkanGraphicsPipeline>(vulkanDevice, m_pipelineLayout, m_pipeline, m_renderPass);
+		return std::make_shared<VulkanGraphicsPipeline>(vulkanDevice, m_pipelineLayout, m_pipeline, m_renderPass,
+		                                                vulkanDescriptorSet);
 	}
 
 	VkColorComponentFlags
@@ -1268,6 +1539,7 @@ namespace Graphics::Vulkan {
 	void VulkanGraphicsPipeline::Release() {
 
 		m_renderPass->Release();
+		m_descriptorSet->Release();
 		vkDestroyPipelineLayout(m_device->getLogicalDevice(), m_pipelineLayout, nullptr);
 		vkDestroyPipeline(m_device->getLogicalDevice(), m_graphicsPipeline, nullptr);
 	}

@@ -37,6 +37,8 @@ namespace Core::Window {
 
 			void SetDisplayOpts(int displayIndex, int resolutionIndex, int refreshRateIndex) override;
 
+			[[nodiscard]] std::shared_ptr<Graphics::JarepGraphics> getRenderer() const override;
+
 		private:
 			SDL_Window* window;
 			std::vector<DisplayOpts> displayModes;
@@ -51,7 +53,7 @@ namespace Core::Window {
 
 			[[nodiscard]] std::vector<const char*> getVulkanWindowExtensionsCStr() const;
 
-			std::unique_ptr<Graphics::JarepGraphics> renderer;
+			std::shared_ptr<Graphics::JarepGraphics> renderer;
 	};
 }
 

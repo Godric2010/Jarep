@@ -43,6 +43,8 @@ namespace Graphics::Vulkan {
 
 	class VulkanRenderPassBuilder;
 
+	class VulkanGraphicsPipeline;
+
 	class VulkanGraphicsPipelineBuilder;
 
 	class VulkanCommandQueueBuilder;
@@ -50,6 +52,8 @@ namespace Graphics::Vulkan {
 	class VulkanShaderModuleBuilder;
 
 	class VulkanBufferBuilder;
+
+	class VulkanCommandQueue;
 
 #pragma region VulkanBackend{
 
@@ -73,11 +77,24 @@ namespace Graphics::Vulkan {
 
 			JarPipelineBuilder* InitPipelineBuilder() override;
 
+			// Staging Buffer CommandPool management
+			void onRegisterNewBuffer();
+
+			void onDestroyBuffer();
+
+			std::shared_ptr<VulkanCommandQueue> getStagingCommandQueue();
+
 		private:
 			std::vector<const char*> extensionNames;
 			std::vector<const char*> validationLayers;
 			VkInstance instance{};
 			VkDebugUtilsMessengerEXT debugMessenger;
+
+			std::shared_ptr<VulkanDevice> m_device;
+
+			// Staging command pool management;
+			std::shared_ptr<VulkanCommandQueue> m_stagingCommandQueue;
+			uint32_t m_bufferCount;
 
 			void createInstance();
 
@@ -110,6 +127,10 @@ namespace Graphics::Vulkan {
 			void Update() override;
 
 			void ReleaseSwapchain() override;
+
+			uint32_t GetSwapchainImageAmount() override;
+
+			JarExtent GetSurfaceExtent() override;
 
 			void FinalizeSurface(std::shared_ptr<VulkanDevice> device);
 
@@ -174,23 +195,6 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanSwapchain{
 
-	class VulkanDepthStencilImage {
-		public:
-			VulkanDepthStencilImage() = default;
-
-			~VulkanDepthStencilImage() = default;
-
-			void Create(std::shared_ptr<VulkanDevice> device, VkFormat format, VkExtent2D imageExtent);
-
-			void Release();
-
-		private:
-			std::shared_ptr<VulkanDevice> m_device;
-			VkImage m_depthImage;
-			VkDeviceMemory m_depthImageMemory;
-			VkImageView m_depthImageView;
-	};
-
 	class VulkanSwapchain {
 		public:
 			VulkanSwapchain() = default;
@@ -214,6 +218,8 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] uint32_t getCurrentImageIndex() const { return m_currentImageIndex; }
 
+			[[nodiscard]] uint32_t getMaxSwapchainImageCount() const { return m_swapchainMaxImageCount; }
+
 		private:
 			VkExtent2D m_imageExtent;
 			VkQueue m_graphicsQueue;
@@ -222,7 +228,6 @@ namespace Graphics::Vulkan {
 			VkSwapchainKHR m_swapchain;
 			std::vector<VkImage> m_swapchainImages;
 			std::vector<VkImageView> m_swapchainImageViews;
-			std::optional<VulkanDepthStencilImage> m_depthStencilImage;
 			uint32_t m_currentImageIndex;
 			uint32_t m_swapchainMaxImageCount;
 
@@ -260,7 +265,13 @@ namespace Graphics::Vulkan {
 
 			void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
 
+			void BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) override;
+
+			void BindUniformBuffer(std::shared_ptr<JarBuffer> uniformBuffer) override;
+
 			void Draw() override;
+
+			void DrawIndexed(size_t indexAmount) override;
 
 			void Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) override;
 
@@ -271,6 +282,8 @@ namespace Graphics::Vulkan {
 			VkSemaphore m_imageAvailableSemaphore;
 			VkSemaphore m_renderFinishedSemaphore;
 			VkFence m_frameInFlightFence;
+
+			std::shared_ptr<VulkanGraphicsPipeline> m_lastBoundPipeline;
 	};
 
 #pragma endregion VulkanCommandBuffer }
@@ -306,6 +319,8 @@ namespace Graphics::Vulkan {
 
 			JarCommandBuffer* getNextCommandBuffer() override;
 
+			VkCommandPool getCommandPool() { return m_commandPool; }
+
 			void Release() override;
 
 		private:
@@ -323,7 +338,7 @@ namespace Graphics::Vulkan {
 	class VulkanBufferBuilder final : public JarBufferBuilder {
 
 		public:
-			VulkanBufferBuilder() = default;
+			VulkanBufferBuilder(std::shared_ptr<VulkanBackend> backend) : m_backend(backend) {}
 
 			~VulkanBufferBuilder() override;
 
@@ -336,35 +351,99 @@ namespace Graphics::Vulkan {
 			std::shared_ptr<JarBuffer> Build(std::shared_ptr<JarDevice> device) override;
 
 		private:
+			std::shared_ptr<VulkanBackend> m_backend;
 			std::optional<VkBufferUsageFlags> m_bufferUsageFlags;
 			std::optional<VkMemoryPropertyFlags> m_memoryPropertiesFlags;
 			std::optional<size_t> m_bufferSize;
 			std::optional<const void*> m_data;
+			static inline uint32_t nextBufferId = 0;
+
+			void createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size, VkBufferUsageFlags usage,
+			                  VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
+			void copyBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer srcBuffer, VkBuffer dstBuffer,
+			                VkDeviceSize size);
 
 			static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
 			                               VkMemoryPropertyFlags properties);
+
+			std::shared_ptr<JarBuffer> BuildUniformBuffer(std::shared_ptr<VulkanDevice> vulkanDevice);
+
 	};
 
 
 	class VulkanBuffer final : public JarBuffer {
 		public:
-			VulkanBuffer(std::shared_ptr<VulkanDevice>& device, VkBuffer buffer, VkDeviceMemory deviceMemory)
-					: m_device(
-					device), m_buffer(buffer), m_bufferMemory(deviceMemory) {};
+			VulkanBuffer(std::shared_ptr<VulkanDevice>& device, uint32_t bufferId, VkBuffer buffer, size_t bufferSize,
+			             VkDeviceMemory deviceMemory,
+			             void* data, const std::function<void()>& bufferReleasedCallback)
+					: m_device(device), m_buffer(buffer), m_bufferSize(bufferSize), m_bufferMemory(deviceMemory),
+					  m_data(data),
+					  m_bufferReleasedCallback(bufferReleasedCallback), id(bufferId) {
+
+			};
 
 			~VulkanBuffer() override;
 
 			void Release() override;
 
+			void Update(const void* data, size_t bufferSize) override;
+
 			[[nodiscard]] VkBuffer getBuffer() const { return m_buffer; }
 
+			[[nodiscard]] size_t getBufferSize() const { return m_bufferSize; }
+
+			uint32_t getBufferId() const { return id; }
+
 		private:
+			// Buffer ID management
+			uint32_t id;
+
+			// Buffer data
 			VkBuffer m_buffer;
 			VkDeviceMemory m_bufferMemory;
+			size_t m_bufferSize;
+			void* m_data;
 			std::shared_ptr<VulkanDevice> m_device;
+
+			// Buffer callbacks
+			std::function<void()> m_bufferReleasedCallback;
 	};
 
 #pragma endregion VulkanBuffer }
+
+#pragma region VulkanDescriptorSet{
+
+	class VulkanDescriptorSet {
+		public:
+			VulkanDescriptorSet(std::shared_ptr<VulkanDevice>& device) : m_device(device) {}
+
+			~VulkanDescriptorSet() = default;
+
+			void
+			CreateDescriptorsFromUniformBuffers(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBufferObjects);
+
+			void Release();
+
+			[[nodiscard]] VkDescriptorSet const* getDescriptorSetOfBufferIndex(uint32_t bufferId);
+
+			[[nodiscard]] VkDescriptorSetLayout const* getDescriptorSetLayout() const { return &m_descriptorSetLayout; }
+
+		private:
+			std::shared_ptr<VulkanDevice> m_device;
+			VkDescriptorSetLayout m_descriptorSetLayout;
+			VkDescriptorPool m_descriptorPool;
+			std::vector<VkDescriptorSet> m_descriptorSets;
+			std::unordered_map<uint32_t, size_t> m_bufferIDToDescriptorSetIndexMap;
+
+			void createLayout();
+
+			void createPool(size_t size);
+
+			void createSets(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers);
+	};
+
+#pragma endregion VulkanDescriptorSet }
 
 #pragma region VulkanShaderModule{
 
@@ -446,8 +525,6 @@ namespace Graphics::Vulkan {
 
 			VulkanRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) override;
 
-			VulkanRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) override;
-
 			std::shared_ptr<JarRenderPass>
 			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) override;
 
@@ -455,21 +532,14 @@ namespace Graphics::Vulkan {
 			std::optional<VkAttachmentDescription> m_colorAttachment;
 			std::optional<VkAttachmentReference> m_colorAttachmentRef;
 
-			std::optional<VkAttachmentDescription> m_depthStencilAttachment;
-			std::optional<VkAttachmentReference> m_depthStencilAttachmentRef;
-			std::optional<VkFormat> m_depthImageFormat;
-			bool m_stencilTestEnabled;
-
 
 	};
 
 	class VulkanRenderPass final : public JarRenderPass {
 		public:
-			VulkanRenderPass(std::shared_ptr<VulkanDevice>& device, VkRenderPass renderPass,
-			                 std::optional<VkFormat> depthImageFormat,
-			                 bool stencilTestEnabled)
-					: m_device(device), m_renderPass(renderPass), m_depthImageFormat(depthImageFormat),
-					  m_stencilTestEnabled(stencilTestEnabled) {};
+			VulkanRenderPass(std::shared_ptr<VulkanDevice>& device, VkRenderPass renderPass) : m_device(device),
+			                                                                                   m_renderPass(
+					                                                                                   renderPass) {};
 
 			~VulkanRenderPass() override;
 
@@ -477,17 +547,9 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkRenderPass getRenderPass() const { return m_renderPass; }
 
-			bool depthTestEnabled() const { return m_depthImageFormat.has_value(); }
-
-			VkFormat getDepthImageFormat() const { return m_depthImageFormat.value(); }
-
-			bool stencilTestEnabled() const { return m_stencilTestEnabled; }
-
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
 			VkRenderPass m_renderPass;
-			std::optional<VkFormat> m_depthImageFormat;
-			bool m_stencilTestEnabled;
 	};
 
 #pragma endregion VulkanRenderPass }
@@ -510,6 +572,9 @@ namespace Graphics::Vulkan {
 
 			VulkanGraphicsPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) override;
 
+			VulkanGraphicsPipelineBuilder*
+			SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) override;
+
 			VulkanGraphicsPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachment) override;
 
 			VulkanGraphicsPipelineBuilder* SetDepthStencilState(DepthStencilState depthStencilState) override;
@@ -526,6 +591,7 @@ namespace Graphics::Vulkan {
 			std::vector<VkPipelineColorBlendAttachmentState> m_colorBlendAttachmentStates;
 			std::optional<VkPipelineColorBlendStateCreateInfo> m_colorBlend;
 			std::optional<VkPipelineDepthStencilStateCreateInfo> m_depthStencil;
+			std::vector<std::shared_ptr<VulkanBuffer>> m_uniformBuffers;
 			std::shared_ptr<VulkanRenderPass> m_renderPass;
 			VkPipelineLayout m_pipelineLayout;
 			VkPipeline m_pipeline;
@@ -537,8 +603,10 @@ namespace Graphics::Vulkan {
 	class VulkanGraphicsPipeline final : public JarPipeline {
 		public:
 			VulkanGraphicsPipeline(std::shared_ptr<VulkanDevice>& device, VkPipelineLayout pipelineLayout,
-			                       VkPipeline pipeline, std::shared_ptr<VulkanRenderPass>& renderPass) : m_device(
-					device), m_pipelineLayout(pipelineLayout), m_graphicsPipeline(pipeline), m_renderPass(renderPass) {}
+			                       VkPipeline pipeline, std::shared_ptr<VulkanRenderPass>& renderPass,
+			                       std::shared_ptr<VulkanDescriptorSet> descriptorSet) :
+					m_device(device), m_pipelineLayout(pipelineLayout), m_graphicsPipeline(pipeline),
+					m_renderPass(renderPass), m_descriptorSet(std::move(descriptorSet)) {}
 
 			~VulkanGraphicsPipeline() override;
 
@@ -548,11 +616,20 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkPipeline getPipeline() const { return m_graphicsPipeline; }
 
+			[[nodiscard]] VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
+
+			[[nodiscard]] VkDescriptorSet const*
+			getDecscriptorSetFromBufferIndex(size_t bufferIndex) const {
+				return m_descriptorSet->getDescriptorSetOfBufferIndex(
+						bufferIndex);
+			}
+
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
 			VkPipelineLayout m_pipelineLayout;
 			VkPipeline m_graphicsPipeline;
 			std::shared_ptr<VulkanRenderPass> m_renderPass;
+			std::shared_ptr<VulkanDescriptorSet> m_descriptorSet;
 	};
 
 #pragma endregion VulkanGraphicsPipeline };

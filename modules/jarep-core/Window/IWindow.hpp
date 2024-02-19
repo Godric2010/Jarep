@@ -68,6 +68,8 @@ namespace Core::Window {
 			virtual void Update() = 0;
 
 			virtual void Shutdown() = 0;
+
+			[[nodiscard]] virtual std::shared_ptr<Graphics::JarepGraphics> getRenderer() const = 0;
 	};
 
 }
