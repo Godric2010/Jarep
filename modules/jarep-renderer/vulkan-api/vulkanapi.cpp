@@ -1002,7 +1002,7 @@ namespace Graphics::Vulkan {
 
 	void VulkanDescriptorSet::createLayout() {
 		VkDescriptorSetLayoutBinding uboLayoutBinding{};
-		uboLayoutBinding.binding = 0;
+		uboLayoutBinding.binding = 1;
 		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		uboLayoutBinding.descriptorCount = 1;
 		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -1060,7 +1060,7 @@ namespace Graphics::Vulkan {
 			VkWriteDescriptorSet descriptorWrite{};
 			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrite.dstSet = m_descriptorSets[i];
-			descriptorWrite.dstBinding = 0;
+			descriptorWrite.dstBinding = 1;
 			descriptorWrite.dstArrayElement = 0;
 			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			descriptorWrite.descriptorCount = 1;

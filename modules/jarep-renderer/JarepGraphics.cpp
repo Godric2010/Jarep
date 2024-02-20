@@ -26,6 +26,7 @@ namespace Graphics {
 		queue = commandQueueBuilder->Build(device);
 
 		Internal::JarModelViewProjection mvp{};
+		mvp.model = glm::rotate(glm::mat4(1.0f), glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		auto bufferBuilder = backend->InitBufferBuilder()->SetUsageFlags(
 				BufferUsage::UniformBuffer)->SetMemoryProperties(
 				MemoryProperties::HostVisible | MemoryProperties::HostCoherent)->SetBufferData(
@@ -191,7 +192,7 @@ namespace Graphics {
 		mvp.projection = glm::perspective(glm::radians(45.0f), surfaceExtent.Width / surfaceExtent.Height, 0.1f,
 		                                  100.0f);
 
-		mvp.projection[1][1] *= -1;
+		//mvp.projection[1][1] *= -1;
 
 		uniformBuffers[frameCounter]->Update(&mvp, sizeof(Internal::JarModelViewProjection));
 	}

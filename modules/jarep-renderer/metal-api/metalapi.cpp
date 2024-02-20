@@ -22,11 +22,11 @@ namespace Graphics::Metal {
 		return metalSurface;
 	}
 
-	std::shared_ptr<JarDevice> MetalBackend::CreateDevice(std::shared_ptr<JarSurface>&surface) {
+	std::shared_ptr<JarDevice> MetalBackend::CreateDevice(std::shared_ptr<JarSurface>& surface) {
 		auto metalDevice = std::make_shared<MetalDevice>();
 		metalDevice->Initialize();
 
-		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface> &>(surface);
+		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
 		metalSurface->FinalizeSurface(metalDevice->getDevice().value());
 
 		return metalDevice;
@@ -63,7 +63,7 @@ namespace Graphics::Metal {
 
 
 	bool MetalSurface::CreateFromNativeWindowProvider(NativeWindowHandleProvider* windowHandleProvider) {
-		window = static_cast<NS::Window *>(windowHandleProvider->getNativeWindowHandle());
+		window = static_cast<NS::Window*>(windowHandleProvider->getNativeWindowHandle());
 
 
 		surfaceRect = CGRectMake(0, 0, windowHandleProvider->getWindowWidth(),
@@ -74,8 +74,21 @@ namespace Graphics::Metal {
 	void MetalSurface::Update() {
 	}
 
+	void MetalSurface::ReleaseSwapchain() {
+
+	}
+
+	uint32_t MetalSurface::GetSwapchainImageAmount() {
+		return maxSwapchainImageCount;
+	}
+
+	JarExtent MetalSurface::GetSurfaceExtent() {
+		return JarExtent{static_cast<float>(surfaceRect.size.width), static_cast<float>(surfaceRect.size.height)};
+	}
+
 	void MetalSurface::FinalizeSurface(MTL::Device* device) {
-		Graphics::Metal::SDLSurfaceAdapter::CreateViewAndMetalLayer(surfaceRect, &contentView, &layer);
+		Graphics::Metal::SDLSurfaceAdapter::CreateViewAndMetalLayer(surfaceRect, &contentView, &layer,
+		                                                            &maxSwapchainImageCount);
 
 		if (contentView == nullptr)
 			throw std::runtime_error("Expected NS::View* to be not nullptr!");
@@ -100,7 +113,7 @@ namespace Graphics::Metal {
 		_device = std::make_optional(MTL::CreateSystemDefaultDevice());
 	}
 
-	std::optional<MTL::Device *> MetalDevice::getDevice() const {
+	std::optional<MTL::Device*> MetalDevice::getDevice() const {
 		return _device;
 	}
 
@@ -121,7 +134,7 @@ namespace Graphics::Metal {
 	}
 
 	std::shared_ptr<JarCommandQueue> MetalCommandQueueBuilder::Build(std::shared_ptr<JarDevice> device) {
-		const auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice> &>(device);
+		const auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
 
 		uint32_t commandBuffersCount;
 		if (m_amountOfCommandBuffers.has_value())
@@ -152,8 +165,8 @@ namespace Graphics::Metal {
 
 	void
 	MetalCommandBuffer::StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) {
-		const auto metalRenderPass = reinterpret_cast<std::shared_ptr<MetalRenderPass> &>(renderPass);
-		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface> &>(surface);
+		const auto metalRenderPass = reinterpret_cast<std::shared_ptr<MetalRenderPass>&>(renderPass);
+		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
 
 		auto renderPassDesc = metalRenderPass->getRenderPassDesc();
 		renderPassDesc->colorAttachments()->object(0)->setTexture(metalSurface->acquireNewDrawTexture());
@@ -165,21 +178,36 @@ namespace Graphics::Metal {
 	}
 
 	void MetalCommandBuffer::BindPipeline(std::shared_ptr<Graphics::JarPipeline> pipeline) {
-		auto metalPipeline = reinterpret_cast<MetalPipeline *>(pipeline.get());
+		auto metalPipeline = reinterpret_cast<MetalPipeline*>(pipeline.get());
 		encoder->setRenderPipelineState(metalPipeline->getPSO());
 	}
 
 	void MetalCommandBuffer::BindVertexBuffer(std::shared_ptr<Graphics::JarBuffer> buffer) {
-		auto* metalBuffer = reinterpret_cast<MetalBuffer *>(buffer.get());
+		auto* metalBuffer = reinterpret_cast<MetalBuffer*>(buffer.get());
 		encoder->setVertexBuffer(metalBuffer->getBuffer().value(), 0, 0);
+	}
+
+	void MetalCommandBuffer::BindIndexBuffer(std::shared_ptr<JarBuffer> buffer) {
+		std::shared_ptr<MetalBuffer> metalBuffer = reinterpret_cast<std::shared_ptr<MetalBuffer>&>(buffer);
+		indexBuffer = metalBuffer;
+	}
+
+	void MetalCommandBuffer::BindUniformBuffer(std::shared_ptr<JarBuffer> buffer) {
+		auto* metalBuffer = reinterpret_cast<MetalBuffer*>(buffer.get());
+		encoder->setVertexBuffer(metalBuffer->getBuffer().value(), 0,1);
+	}
+
+	void MetalCommandBuffer::DrawIndexed(size_t indexAmount) {
+		encoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(indexAmount), MTL::IndexTypeUInt16,
+		                              indexBuffer->getBuffer().value(), 0);
 	}
 
 	void MetalCommandBuffer::Draw() {
 		encoder->drawPrimitives(MTL::PrimitiveType::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 	}
 
-	void MetalCommandBuffer::Present(std::shared_ptr<JarSurface>&surface, std::shared_ptr<JarDevice> device) {
-		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface> &>(surface);
+	void MetalCommandBuffer::Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) {
+		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
 		buffer->presentDrawable(metalSurface->getDrawable());
 		buffer->commit();
 	}
@@ -199,13 +227,14 @@ namespace Graphics::Metal {
 	JarRenderPassBuilder* MetalRenderPassBuilder::AddColorAttachment(Graphics::ColorAttachment colorAttachment) {
 		m_colorAttachment = std::make_optional(colorAttachment);
 		MTL::RenderPassColorAttachmentDescriptor* cd = m_renderPassDescriptor->colorAttachments()->object(0);
-		cd->setLoadAction(loadActionToMetal(colorAttachment.LoadOp));
-		cd->setClearColor(clearColorToMetal(colorAttachment.ClearColor));
-		cd->setStoreAction(storeActionToMetal(colorAttachment.StoreOp));
+		cd->setLoadAction(loadActionToMetal(colorAttachment.loadOp));
+		cd->setClearColor(clearColorToMetal(colorAttachment.clearColor));
+		cd->setStoreAction(storeActionToMetal(colorAttachment.storeOp));
 		return this;
 	}
 
-	std::shared_ptr<JarRenderPass> MetalRenderPassBuilder::Build(std::shared_ptr<JarDevice> device) {
+	std::shared_ptr<JarRenderPass>
+	MetalRenderPassBuilder::Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) {
 		if (!m_colorAttachment.has_value())
 			throw std::exception();
 
@@ -240,14 +269,14 @@ namespace Graphics::Metal {
 	}
 
 	std::shared_ptr<JarBuffer> MetalBufferBuilder::Build(std::shared_ptr<JarDevice> device) {
-		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice> &>(device);
+		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
 
 		if (m_bufferSize <= 0 || !m_data.has_value() || !m_memoryProperties.has_value() || !m_bufferUsage.has_value())
-			throw std::runtime_error("Could not create buffer! Provided data is insufficent.");
+			throw std::runtime_error("Could not create buffer! Provided data is insufficient.");
 
 		const auto bufferOptions = bufferUsageToMetal(m_bufferUsage.value()) & memoryPropertiesToMetal(
-			                           m_memoryProperties.value());
-		auto buffer = metalDevice->getDevice().value()->newBuffer(m_bufferSize, bufferOptions);
+				m_memoryProperties.value());
+		MTL::Buffer* buffer = metalDevice->getDevice().value()->newBuffer(m_bufferSize, bufferOptions);
 		memcpy(buffer->contents(), m_data.value(), m_bufferSize);
 		buffer->didModifyRange(NS::Range::Make(0, buffer->length()));
 
@@ -266,30 +295,43 @@ namespace Graphics::Metal {
 				return MTL::ResourceUsageRead & MTL::ResourceUsageWrite;
 			case BufferUsage::TransferDest:
 				return MTL::ResourceUsageRead & MTL::ResourceUsageWrite;
-			default: ;
+			default:;
 		}
 		return 0;
 	}
 
 	MTL::ResourceOptions MetalBufferBuilder::memoryPropertiesToMetal(const MemoryProperties memProps) {
-		switch (memProps) {
-			case MemoryProperties::HostVisible:
-				return MTL::StorageModeShared;
-			case MemoryProperties::HostCoherent:
-				return MTL::StorageModeManaged;
-			case MemoryProperties::HostCached:
-				return MTL::StorageModeManaged;
-			case MemoryProperties::DeviceLocal:
-				return MTL::StorageModePrivate;
-			case MemoryProperties::LazilyAllocation:
-				return MTL::StorageModeManaged;
-		}
+
+		if(memProps & MemoryProperties::DeviceLocal)
+			return MTL::StorageModePrivate;
+
+		if(memProps & MemoryProperties::HostVisible)
+			return MTL::StorageModeShared;
+
+		if(memProps & MemoryProperties::HostCoherent)
+			return MTL::StorageModeManaged;
+
+		if(memProps & MemoryProperties::HostCached)
+			return MTL::StorageModeManaged;
+
+		if(memProps & MemoryProperties::LazilyAllocation)
+			return MTL::StorageModeManaged;
+
 		return 0;
 	}
 
 	MetalBuffer::~MetalBuffer() = default;
 
-	std::optional<MTL::Buffer *> MetalBuffer::getBuffer() {
+	void MetalBuffer::Release() {
+		m_buffer->release();
+	}
+
+	void MetalBuffer::Update(const void* data, size_t bufferSize) {
+		memcpy(m_buffer->contents(), data, bufferSize);
+		m_buffer->didModifyRange(NS::Range::Make(0, m_buffer->length()));
+	}
+
+	std::optional<MTL::Buffer*> MetalBuffer::getBuffer() {
 		if (m_buffer == nullptr) return std::nullopt;
 		return std::make_optional(m_buffer);
 	}
@@ -312,7 +354,7 @@ namespace Graphics::Metal {
 	}
 
 	std::shared_ptr<JarShaderModule> MetalShaderLibraryBuilder::Build(std::shared_ptr<JarDevice> device) {
-		const auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice> &>(device);
+		const auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
 
 		if (!m_shaderCodeString.has_value() || !m_shaderTypeOpt.has_value())
 			throw std::runtime_error("Could not build shader module! Shader type and/or code are undefined!");
@@ -339,103 +381,103 @@ namespace Graphics::Metal {
 #pragma region MetalPipeline{
 
 	static std::unordered_map<VertexInputRate, MTL::VertexStepFunction> vertexInputRateMap{
-		{VertexInputRate::PerInstance, MTL::VertexStepFunctionPerInstance},
-		{VertexInputRate::PerVertex, MTL::VertexStepFunctionPerVertex},
+			{VertexInputRate::PerInstance, MTL::VertexStepFunctionPerInstance},
+			{VertexInputRate::PerVertex,   MTL::VertexStepFunctionPerVertex},
 	};
 
 	static std::unordered_map<Graphics::VertexFormat, MTL::VertexFormat> vertexFormatMap{
-		{VertexFormat::Float, MTL::VertexFormatFloat},
-		{VertexFormat::Float2, MTL::VertexFormatFloat2},
-		{VertexFormat::Float3, MTL::VertexFormatFloat3},
-		{VertexFormat::Float4, MTL::VertexFormatFloat4},
-		{VertexFormat::Int, MTL::VertexFormatInt},
-		{VertexFormat::Int2, MTL::VertexFormatInt2},
-		{VertexFormat::Int3, MTL::VertexFormatInt3},
-		{VertexFormat::Int4, MTL::VertexFormatInt4},
+			{VertexFormat::Float,  MTL::VertexFormatFloat},
+			{VertexFormat::Float2, MTL::VertexFormatFloat2},
+			{VertexFormat::Float3, MTL::VertexFormatFloat3},
+			{VertexFormat::Float4, MTL::VertexFormatFloat4},
+			{VertexFormat::Int,    MTL::VertexFormatInt},
+			{VertexFormat::Int2,   MTL::VertexFormatInt2},
+			{VertexFormat::Int3,   MTL::VertexFormatInt3},
+			{VertexFormat::Int4,   MTL::VertexFormatInt4},
 	};
 
 	static std::unordered_map<InputAssemblyTopology, MTL::PrimitiveTopologyClass> topologyMap{
-		{InputAssemblyTopology::PointList, MTL::PrimitiveTopologyClassPoint},
-		{InputAssemblyTopology::LineList, MTL::PrimitiveTopologyClassLine},
-		{InputAssemblyTopology::LineStrip, MTL::PrimitiveTopologyClassLine},
-		{InputAssemblyTopology::TriangleList, MTL::PrimitiveTopologyClassTriangle},
-		{InputAssemblyTopology::TriangleStrip, MTL::PrimitiveTopologyClassTriangle},
+			{InputAssemblyTopology::PointList,     MTL::PrimitiveTopologyClassPoint},
+			{InputAssemblyTopology::LineList,      MTL::PrimitiveTopologyClassLine},
+			{InputAssemblyTopology::LineStrip,     MTL::PrimitiveTopologyClassLine},
+			{InputAssemblyTopology::TriangleList,  MTL::PrimitiveTopologyClassTriangle},
+			{InputAssemblyTopology::TriangleStrip, MTL::PrimitiveTopologyClassTriangle},
 	};
 
 	static std::unordered_map<PixelFormat, MTL::PixelFormat> pixelFormatMap{
-		{PixelFormat::BC1, MTL::PixelFormatBC1_RGBA},
-		{PixelFormat::BC3, MTL::PixelFormatBC3_RGBA},
-		{PixelFormat::BGRA8_UNORM, MTL::PixelFormat::PixelFormatBGRA8Unorm},
-		{PixelFormat::RGBA8_UNORM, MTL::PixelFormatRGBA8Unorm},
-		{PixelFormat::DEPTH24_STENCIL8, MTL::PixelFormatDepth24Unorm_Stencil8},
-		{PixelFormat::DEPTH32_FLOAT, MTL::PixelFormatDepth32Float},
-		{PixelFormat::PVRTC, MTL::PixelFormatPVRTC_RGBA_4BPP},
-		{PixelFormat::RGBA16_FLOAT, MTL::PixelFormatRGBA16Float},
-		{PixelFormat::RGBA32_FLOAT, MTL::PixelFormatRGBA32Float},
-		{PixelFormat::R16_FLOAT, MTL::PixelFormatR16Float},
-		{PixelFormat::R8_UNORM, MTL::PixelFormatR8Unorm}
+			{PixelFormat::BC1,              MTL::PixelFormatBC1_RGBA},
+			{PixelFormat::BC3,              MTL::PixelFormatBC3_RGBA},
+			{PixelFormat::BGRA8_UNORM,      MTL::PixelFormat::PixelFormatBGRA8Unorm},
+			{PixelFormat::RGBA8_UNORM,      MTL::PixelFormatRGBA8Unorm},
+			{PixelFormat::DEPTH24_STENCIL8, MTL::PixelFormatDepth24Unorm_Stencil8},
+			{PixelFormat::DEPTH32_FLOAT,    MTL::PixelFormatDepth32Float},
+			{PixelFormat::PVRTC,            MTL::PixelFormatPVRTC_RGBA_4BPP},
+			{PixelFormat::RGBA16_FLOAT,     MTL::PixelFormatRGBA16Float},
+			{PixelFormat::RGBA32_FLOAT,     MTL::PixelFormatRGBA32Float},
+			{PixelFormat::R16_FLOAT,        MTL::PixelFormatR16Float},
+			{PixelFormat::R8_UNORM,         MTL::PixelFormatR8Unorm}
 	};
 
 	static std::unordered_map<BlendFactor, MTL::BlendFactor> blendFactorMap{
-		{BlendFactor::Zero, MTL::BlendFactorZero},
-		{BlendFactor::One, MTL::BlendFactorOne},
-		{BlendFactor::SrcColor, MTL::BlendFactorSourceColor},
-		{BlendFactor::OneMinusSrcColor, MTL::BlendFactorOneMinusSourceColor},
-		{BlendFactor::DstColor, MTL::BlendFactorDestinationColor},
-		{BlendFactor::OneMinusDstColor, MTL::BlendFactorOneMinusDestinationColor},
-		{BlendFactor::SrcAlpha, MTL::BlendFactorSourceAlpha},
-		{BlendFactor::OneMinusSrcAlpha, MTL::BlendFactorOneMinusSourceAlpha},
-		{BlendFactor::DstAlpha, MTL::BlendFactorDestinationAlpha},
-		{BlendFactor::OneMinusDstAlpha, MTL::BlendFactorOneMinusDestinationAlpha},
-		{BlendFactor::ConstantColor, MTL::BlendFactorBlendColor},
-		{BlendFactor::OneMinusConstantColor, MTL::BlendFactorOneMinusBlendColor},
-		{BlendFactor::ConstantAlpha, MTL::BlendFactorBlendAlpha},
-		{BlendFactor::OneMinusConstantAlpha, MTL::BlendFactorOneMinusBlendAlpha}
+			{BlendFactor::Zero,                  MTL::BlendFactorZero},
+			{BlendFactor::One,                   MTL::BlendFactorOne},
+			{BlendFactor::SrcColor,              MTL::BlendFactorSourceColor},
+			{BlendFactor::OneMinusSrcColor,      MTL::BlendFactorOneMinusSourceColor},
+			{BlendFactor::DstColor,              MTL::BlendFactorDestinationColor},
+			{BlendFactor::OneMinusDstColor,      MTL::BlendFactorOneMinusDestinationColor},
+			{BlendFactor::SrcAlpha,              MTL::BlendFactorSourceAlpha},
+			{BlendFactor::OneMinusSrcAlpha,      MTL::BlendFactorOneMinusSourceAlpha},
+			{BlendFactor::DstAlpha,              MTL::BlendFactorDestinationAlpha},
+			{BlendFactor::OneMinusDstAlpha,      MTL::BlendFactorOneMinusDestinationAlpha},
+			{BlendFactor::ConstantColor,         MTL::BlendFactorBlendColor},
+			{BlendFactor::OneMinusConstantColor, MTL::BlendFactorOneMinusBlendColor},
+			{BlendFactor::ConstantAlpha,         MTL::BlendFactorBlendAlpha},
+			{BlendFactor::OneMinusConstantAlpha, MTL::BlendFactorOneMinusBlendAlpha}
 	};
 
 	static std::unordered_map<BlendOperation, MTL::BlendOperation> blendOperationMap{
-		{BlendOperation::Add, MTL::BlendOperationAdd},
-		{BlendOperation::Subtract, MTL::BlendOperationSubtract},
-		{BlendOperation::ReverseSubtract, MTL::BlendOperationReverseSubtract},
-		{BlendOperation::Min, MTL::BlendOperationMin},
-		{BlendOperation::Max, MTL::BlendOperationMax},
+			{BlendOperation::Add,             MTL::BlendOperationAdd},
+			{BlendOperation::Subtract,        MTL::BlendOperationSubtract},
+			{BlendOperation::ReverseSubtract, MTL::BlendOperationReverseSubtract},
+			{BlendOperation::Min,             MTL::BlendOperationMin},
+			{BlendOperation::Max,             MTL::BlendOperationMax},
 	};
 
 	static std::unordered_map<DepthCompareOperation, MTL::CompareFunction> depthCompareMap{
-		{DepthCompareOperation::Never, MTL::CompareFunctionNever},
-		{DepthCompareOperation::Less, MTL::CompareFunctionLess},
-		{DepthCompareOperation::LessEqual, MTL::CompareFunctionLessEqual},
-		{DepthCompareOperation::Equal, MTL::CompareFunctionEqual},
-		{DepthCompareOperation::Greater, MTL::CompareFunctionGreater},
-		{DepthCompareOperation::GreaterEqual, MTL::CompareFunctionGreaterEqual},
-		{DepthCompareOperation::NotEqual, MTL::CompareFunctionNotEqual},
-		{DepthCompareOperation::Always, MTL::CompareFunctionAlways}
+			{DepthCompareOperation::Never,        MTL::CompareFunctionNever},
+			{DepthCompareOperation::Less,         MTL::CompareFunctionLess},
+			{DepthCompareOperation::LessEqual,    MTL::CompareFunctionLessEqual},
+			{DepthCompareOperation::Equal,        MTL::CompareFunctionEqual},
+			{DepthCompareOperation::Greater,      MTL::CompareFunctionGreater},
+			{DepthCompareOperation::GreaterEqual, MTL::CompareFunctionGreaterEqual},
+			{DepthCompareOperation::NotEqual,     MTL::CompareFunctionNotEqual},
+			{DepthCompareOperation::AllTime,      MTL::CompareFunctionAlways}
 	};
 
 	static std::unordered_map<StencilOpState, MTL::StencilOperation> stencilOpMap{
-		{StencilOpState::Keep, MTL::StencilOperationKeep},
-		{StencilOpState::Zero, MTL::StencilOperationZero},
-		{StencilOpState::Replace, MTL::StencilOperationReplace},
-		{StencilOpState::IncrementAndClamp, MTL::StencilOperationIncrementClamp},
-		{StencilOpState::IncrementAndWrap, MTL::StencilOperationIncrementWrap},
-		{StencilOpState::DecrementAndClamp, MTL::StencilOperationDecrementClamp},
-		{StencilOpState::DecrementAndWrap, MTL::StencilOperationDecrementWrap},
-		{StencilOpState::Invert, MTL::StencilOperationInvert},
+			{StencilOpState::Keep,              MTL::StencilOperationKeep},
+			{StencilOpState::Zero,              MTL::StencilOperationZero},
+			{StencilOpState::Replace,           MTL::StencilOperationReplace},
+			{StencilOpState::IncrementAndClamp, MTL::StencilOperationIncrementClamp},
+			{StencilOpState::IncrementAndWrap,  MTL::StencilOperationIncrementWrap},
+			{StencilOpState::DecrementAndClamp, MTL::StencilOperationDecrementClamp},
+			{StencilOpState::DecrementAndWrap,  MTL::StencilOperationDecrementWrap},
+			{StencilOpState::Invert,            MTL::StencilOperationInvert},
 	};
 
 	MetalPipelineBuilder::~MetalPipelineBuilder() = default;
 
 	MetalPipelineBuilder* MetalPipelineBuilder::SetShaderStage(ShaderStage shaderStage) {
-		const auto mainFunc = (shaderStage.MainFunctionName + "0").c_str();
+		const auto mainFunc = (shaderStage.mainFunctionName + "0").c_str();
 		NS::String* mainFuncName = NS::String::string(mainFunc, NS::StringEncoding::ASCIIStringEncoding);
 
-		const auto vertexShaderModule = reinterpret_cast<std::shared_ptr<MetalShaderLibrary> &>(shaderStage.
-			VertexShaderModule);
-		const auto fragmentShaderModule = reinterpret_cast<std::shared_ptr<MetalShaderLibrary> &>(shaderStage.
-			FragmentShaderModule);
+		const auto metalVertexShaderModule = reinterpret_cast<std::shared_ptr<MetalShaderLibrary>&>(shaderStage.
+				vertexShaderModule);
+		const auto metalFragmentShaderModule = reinterpret_cast<std::shared_ptr<MetalShaderLibrary>&>(shaderStage.
+				fragmentShaderModule);
 
-		m_vertexShaderFunc = vertexShaderModule->getLibrary()->newFunction(mainFuncName);
-		m_fragmentShaderFunc = fragmentShaderModule->getLibrary()->newFunction(mainFuncName);
+		m_vertexShaderFunc = metalVertexShaderModule->getLibrary()->newFunction(mainFuncName);
+		m_fragmentShaderFunc = metalFragmentShaderModule->getLibrary()->newFunction(mainFuncName);
 		return this;
 	}
 
@@ -447,20 +489,20 @@ namespace Graphics::Metal {
 	MetalPipelineBuilder* MetalPipelineBuilder::SetVertexInput(VertexInput vertexInput) {
 		m_vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
 
-		for (int i = 0; i < vertexInput.AttributeDescriptions.size(); ++i) {
+		for (int i = 0; i < vertexInput.attributeDescriptions.size(); ++i) {
 			m_vertexDescriptor->attributes()->object(i)->setBufferIndex(
-				vertexInput.AttributeDescriptions[i].BindingIndex);
-			m_vertexDescriptor->attributes()->object(i)->setOffset(vertexInput.AttributeDescriptions[i].Offset);
+					vertexInput.attributeDescriptions[i].bindingIndex);
+			m_vertexDescriptor->attributes()->object(i)->setOffset(vertexInput.attributeDescriptions[i].offset);
 			m_vertexDescriptor->attributes()->object(i)->setFormat(
-				vertexFormatMap[vertexInput.AttributeDescriptions[i].Format]);
+					vertexFormatMap[vertexInput.attributeDescriptions[i].vertexFormat]);
 		}
 
-		for (auto&bindingDescriptor: vertexInput.BindingDescriptions) {
-			m_vertexDescriptor->layouts()->object(bindingDescriptor.BindingIndex)->setStepFunction(
-				vertexInputRateMap[bindingDescriptor.InputRate]);
-			m_vertexDescriptor->layouts()->object(bindingDescriptor.BindingIndex)->setStride(bindingDescriptor.Stride);
-			m_vertexDescriptor->layouts()->object(bindingDescriptor.BindingIndex)->setStepRate(
-				bindingDescriptor.StepRate);
+		for (auto& bindingDescriptor: vertexInput.bindingDescriptions) {
+			m_vertexDescriptor->layouts()->object(bindingDescriptor.bindingIndex)->setStepFunction(
+					vertexInputRateMap[bindingDescriptor.inputRate]);
+			m_vertexDescriptor->layouts()->object(bindingDescriptor.bindingIndex)->setStride(bindingDescriptor.stride);
+			m_vertexDescriptor->layouts()->object(bindingDescriptor.bindingIndex)->setStepRate(
+					bindingDescriptor.stepRate);
 		}
 
 		return this;
@@ -476,18 +518,22 @@ namespace Graphics::Metal {
 		return this;
 	}
 
+	MetalPipelineBuilder* MetalPipelineBuilder::SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) {
+		return this;
+	}
+
 	MetalPipelineBuilder*
 	MetalPipelineBuilder::SetColorBlendAttachments(Graphics::ColorBlendAttachment blendAttachment) {
 		auto colorAttachment = MTL::RenderPipelineColorAttachmentDescriptor::alloc()->init();
-		colorAttachment->setPixelFormat(pixelFormatMap[blendAttachment.PixelFormat]);
-		colorAttachment->setBlendingEnabled(blendAttachment.BlendingEnabled);
-		colorAttachment->setSourceRGBBlendFactor(blendFactorMap[blendAttachment.SourceRGBBlendFactor]);
-		colorAttachment->setDestinationRGBBlendFactor(blendFactorMap[blendAttachment.DestinationRGBBlendFactor]);
-		colorAttachment->setRgbBlendOperation(blendOperationMap[blendAttachment.RGBBlendOperation]);
-		colorAttachment->setSourceAlphaBlendFactor(blendFactorMap[blendAttachment.SourceAlphaBlendFactor]);
-		colorAttachment->setDestinationAlphaBlendFactor(blendFactorMap[blendAttachment.DestinationAlphaBlendFactor]);
-		colorAttachment->setAlphaBlendOperation(blendOperationMap[blendAttachment.AlphaBlendOperation]);
-		colorAttachment->setWriteMask(convertToMetalColorWriteMask(blendAttachment.WriteMask));
+		colorAttachment->setPixelFormat(pixelFormatMap[blendAttachment.pixelFormat]);
+		colorAttachment->setBlendingEnabled(blendAttachment.blendingEnabled);
+		colorAttachment->setSourceRGBBlendFactor(blendFactorMap[blendAttachment.sourceRgbBlendFactor]);
+		colorAttachment->setDestinationRGBBlendFactor(blendFactorMap[blendAttachment.destinationRgbBlendFactor]);
+		colorAttachment->setRgbBlendOperation(blendOperationMap[blendAttachment.rgbBlendOperation]);
+		colorAttachment->setSourceAlphaBlendFactor(blendFactorMap[blendAttachment.sourceAlphaBlendFactor]);
+		colorAttachment->setDestinationAlphaBlendFactor(blendFactorMap[blendAttachment.destinationAlphaBlendFactor]);
+		colorAttachment->setAlphaBlendOperation(blendOperationMap[blendAttachment.alphaBlendOperation]);
+		colorAttachment->setWriteMask(convertToMetalColorWriteMask(blendAttachment.colorWriteMask));
 
 		m_colorAttachments.push_back(colorAttachment);
 		return this;
@@ -496,20 +542,19 @@ namespace Graphics::Metal {
 	MetalPipelineBuilder* MetalPipelineBuilder::SetDepthStencilState(Graphics::DepthStencilState depthStencilState) {
 		m_depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
 
-		if (depthStencilState.DepthTestEnable) {
-			m_depthStencilDescriptor->setDepthCompareFunction(depthCompareMap[depthStencilState.DepthCompareOp]);
-			m_depthStencilDescriptor->setDepthWriteEnabled(depthStencilState.DepthWriteEnable);
-		}
-		else {
+		if (depthStencilState.depthTestEnable) {
+			m_depthStencilDescriptor->setDepthCompareFunction(depthCompareMap[depthStencilState.depthCompareOp]);
+			m_depthStencilDescriptor->setDepthWriteEnabled(depthStencilState.depthWriteEnable);
+		} else {
 			m_depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionAlways);
 		}
 
-		if (depthStencilState.StencilTestEnable) {
+		if (depthStencilState.stencilTestEnable) {
 			m_stencilDescriptor = MTL::StencilDescriptor::alloc()->init();
-			m_stencilDescriptor->setStencilCompareFunction(depthCompareMap[depthStencilState.DepthCompareOp]);
-			m_stencilDescriptor->setStencilFailureOperation(stencilOpMap[depthStencilState.StencilOpState]);
-			m_stencilDescriptor->setDepthFailureOperation(stencilOpMap[depthStencilState.StencilOpState]);
-			m_stencilDescriptor->setDepthStencilPassOperation(stencilOpMap[depthStencilState.StencilOpState]);
+			m_stencilDescriptor->setStencilCompareFunction(depthCompareMap[depthStencilState.depthCompareOp]);
+			m_stencilDescriptor->setStencilFailureOperation(stencilOpMap[depthStencilState.stencilOpState]);
+			m_stencilDescriptor->setDepthFailureOperation(stencilOpMap[depthStencilState.stencilOpState]);
+			m_stencilDescriptor->setDepthStencilPassOperation(stencilOpMap[depthStencilState.stencilOpState]);
 
 			m_depthStencilDescriptor->setFrontFaceStencil(m_stencilDescriptor);
 			m_depthStencilDescriptor->setBackFaceStencil(m_stencilDescriptor);
@@ -518,7 +563,7 @@ namespace Graphics::Metal {
 	}
 
 	std::shared_ptr<JarPipeline> MetalPipelineBuilder::Build(std::shared_ptr<JarDevice> device) {
-		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice> &>(device);
+		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
 		MTL::RenderPipelineDescriptor* metalPipelineDesc = MTL::RenderPipelineDescriptor::alloc()->init();
 
 		if (!m_vertexShaderFunc || !m_fragmentShaderFunc)

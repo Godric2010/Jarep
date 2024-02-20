@@ -12,7 +12,7 @@ namespace Graphics::Metal {
 
 	void
 	SDLSurfaceAdapter::CreateViewAndMetalLayer(CGRect surfaceRect, NS::View **viewContent,
-	                                           CA::MetalLayer **metalLayer) {
+	                                           CA::MetalLayer **metalLayer, uint32_t *maxSwapchainImageCount) {
 		NSView *nsView = [[NSView alloc] initWithFrame:NSMakeRect(surfaceRect.origin.x, surfaceRect.origin.y,
 		                                                          surfaceRect.size.width, surfaceRect.size.height)];
 
@@ -24,7 +24,7 @@ namespace Graphics::Metal {
 
 		*viewContent = ( __bridge NS::View *) nsView;
 		*metalLayer = ( __bridge CA::MetalLayer *) mLayer;
-
+		*maxSwapchainImageCount = mLayer.maximumDrawableCount;
 	}
 
 }

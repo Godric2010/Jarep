@@ -22,6 +22,9 @@
 #include <utility>
 
 namespace Graphics::Metal {
+
+	class MetalBuffer;
+
 	class MetalSurface final : public JarSurface {
 		public:
 			MetalSurface();
@@ -30,7 +33,14 @@ namespace Graphics::Metal {
 
 			bool CreateFromNativeWindowProvider(NativeWindowHandleProvider* windowHandleProvider);
 
+
 			void Update() override;
+
+			void ReleaseSwapchain() override;
+
+			uint32_t GetSwapchainImageAmount() override;
+
+			JarExtent GetSurfaceExtent() override;
 
 			void FinalizeSurface(MTL::Device* device);
 
@@ -49,6 +59,7 @@ namespace Graphics::Metal {
 			CGRect surfaceRect;
 			CA::MetalLayer* layer;
 			CA::MetalDrawable* drawable;
+			uint32_t maxSwapchainImageCount;
 	};
 
 #pragma region MetalRenderPass{
@@ -61,35 +72,36 @@ namespace Graphics::Metal {
 
 			JarRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) override;
 
-			std::shared_ptr<JarRenderPass> Build(std::shared_ptr<JarDevice> device) override;
+			std::shared_ptr<JarRenderPass>
+			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) override;
 
 		private:
 			MTL::RenderPassDescriptor* m_renderPassDescriptor;
 			std::optional<ColorAttachment> m_colorAttachment;
 
-			static MTL::StoreAction storeActionToMetal(const storeOp storeOp) {
+			static MTL::StoreAction storeActionToMetal(const StoreOp storeOp) {
 				switch (storeOp) {
-					case storeOp::Store:
+					case StoreOp::Store:
 						return MTL::StoreActionStore;
-					case storeOp::DontCare:
+					case StoreOp::DontCare:
 						return MTL::StoreActionDontCare;
 				}
 				return {};
 			}
 
-			static MTL::LoadAction loadActionToMetal(const loadOp loadOp) {
+			static MTL::LoadAction loadActionToMetal(const LoadOp loadOp) {
 				switch (loadOp) {
-					case loadOp::Load:
+					case LoadOp::Load:
 						return MTL::LoadActionLoad;
-					case loadOp::clearColor:
+					case LoadOp::Clear:
 						return MTL::LoadActionClear;
-					case loadOp::DontCare:
+					case LoadOp::DontCare:
 						return MTL::LoadActionDontCare;
 				}
 				return {};
 			}
 
-			static MTL::clearColor clearColorToMetal(clearColor clearColor) {
+			static MTL::ClearColor clearColorToMetal(ClearColor clearColor) {
 				return {clearColor.r, clearColor.g, clearColor.b, clearColor.a};
 			}
 	};
@@ -128,13 +140,20 @@ namespace Graphics::Metal {
 
 			void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
 
+			void BindIndexBuffer(std::shared_ptr<JarBuffer> buffer) override;
+
+			void BindUniformBuffer(std::shared_ptr<JarBuffer> buffer) override;
+
 			void Draw() override;
+
+			void DrawIndexed(size_t indexAmount) override;
 
 			void Present(std::shared_ptr<JarSurface>& m_surface, std::shared_ptr<JarDevice> device) override;
 
 		private:
 			MTL::CommandBuffer* buffer;
 			MTL::RenderCommandEncoder* encoder;
+			std::shared_ptr<MetalBuffer> indexBuffer;
 	};
 
 #pragma region CommandQueue{
@@ -221,7 +240,11 @@ namespace Graphics::Metal {
 
 			~MetalBuffer() override;
 
-			std::optional<MTL::Buffer*> getBuffer();
+			void Release() override;
+
+			void Update(const void* data, size_t bufferSize) override;
+
+			[[nodiscard]] std::optional<MTL::Buffer*> getBuffer();
 
 		private:
 			MTL::Buffer* m_buffer;
@@ -279,6 +302,8 @@ namespace Graphics::Metal {
 			MetalPipelineBuilder* SetInputAssemblyTopology(InputAssemblyTopology topology) override;
 
 			MetalPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) override;
+
+			MetalPipelineBuilder* SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) override;
 
 			MetalPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment blendAttachment) override;
 

@@ -86,7 +86,7 @@ compile_shader(){
 
     # Convert the SPIR-V file to Metal shading language (.metal)
     metalOutputFile="$outputDir/${filename}_${extension}.metal"
-    $spirvCrossPath "$spvOutputFile" --msl --output "$metalOutputFile"
+    $spirvCrossPath "$spvOutputFile" --msl --msl-decoration-binding --output "$metalOutputFile"
 }
 
 export -f compile_shader
