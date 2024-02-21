@@ -192,7 +192,7 @@ namespace Graphics {
 		mvp.projection = glm::perspective(glm::radians(45.0f), surfaceExtent.Width / surfaceExtent.Height, 0.1f,
 		                                  100.0f);
 
-		//mvp.projection[1][1] *= -1;
+		mvp.projection[1][1] *= -1;
 
 		uniformBuffers[frameCounter]->Update(&mvp, sizeof(Internal::JarModelViewProjection));
 	}
