@@ -32,6 +32,10 @@ endif ()
 find_package(glm)
 target_link_libraries(JAREP_RENDERER PUBLIC glm::glm)
 
+find_package(stb)
+target_link_libraries(JAREP_RENDERER PUBLIC stb::stb)
+
+
 set(PublicHeaders JarepGraphics.hpp)
 set_target_properties(JAREP_RENDERER PROPERTIES PUBLIC_HEADERS "${PublicHeaders}")
 target_include_directories(JAREP_RENDERER PUBLIC

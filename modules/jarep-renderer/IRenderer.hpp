@@ -13,6 +13,9 @@
 #include <vector>
 #include <optional>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 namespace Graphics {
 	class JarDevice;
 
@@ -27,6 +30,8 @@ namespace Graphics {
 	class JarPipeline;
 
 	class JarBuffer;
+
+	class JarImage;
 
 	class JarSurface;
 
@@ -117,7 +122,7 @@ namespace Graphics {
 			virtual void Release(std::shared_ptr<JarDevice> device) = 0;
 	};
 
-	struct JarExtent{
+	struct JarExtent {
 		public:
 			float Width;
 			float Height;
@@ -213,6 +218,30 @@ namespace Graphics {
 	};
 
 #pragma endregion Buffer }
+
+#pragma region JarImage{
+
+	class JarImageBuilder{
+		public:
+			virtual ~JarImageBuilder() = default;
+
+			virtual void SetImageFormat(ImageFormat imageFormat) = 0;
+
+			virtual void SetImagePath(std::string imagePath) = 0;
+
+			virtual std::shared_ptr<JarImage> Build(std::shared_ptr<JarDevice> device) = 0;
+	};
+
+
+	class JarImage {
+		public:
+			virtual ~JarImage() = default;
+
+			virtual void Release() = 0;
+	};
+
+#pragma endregion JarImage }
+
 
 #pragma region JarShader{
 	enum ShaderType {
