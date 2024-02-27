@@ -49,9 +49,15 @@ namespace Graphics::Vulkan {
 
 	class VulkanCommandQueueBuilder;
 
+	class VulkanCommandBuffer;
+
 	class VulkanShaderModuleBuilder;
 
 	class VulkanBufferBuilder;
+
+	class VulkanImageBuilder;
+
+	class VulkanImage;
 
 	class VulkanCommandQueue;
 
@@ -74,6 +80,8 @@ namespace Graphics::Vulkan {
 			JarCommandQueueBuilder* InitCommandQueueBuilder() override;
 
 			JarBufferBuilder* InitBufferBuilder() override;
+
+			JarImageBuilder* InitImageBuilder() override;
 
 			JarPipelineBuilder* InitPipelineBuilder() override;
 
@@ -277,6 +285,14 @@ namespace Graphics::Vulkan {
 
 			void Release(VkDevice device);
 
+			static VkCommandBuffer StartSingleTimeRecording(std::shared_ptr<VulkanDevice>& device,
+			                                                std::shared_ptr<VulkanCommandQueue>& commandQueue);
+
+			static void EndSingleTimeRecording(
+					std::shared_ptr<VulkanDevice>& device,
+					VkCommandBuffer commandBuffer,
+					std::shared_ptr<VulkanCommandQueue>& commandQueue);
+
 		private:
 			VkCommandBuffer m_commandBuffer;
 			VkSemaphore m_imageAvailableSemaphore;
@@ -350,6 +366,13 @@ namespace Graphics::Vulkan {
 
 			std::shared_ptr<JarBuffer> Build(std::shared_ptr<JarDevice> device) override;
 
+			static void
+			createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size, VkBufferUsageFlags usage,
+			             VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
+			static uint32_t
+			findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
 		private:
 			std::shared_ptr<VulkanBackend> m_backend;
 			std::optional<VkBufferUsageFlags> m_bufferUsageFlags;
@@ -358,14 +381,8 @@ namespace Graphics::Vulkan {
 			std::optional<const void*> m_data;
 			static inline uint32_t nextBufferId = 0;
 
-			void createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size, VkBufferUsageFlags usage,
-			                  VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-
 			void copyBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer srcBuffer, VkBuffer dstBuffer,
 			                VkDeviceSize size);
-
-			static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
-			                               VkMemoryPropertyFlags properties);
 
 			std::shared_ptr<JarBuffer> BuildUniformBuffer(std::shared_ptr<VulkanDevice> vulkanDevice);
 
@@ -633,7 +650,70 @@ namespace Graphics::Vulkan {
 	};
 
 #pragma endregion VulkanGraphicsPipeline };
-}
 
+#pragma region VulkanImage{
+
+	class VulkanImageBuilder final : public JarImageBuilder {
+		public:
+			VulkanImageBuilder(std::shared_ptr<VulkanBackend> backend) : m_backend(backend) {};
+
+			~VulkanImageBuilder() override;
+
+			VulkanImageBuilder* SetImageFormat(ImageFormat format) override;
+
+			VulkanImageBuilder* SetImagePath(std::string imagePath) override;
+
+			std::shared_ptr<JarImage> Build(std::shared_ptr<JarDevice> device) override;
+
+			static void createImage(std::shared_ptr<VulkanDevice>& vulkanDevice, uint32_t texWidth, uint32_t texHeight,
+			                        VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+			                        VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+
+		private:
+			std::optional<ImageFormat> m_imageFormat;
+			std::optional<std::string> m_imagePath;
+
+			std::shared_ptr<VulkanBackend> m_backend;
+
+			void
+			transitionImageLayout(std::shared_ptr<VulkanDevice>& vulkanDevice, VkImage image, VkFormat format,
+			                      VkImageLayout oldLayout, VkImageLayout newLayout);
+
+			void copyBufferToImage(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer buffer, VkImage image,
+			                              uint32_t width, uint32_t height);
+	};
+
+	class VulkanImage final : public JarImage {
+		public:
+			VulkanImage(std::shared_ptr<VulkanDevice>& device, VkImage image, VkDeviceMemory imageMemory,
+			            VkImageView imageView, VkFormat format, VkExtent2D extent)
+					: m_device(device), m_image(image), m_imageMemory(imageMemory), m_imageView(imageView),
+					  m_format(format), m_extent(extent) {};
+
+			~VulkanImage() override;
+
+			void Release() override;
+
+			[[nodiscard]] VkImage getImage() const { return m_image; }
+
+			[[nodiscard]] VkDeviceMemory getImageMemory() const { return m_imageMemory; }
+
+			[[nodiscard]] VkImageView getImageView() const { return m_imageView; }
+
+			[[nodiscard]] VkFormat getFormat() const { return m_format; }
+
+			[[nodiscard]] VkExtent2D getExtent() const { return m_extent; }
+
+		private:
+			std::shared_ptr<VulkanDevice> m_device;
+			VkImage m_image;
+			VkDeviceMemory m_imageMemory;
+			VkImageView m_imageView;
+			VkFormat m_format;
+			VkExtent2D m_extent;
+	};
+
+#pragma endregion VulkanImage };
+}
 #endif
 #endif //JAREP_VULKANAPI_HPP

@@ -13,7 +13,6 @@
 #include <vector>
 #include <optional>
 
-#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 namespace Graphics {
@@ -225,9 +224,9 @@ namespace Graphics {
 		public:
 			virtual ~JarImageBuilder() = default;
 
-			virtual void SetImageFormat(ImageFormat imageFormat) = 0;
+			virtual JarImageBuilder* SetImageFormat(ImageFormat imageFormat) = 0;
 
-			virtual void SetImagePath(std::string imagePath) = 0;
+			virtual JarImageBuilder* SetImagePath(std::string imagePath) = 0;
 
 			virtual std::shared_ptr<JarImage> Build(std::shared_ptr<JarDevice> device) = 0;
 	};
@@ -536,6 +535,8 @@ namespace Graphics {
 			virtual JarCommandQueueBuilder* InitCommandQueueBuilder() = 0;
 
 			virtual JarBufferBuilder* InitBufferBuilder() = 0;
+
+			virtual JarImageBuilder* InitImageBuilder() = 0;
 
 			virtual JarPipelineBuilder* InitPipelineBuilder() = 0;
 	};
