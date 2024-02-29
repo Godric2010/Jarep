@@ -669,6 +669,8 @@ namespace Graphics::Vulkan {
 			                        VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
 			                        VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
+			static void createImageView(std::shared_ptr<VulkanDevice>& vulkanDevice, VkImage image, VkFormat format, VkImageView* view);
+
 		private:
 			std::optional<ImageFormat> m_imageFormat;
 			std::optional<std::string> m_imagePath;
@@ -680,15 +682,17 @@ namespace Graphics::Vulkan {
 			                      VkImageLayout oldLayout, VkImageLayout newLayout);
 
 			void copyBufferToImage(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer buffer, VkImage image,
-			                              uint32_t width, uint32_t height);
+			                       uint32_t width, uint32_t height);
+
+			void createSampler(std::shared_ptr<VulkanDevice>& vulkanDevice, VkSampler& sampler);
 	};
 
 	class VulkanImage final : public JarImage {
 		public:
-			VulkanImage(std::shared_ptr<VulkanDevice>& device, VkImage image, VkDeviceMemory imageMemory,
-			            VkImageView imageView, VkFormat format, VkExtent2D extent)
+			VulkanImage(std::shared_ptr<VulkanDevice> device, VkImage image, VkDeviceMemory imageMemory,
+			            VkImageView imageView, VkFormat format, VkExtent2D extent, VkSampler sampler)
 					: m_device(device), m_image(image), m_imageMemory(imageMemory), m_imageView(imageView),
-					  m_format(format), m_extent(extent) {};
+					  m_format(format), m_extent(extent), m_sampler(sampler) {};
 
 			~VulkanImage() override;
 
@@ -704,6 +708,8 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkExtent2D getExtent() const { return m_extent; }
 
+			[[nodiscard]] VkSampler getSampler() const { return m_sampler; }
+
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
 			VkImage m_image;
@@ -711,6 +717,7 @@ namespace Graphics::Vulkan {
 			VkImageView m_imageView;
 			VkFormat m_format;
 			VkExtent2D m_extent;
+			VkSampler m_sampler;
 	};
 
 #pragma endregion VulkanImage };
