@@ -35,6 +35,10 @@ namespace Graphics {
 			uniformBuffers.push_back(bufferBuilder->Build(device));
 		}
 
+		auto image = backend->InitImageBuilder()->SetImageFormat(ImageFormat::B8G8R8A8_UNORM)->SetImagePath(
+				"../../resources/test_image.png")->Build(device);
+		images.push_back(image);
+
 		vertexShaderModule = createShaderModule(VertexShader, "triangle_vert");
 		fragmentShaderModule = createShaderModule(FragmentShader, "triangle_frag");
 
@@ -67,21 +71,26 @@ namespace Graphics {
 		shaderStage.fragmentShaderModule = fragmentShaderModule;
 		shaderStage.mainFunctionName = "main";
 
-		std::vector attributeDescriptions = {AttributeDescription{}, AttributeDescription{}};
+		std::vector attributeDescriptions = {AttributeDescription{}, AttributeDescription{}, AttributeDescription{}};
 		attributeDescriptions[0].vertexFormat = VertexFormat::Float3;
-		attributeDescriptions[0].offset = 0;
+		attributeDescriptions[0].offset = offsetof(Vertex, position);
 		attributeDescriptions[0].bindingIndex = 0;
 		attributeDescriptions[0].attributeLocation = 0;
 
 		attributeDescriptions[1].vertexFormat = VertexFormat::Float3;
-		attributeDescriptions[1].offset = sizeof(float) * 3;
+		attributeDescriptions[1].offset = offsetof(Vertex, color);
 		attributeDescriptions[1].bindingIndex = 0;
 		attributeDescriptions[1].attributeLocation = 1;
+
+		attributeDescriptions[2].bindingIndex = 0;
+		attributeDescriptions[2].attributeLocation = 2;
+		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+		attributeDescriptions[2].vertexFormat = VertexFormat::Float2;
 
 		std::vector bindingDescriptions = {BindingDescription{}};
 		bindingDescriptions[0].bindingIndex = 0;
 		bindingDescriptions[0].inputRate = VertexInputRate::PerVertex;
-		bindingDescriptions[0].stride = sizeof(float) * 6;
+		bindingDescriptions[0].stride = sizeof(Vertex);
 		bindingDescriptions[0].stepRate = 1;
 
 		VertexInput vertexInput{};
@@ -99,7 +108,6 @@ namespace Graphics {
 		colorBlendAttachment.alphaBlendOperation = BlendOperation::Add;
 		colorBlendAttachment.colorWriteMask = ColorWriteMask::All;
 
-
 		JarPipelineBuilder* pipelineBuilder = backend->InitPipelineBuilder();
 		pipelineBuilder->
 				SetShaderStage(shaderStage)->
@@ -107,10 +115,12 @@ namespace Graphics {
 				SetVertexInput(vertexInput)->
 				SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
 				SetMultisamplingCount(1)->
-				SetUniformBuffers(uniformBuffers)->
+				SetUniformBuffers(uniformBuffers, 1)->
+				SetImageBuffer(images[0], 2)->
 				SetColorBlendAttachments(colorBlendAttachment);
 		pipeline = pipelineBuilder->Build(device);
 		delete pipelineBuilder;
+
 	}
 
 	void JarepGraphics::AddMesh(Mesh& mesh) {
@@ -130,7 +140,6 @@ namespace Graphics {
 				SetMemoryProperties(MemoryProperties::DeviceLocal)->
 				SetUsageFlags(BufferUsage::IndexBuffer);
 		std::shared_ptr<JarBuffer> indexBuffer = indexBufferBuilder->Build(device);
-
 		meshes.push_back(Internal::JarMesh(mesh, vertexBuffer, indexBuffer));
 	}
 
@@ -144,6 +153,7 @@ namespace Graphics {
 
 		commandBuffer->BindPipeline(pipeline);
 		commandBuffer->BindUniformBuffer(uniformBuffers[frameCounter]);
+
 
 		for (auto& mesh: meshes) {
 			commandBuffer->BindVertexBuffer(mesh.getVertexBuffer());
@@ -159,6 +169,10 @@ namespace Graphics {
 	void JarepGraphics::Shutdown() {
 
 		surface->ReleaseSwapchain();
+
+		for (auto& image: images) {
+			image->Release();
+		}
 
 		for (auto& uniformBuffer: uniformBuffers) {
 			uniformBuffer->Release();

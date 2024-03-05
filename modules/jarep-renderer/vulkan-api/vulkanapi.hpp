@@ -61,6 +61,8 @@ namespace Graphics::Vulkan {
 
 	class VulkanCommandQueue;
 
+	class VulkanDescriptorSet;
+
 #pragma region VulkanBackend{
 
 	class VulkanBackend final : public Backend {
@@ -298,6 +300,7 @@ namespace Graphics::Vulkan {
 			VkSemaphore m_imageAvailableSemaphore;
 			VkSemaphore m_renderFinishedSemaphore;
 			VkFence m_frameInFlightFence;
+			uint32_t m_frameIndex;
 
 			std::shared_ptr<VulkanGraphicsPipeline> m_lastBoundPipeline;
 	};
@@ -431,18 +434,49 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanDescriptorSet{
 
+	class VulkanDescriptorSetBuilder {
+		public:
+			VulkanDescriptorSetBuilder(uint32_t swapchainImageCount) : m_maxSwapchainImageCount(swapchainImageCount) {}
+
+			~VulkanDescriptorSetBuilder() = default;
+
+			std::shared_ptr<VulkanDescriptorSet> Build(std::shared_ptr<VulkanDevice>& vulkanDevice);
+
+			VulkanDescriptorSetBuilder*
+			AddUniformBuffers(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers, uint32_t binding);
+
+			VulkanDescriptorSetBuilder* AddImage(const std::shared_ptr<VulkanImage>& image, uint32_t binding);
+
+		private:
+			std::vector<VkDescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
+			std::vector<VkDescriptorBufferInfo> m_descriptorBufferInfos;
+			std::vector<VkDescriptorImageInfo> m_descriptorImageInfos;
+			std::vector<VkDescriptorPoolSize> m_descriptorPoolSizes;
+			std::unordered_map<uint32_t, uint32_t> m_bufferIdToBindingMap;
+			std::unordered_map<uint32_t, uint32_t> m_descriptorSetIdToBufferDescriptorWriteMap;
+			std::unordered_map<uint32_t, uint32_t> m_imageIdToBindingMap;
+
+			uint32_t m_maxSwapchainImageCount;
+	};
+
+
 	class VulkanDescriptorSet {
 		public:
-			VulkanDescriptorSet(std::shared_ptr<VulkanDevice>& device) : m_device(device) {}
+			VulkanDescriptorSet(std::shared_ptr<VulkanDevice>& device, VkDescriptorPool descriptorPool,
+			                    VkDescriptorSetLayout layoutBindings,
+			                    std::vector<VkDescriptorSet> descriptorSets) : m_device(device),
+			                                                                   m_descriptorPool(descriptorPool),
+			                                                                   m_descriptorSetLayout(layoutBindings),
+			                                                                   m_descriptorSets(
+					                                                                   std::move(descriptorSets))
+
+			 {}
 
 			~VulkanDescriptorSet() = default;
 
-			void
-			CreateDescriptorsFromUniformBuffers(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBufferObjects);
-
 			void Release();
 
-			[[nodiscard]] VkDescriptorSet const* getDescriptorSetOfBufferIndex(uint32_t bufferId);
+			[[nodiscard]] VkDescriptorSet const* getDescriptorSetOfFrameIndex(uint32_t frameIndex);
 
 			[[nodiscard]] VkDescriptorSetLayout const* getDescriptorSetLayout() const { return &m_descriptorSetLayout; }
 
@@ -451,13 +485,6 @@ namespace Graphics::Vulkan {
 			VkDescriptorSetLayout m_descriptorSetLayout;
 			VkDescriptorPool m_descriptorPool;
 			std::vector<VkDescriptorSet> m_descriptorSets;
-			std::unordered_map<uint32_t, size_t> m_bufferIDToDescriptorSetIndexMap;
-
-			void createLayout();
-
-			void createPool(size_t size);
-
-			void createSets(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers);
 	};
 
 #pragma endregion VulkanDescriptorSet }
@@ -575,7 +602,7 @@ namespace Graphics::Vulkan {
 
 	class VulkanGraphicsPipelineBuilder final : public JarPipelineBuilder {
 		public:
-			VulkanGraphicsPipelineBuilder() = default;
+			VulkanGraphicsPipelineBuilder();
 
 			~VulkanGraphicsPipelineBuilder() override;
 
@@ -590,7 +617,9 @@ namespace Graphics::Vulkan {
 			VulkanGraphicsPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) override;
 
 			VulkanGraphicsPipelineBuilder*
-			SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) override;
+			SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding) override;
+
+			VulkanGraphicsPipelineBuilder* SetImageBuffer(std::shared_ptr<JarImage> image, uint32_t binding) override;
 
 			VulkanGraphicsPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachment) override;
 
@@ -612,6 +641,7 @@ namespace Graphics::Vulkan {
 			std::shared_ptr<VulkanRenderPass> m_renderPass;
 			VkPipelineLayout m_pipelineLayout;
 			VkPipeline m_pipeline;
+			VulkanDescriptorSetBuilder* m_descriptorSetBuilder;
 
 			static VkColorComponentFlags convertToColorComponentFlagBits(ColorWriteMask colorWriteMask);
 	};
@@ -635,10 +665,8 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
 
-			[[nodiscard]] VkDescriptorSet const*
-			getDecscriptorSetFromBufferIndex(size_t bufferIndex) const {
-				return m_descriptorSet->getDescriptorSetOfBufferIndex(
-						bufferIndex);
+			[[nodiscard]] VkDescriptorSet const* getDescriptorSetFromFrameIndex(size_t frameIndex) const {
+				return m_descriptorSet->getDescriptorSetOfFrameIndex(frameIndex);
 			}
 
 		private:
@@ -669,12 +697,13 @@ namespace Graphics::Vulkan {
 			                        VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
 			                        VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
-			static void createImageView(std::shared_ptr<VulkanDevice>& vulkanDevice, VkImage image, VkFormat format, VkImageView* view);
+			static void createImageView(std::shared_ptr<VulkanDevice>& vulkanDevice, VkImage image, VkFormat format,
+			                            VkImageView* view);
 
 		private:
 			std::optional<ImageFormat> m_imageFormat;
 			std::optional<std::string> m_imagePath;
-
+			static inline uint32_t m_nextImageId = 0;
 			std::shared_ptr<VulkanBackend> m_backend;
 
 			void
@@ -684,15 +713,15 @@ namespace Graphics::Vulkan {
 			void copyBufferToImage(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer buffer, VkImage image,
 			                       uint32_t width, uint32_t height);
 
-			void createSampler(std::shared_ptr<VulkanDevice>& vulkanDevice, VkSampler& sampler);
+			static void createSampler(std::shared_ptr<VulkanDevice>& vulkanDevice, VkSampler& sampler);
 	};
 
 	class VulkanImage final : public JarImage {
 		public:
 			VulkanImage(std::shared_ptr<VulkanDevice> device, VkImage image, VkDeviceMemory imageMemory,
-			            VkImageView imageView, VkFormat format, VkExtent2D extent, VkSampler sampler)
+			            VkImageView imageView, VkFormat format, VkExtent2D extent, VkSampler sampler, uint32_t imageId)
 					: m_device(device), m_image(image), m_imageMemory(imageMemory), m_imageView(imageView),
-					  m_format(format), m_extent(extent), m_sampler(sampler) {};
+					  m_format(format), m_extent(extent), m_sampler(sampler), m_imageId(imageId) {};
 
 			~VulkanImage() override;
 
@@ -710,6 +739,8 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkSampler getSampler() const { return m_sampler; }
 
+			[[nodiscard]] uint32_t getImageId() const { return m_imageId; }
+
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
 			VkImage m_image;
@@ -718,6 +749,7 @@ namespace Graphics::Vulkan {
 			VkFormat m_format;
 			VkExtent2D m_extent;
 			VkSampler m_sampler;
+			uint32_t m_imageId;
 	};
 
 #pragma endregion VulkanImage };

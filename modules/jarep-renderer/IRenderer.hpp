@@ -441,7 +441,9 @@ namespace Graphics {
 
 			virtual JarPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) = 0;
 
-			virtual JarPipelineBuilder* SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) = 0;
+			virtual JarPipelineBuilder* SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding) = 0;
+
+			virtual JarPipelineBuilder* SetImageBuffer(std::shared_ptr<JarImage> imageBuffer, uint32_t binding) = 0;
 
 			virtual JarPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachments) = 0;
 
