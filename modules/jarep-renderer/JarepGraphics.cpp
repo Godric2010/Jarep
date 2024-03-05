@@ -115,8 +115,8 @@ namespace Graphics {
 				SetVertexInput(vertexInput)->
 				SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
 				SetMultisamplingCount(1)->
-				SetUniformBuffers(uniformBuffers, 1)->
-				SetImageBuffer(images[0], 2)->
+				BindUniformBuffers(uniformBuffers, 1, StageFlags::VertexShader)->
+				BindImageBuffer(images[0], 2, StageFlags::FragmentShader)->
 				SetColorBlendAttachments(colorBlendAttachment);
 		pipeline = pipelineBuilder->Build(device);
 		delete pipelineBuilder;

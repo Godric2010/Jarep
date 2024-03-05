@@ -443,9 +443,11 @@ namespace Graphics::Vulkan {
 			std::shared_ptr<VulkanDescriptorSet> Build(std::shared_ptr<VulkanDevice>& vulkanDevice);
 
 			VulkanDescriptorSetBuilder*
-			AddUniformBuffers(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers, uint32_t binding);
+			AddUniformBuffers(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers,
+			                  uint32_t binding, VkShaderStageFlags stageFlags);
 
-			VulkanDescriptorSetBuilder* AddImage(const std::shared_ptr<VulkanImage>& image, uint32_t binding);
+			VulkanDescriptorSetBuilder* AddImage(const std::shared_ptr<VulkanImage>& image, uint32_t binding,
+			                                     VkShaderStageFlags stageFlags);
 
 		private:
 			std::vector<VkDescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
@@ -467,9 +469,7 @@ namespace Graphics::Vulkan {
 			                                                                   m_descriptorPool(descriptorPool),
 			                                                                   m_descriptorSetLayout(layoutBindings),
 			                                                                   m_descriptorSets(
-					                                                                   std::move(descriptorSets))
-
-			 {}
+					                                                                   std::move(descriptorSets)) {}
 
 			~VulkanDescriptorSet() = default;
 
@@ -616,9 +616,11 @@ namespace Graphics::Vulkan {
 			VulkanGraphicsPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) override;
 
 			VulkanGraphicsPipelineBuilder*
-			SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding) override;
+			BindUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding,
+			                   StageFlags stageFlags) override;
 
-			VulkanGraphicsPipelineBuilder* SetImageBuffer(std::shared_ptr<JarImage> image, uint32_t binding) override;
+			VulkanGraphicsPipelineBuilder*
+			BindImageBuffer(std::shared_ptr<JarImage> image, uint32_t binding, StageFlags stageFlags) override;
 
 			VulkanGraphicsPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachment) override;
 
@@ -643,6 +645,7 @@ namespace Graphics::Vulkan {
 			VulkanDescriptorSetBuilder* m_descriptorSetBuilder;
 
 			static VkColorComponentFlags convertToColorComponentFlagBits(ColorWriteMask colorWriteMask);
+			static VkShaderStageFlagBits convertToVkShaderStageFlagBits(StageFlags stageFlags);
 	};
 
 

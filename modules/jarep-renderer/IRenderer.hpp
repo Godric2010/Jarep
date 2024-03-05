@@ -185,8 +185,6 @@ namespace Graphics {
 			}
 
 			operator BitType() const { return flags; }
-
-
 	};
 
 	inline MemoryProperties operator|(MemoryProperties::FlagBits lhs, MemoryProperties::FlagBits rhs) {
@@ -220,7 +218,7 @@ namespace Graphics {
 
 #pragma region JarImage{
 
-	class JarImageBuilder{
+	class JarImageBuilder {
 		public:
 			virtual ~JarImageBuilder() = default;
 
@@ -427,6 +425,13 @@ namespace Graphics {
 		StencilOpState stencilOpState;
 	};
 
+	enum class StageFlags {
+		VertexShader = 0x1,
+		FragmentShader = 0x2,
+		GeometryShader = 0x4,
+		ComputeShader = 0x8,
+	};
+
 	class JarPipelineBuilder {
 		public:
 			virtual ~JarPipelineBuilder() = default;
@@ -441,9 +446,12 @@ namespace Graphics {
 
 			virtual JarPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) = 0;
 
-			virtual JarPipelineBuilder* SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding) = 0;
+			virtual JarPipelineBuilder*
+			BindUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding,
+			                   StageFlags stageFlags) = 0;
 
-			virtual JarPipelineBuilder* SetImageBuffer(std::shared_ptr<JarImage> imageBuffer, uint32_t binding) = 0;
+			virtual JarPipelineBuilder*
+			BindImageBuffer(std::shared_ptr<JarImage> imageBuffer, uint32_t binding, StageFlags stageFlags) = 0;
 
 			virtual JarPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachments) = 0;
 

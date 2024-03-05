@@ -996,7 +996,8 @@ namespace Graphics::Vulkan {
 
 
 	VulkanDescriptorSetBuilder* VulkanDescriptorSetBuilder::AddUniformBuffers(
-			const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers, uint32_t binding) {
+			const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers,
+			uint32_t binding, VkShaderStageFlags stageFlags) {
 		if (uniformBuffers.size() != m_maxSwapchainImageCount)
 			throw std::runtime_error("Amount of uniform buffers must be equal to the amount of swapchain images!");
 
@@ -1004,7 +1005,7 @@ namespace Graphics::Vulkan {
 		uboLayoutBinding.binding = binding;
 		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		uboLayoutBinding.descriptorCount = 1;
-		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		uboLayoutBinding.stageFlags = stageFlags;
 		uboLayoutBinding.pImmutableSamplers = nullptr;
 
 		m_descriptorSetLayoutBindings.push_back(uboLayoutBinding);
@@ -1028,13 +1029,14 @@ namespace Graphics::Vulkan {
 	}
 
 	VulkanDescriptorSetBuilder*
-	VulkanDescriptorSetBuilder::AddImage(const std::shared_ptr<VulkanImage>& image, uint32_t binding) {
+	VulkanDescriptorSetBuilder::AddImage(const std::shared_ptr<VulkanImage>& image, uint32_t binding,
+	                                     VkShaderStageFlags stageFlags) {
 
 		VkDescriptorSetLayoutBinding imageLayoutBinding{};
 		imageLayoutBinding.binding = binding;
 		imageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		imageLayoutBinding.descriptorCount = 1;
-		imageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		imageLayoutBinding.stageFlags = stageFlags;
 		imageLayoutBinding.pImmutableSamplers = nullptr;
 
 		m_descriptorSetLayoutBindings.push_back(imageLayoutBinding);
@@ -1383,17 +1385,18 @@ namespace Graphics::Vulkan {
 	}
 
 	VulkanGraphicsPipelineBuilder*
-	VulkanGraphicsPipelineBuilder::SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers,
-	                                                 uint32_t binding) {
+	VulkanGraphicsPipelineBuilder::BindUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers,
+	                                                  uint32_t binding, StageFlags stageFlags) {
 		auto vulkanUniformBuffers = reinterpret_cast<std::vector<std::shared_ptr<VulkanBuffer>>&>(uniformBuffers);
-		m_descriptorSetBuilder->AddUniformBuffers(vulkanUniformBuffers, binding);
+		m_descriptorSetBuilder->AddUniformBuffers(vulkanUniformBuffers, binding, convertToVkShaderStageFlagBits(stageFlags));
 		return this;
 	}
 
-	VulkanGraphicsPipelineBuilder* VulkanGraphicsPipelineBuilder::SetImageBuffer(std::shared_ptr<JarImage> image,
-	                                                                             uint32_t binding) {
+	VulkanGraphicsPipelineBuilder* VulkanGraphicsPipelineBuilder::BindImageBuffer(std::shared_ptr<JarImage> image,
+	                                                                              uint32_t binding,
+	                                                                              StageFlags stageFlags) {
 		auto vulkanImage = reinterpret_cast<std::shared_ptr<VulkanImage>&>(image);
-		m_descriptorSetBuilder->AddImage(vulkanImage, binding);
+		m_descriptorSetBuilder->AddImage(vulkanImage, binding, convertToVkShaderStageFlagBits(stageFlags));
 		return this;
 	}
 
@@ -1545,6 +1548,22 @@ namespace Graphics::Vulkan {
 		if (maskValue & static_cast<std::underlying_type<ColorWriteMask>::type>(ColorWriteMask::Alpha))
 			flagBits |= VK_COLOR_COMPONENT_A_BIT;
 		return flagBits;
+	}
+
+	VkShaderStageFlagBits
+	VulkanGraphicsPipelineBuilder::convertToVkShaderStageFlagBits(Graphics::StageFlags stageFlags) {
+		int flagBits = 0;
+		auto maskValue = static_cast<std::underlying_type<StageFlags>::type>(stageFlags);
+		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::VertexShader))
+			flagBits |= VK_SHADER_STAGE_VERTEX_BIT;
+		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::FragmentShader))
+			flagBits |= VK_SHADER_STAGE_FRAGMENT_BIT;
+		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::GeometryShader))
+			flagBits |= VK_SHADER_STAGE_GEOMETRY_BIT;
+		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::ComputeShader))
+			flagBits |= VK_SHADER_STAGE_COMPUTE_BIT;
+		return static_cast<VkShaderStageFlagBits>(flagBits);
+
 	}
 
 
