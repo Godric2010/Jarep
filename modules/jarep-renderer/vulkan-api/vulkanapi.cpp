@@ -987,8 +987,19 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanDescriptorSet{
 
+	VulkanDescriptorSetBuilder::VulkanDescriptorSetBuilder(uint32_t swapchainImageCount) {
+		m_maxSwapchainImageCount = swapchainImageCount;
+		for (uint32_t i = 0; i < m_maxSwapchainImageCount; ++i) {
+			m_descSetIndexBufferInfosMap.insert({i, std::vector<VkDescriptorBufferInfo>(0)});
+		}
+	}
+
+
 	VulkanDescriptorSetBuilder* VulkanDescriptorSetBuilder::AddUniformBuffers(
 			const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers, uint32_t binding) {
+		if (uniformBuffers.size() != m_maxSwapchainImageCount)
+			throw std::runtime_error("Amount of uniform buffers must be equal to the amount of swapchain images!");
+
 		VkDescriptorSetLayoutBinding uboLayoutBinding{};
 		uboLayoutBinding.binding = binding;
 		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1003,15 +1014,14 @@ namespace Graphics::Vulkan {
 		poolSize.descriptorCount = static_cast<uint32_t>(uniformBuffers.size());
 		m_descriptorPoolSizes.push_back(poolSize);
 
-		for (int i = 0; i < uniformBuffers.size(); ++i) {
+		for (int i = 0; i < m_maxSwapchainImageCount; ++i) {
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = uniformBuffers[i]->getBuffer();
 			bufferInfo.offset = 0;
 			bufferInfo.range = uniformBuffers[i]->getBufferSize();
 
-			uint32_t descriptorWriteIndex = m_descriptorBufferInfos.size();
-			m_descriptorBufferInfos.push_back(bufferInfo);
-			m_descriptorSetIdToBufferDescriptorWriteMap.insert({i, descriptorWriteIndex});
+			uint32_t descriptorWriteIndex = m_descSetIndexBufferInfosMap[i].size();
+			m_descSetIndexBufferInfosMap[i].push_back(bufferInfo);
 			m_bufferIdToBindingMap.insert({descriptorWriteIndex, binding});
 		}
 		return this;
@@ -1034,7 +1044,6 @@ namespace Graphics::Vulkan {
 		poolSize.descriptorCount = m_maxSwapchainImageCount;
 		m_descriptorPoolSizes.push_back(poolSize);
 
-		//for (int i = 0; i < m_maxSwapchainImageCount; ++i) {
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = image->getImageView();
@@ -1042,13 +1051,12 @@ namespace Graphics::Vulkan {
 
 		m_descriptorImageInfos.push_back(imageInfo);
 		m_imageIdToBindingMap.insert({m_descriptorImageInfos.size() - 1, binding});
-		//}
 		return this;
 	}
 
 	std::shared_ptr<VulkanDescriptorSet>
 	VulkanDescriptorSetBuilder::Build(std::shared_ptr<VulkanDevice>& vulkanDevice) {
-		if (m_descriptorSetLayoutBindings.empty() || m_descriptorBufferInfos.empty())
+		if (m_descriptorSetLayoutBindings.empty())
 			throw std::runtime_error("DescriptorSet not correctly initialized! All fields must be set!");
 
 		VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
@@ -1089,21 +1097,21 @@ namespace Graphics::Vulkan {
 		for (size_t i = 0; i < descriptorSets.size(); i++) {
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
-			//for (size_t uboIndex = 0; uboIndex < m_descriptorBufferInfos.size(); ++uboIndex) {
-			uint32_t descriptorWriteIndex = m_descriptorSetIdToBufferDescriptorWriteMap[i];
+			auto descriptorBufferInfos = m_descSetIndexBufferInfosMap[i];
 
-			VkWriteDescriptorSet descriptorWriteUbo{};
-			descriptorWriteUbo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWriteUbo.dstSet = descriptorSets[i];
-			descriptorWriteUbo.dstBinding = m_bufferIdToBindingMap[descriptorWriteIndex];
-			descriptorWriteUbo.dstArrayElement = 0;
-			descriptorWriteUbo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWriteUbo.descriptorCount = 1;
-			descriptorWriteUbo.pBufferInfo = &m_descriptorBufferInfos[descriptorWriteIndex];
-			descriptorWriteUbo.pImageInfo = nullptr;
-			descriptorWriteUbo.pTexelBufferView = nullptr;
-			writeDescriptorSets.push_back(descriptorWriteUbo);
-			//	}
+			for (uint32_t bufferIndex = 0; bufferIndex < descriptorBufferInfos.size(); ++bufferIndex) {
+				VkWriteDescriptorSet descriptorWriteUbo{};
+				descriptorWriteUbo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWriteUbo.dstSet = descriptorSets[i];
+				descriptorWriteUbo.dstBinding = m_bufferIdToBindingMap[bufferIndex];
+				descriptorWriteUbo.dstArrayElement = 0;
+				descriptorWriteUbo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				descriptorWriteUbo.descriptorCount = 1;
+				descriptorWriteUbo.pBufferInfo = &descriptorBufferInfos[bufferIndex];
+				descriptorWriteUbo.pImageInfo = nullptr;
+				descriptorWriteUbo.pTexelBufferView = nullptr;
+				writeDescriptorSets.push_back(descriptorWriteUbo);
+			}
 
 			for (size_t imageIndex = 0; imageIndex < m_descriptorImageInfos.size(); ++imageIndex) {
 				VkWriteDescriptorSet descriptorWriteSampler{};
@@ -1123,7 +1131,6 @@ namespace Graphics::Vulkan {
 			                       writeDescriptorSets.data(), 0, nullptr);
 
 		}
-
 
 		return std::make_shared<VulkanDescriptorSet>(vulkanDevice, descriptorPool, descriptorSetLayout,
 		                                             descriptorSets);

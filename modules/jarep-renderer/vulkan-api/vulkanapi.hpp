@@ -436,7 +436,7 @@ namespace Graphics::Vulkan {
 
 	class VulkanDescriptorSetBuilder {
 		public:
-			VulkanDescriptorSetBuilder(uint32_t swapchainImageCount) : m_maxSwapchainImageCount(swapchainImageCount) {}
+			VulkanDescriptorSetBuilder(uint32_t swapchainImageCount);
 
 			~VulkanDescriptorSetBuilder() = default;
 
@@ -449,11 +449,10 @@ namespace Graphics::Vulkan {
 
 		private:
 			std::vector<VkDescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
-			std::vector<VkDescriptorBufferInfo> m_descriptorBufferInfos;
 			std::vector<VkDescriptorImageInfo> m_descriptorImageInfos;
 			std::vector<VkDescriptorPoolSize> m_descriptorPoolSizes;
+			std::unordered_map<uint32_t, std::vector<VkDescriptorBufferInfo>> m_descSetIndexBufferInfosMap;
 			std::unordered_map<uint32_t, uint32_t> m_bufferIdToBindingMap;
-			std::unordered_map<uint32_t, uint32_t> m_descriptorSetIdToBufferDescriptorWriteMap;
 			std::unordered_map<uint32_t, uint32_t> m_imageIdToBindingMap;
 
 			uint32_t m_maxSwapchainImageCount;
