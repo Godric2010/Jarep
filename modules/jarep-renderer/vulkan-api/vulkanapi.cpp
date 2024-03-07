@@ -31,6 +31,10 @@ namespace Graphics::Vulkan {
 
 	VulkanBackend::~VulkanBackend() = default;
 
+	BackendType VulkanBackend::GetType() {
+		return BackendType::Vulkan;
+	}
+
 	std::shared_ptr<JarSurface> VulkanBackend::CreateSurface(NativeWindowHandleProvider* nativeWindowHandleProvider) {
 		VkExtent2D surfaceExtend = VkExtent2D();
 		surfaceExtend.width = nativeWindowHandleProvider->getWindowWidth();
@@ -666,7 +670,6 @@ namespace Graphics::Vulkan {
 
 		auto vkFramebuffer = vkSurface->getSwapchain()->
 				AcquireNewImage(m_imageAvailableSemaphore, m_frameInFlightFence);
-		m_frameIndex = vkSurface->getSwapchain()->getCurrentImageIndex();
 
 		vkResetCommandBuffer(m_commandBuffer, 0);
 
@@ -729,10 +732,14 @@ namespace Graphics::Vulkan {
 		                                        m_frameInFlightFence, &m_commandBuffer);
 	}
 
-	void VulkanCommandBuffer::BindPipeline(std::shared_ptr<JarPipeline> pipeline) {
+	void VulkanCommandBuffer::BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t frameIndex) {
 		const auto vkPipeline = reinterpret_cast<std::shared_ptr<VulkanGraphicsPipeline>&>(pipeline);
 		vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->getPipeline());
-		m_lastBoundPipeline = vkPipeline;
+
+		auto bufferDescriptorSet = vkPipeline->getDescriptorSetFromFrameIndex(frameIndex);
+
+		vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->getPipelineLayout(), 0, 1,
+		                        bufferDescriptorSet, 0, nullptr);
 	}
 
 	void VulkanCommandBuffer::BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) {
@@ -745,17 +752,6 @@ namespace Graphics::Vulkan {
 	void VulkanCommandBuffer::BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) {
 		const auto vulkanBuffer = reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(indexBuffer);
 		vkCmdBindIndexBuffer(m_commandBuffer, vulkanBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
-	}
-
-	void VulkanCommandBuffer::BindUniformBuffer(std::shared_ptr<JarBuffer> uniformBuffer) {
-		const auto vulkanBuffer = reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(uniformBuffer);
-
-		auto pipelineLayout = m_lastBoundPipeline->getPipelineLayout();
-		auto bufferDescriptorSet = m_lastBoundPipeline->getDescriptorSetFromFrameIndex(m_frameIndex);
-
-		vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-		                        bufferDescriptorSet, 0, nullptr);
-
 	}
 
 	void VulkanCommandBuffer::Release(VkDevice device) {
@@ -1212,6 +1208,20 @@ namespace Graphics::Vulkan {
 			{VertexFormat::Int4,   VK_FORMAT_R32G32B32A32_SINT},
 	};
 
+	static std::unordered_map<PixelFormat, VkFormat> pixelFormatMap = {
+			{PixelFormat::RGBA8_UNORM, VK_FORMAT_R8G8B8A8_UNORM},
+			{PixelFormat::BGRA8_UNORM, VK_FORMAT_B8G8R8A8_UNORM},
+			{PixelFormat::RGBA16_FLOAT, VK_FORMAT_R16G16B16A16_SFLOAT},
+			{PixelFormat::RGBA32_FLOAT, VK_FORMAT_R32G32B32A32_SFLOAT},
+			{PixelFormat::DEPTH32_FLOAT, VK_FORMAT_D32_SFLOAT},
+			{PixelFormat::DEPTH24_STENCIL8, VK_FORMAT_D24_UNORM_S8_UINT},
+			{PixelFormat::R8_UNORM, VK_FORMAT_R8_UNORM},
+			{PixelFormat::R16_FLOAT, VK_FORMAT_R16_SFLOAT},
+			{PixelFormat::BC1, VK_FORMAT_BC1_RGBA_UNORM_BLOCK},
+			{PixelFormat::BC3, VK_FORMAT_BC3_UNORM_BLOCK},
+			{PixelFormat::PVRTC, VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG},
+	};
+
 	static std::unordered_map<InputAssemblyTopology, VkPrimitiveTopology> topologyMap = {
 			{InputAssemblyTopology::LineList,      VK_PRIMITIVE_TOPOLOGY_LINE_LIST},
 			{InputAssemblyTopology::LineStrip,     VK_PRIMITIVE_TOPOLOGY_LINE_STRIP},
@@ -1388,7 +1398,8 @@ namespace Graphics::Vulkan {
 	VulkanGraphicsPipelineBuilder::BindUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers,
 	                                                  uint32_t binding, StageFlags stageFlags) {
 		auto vulkanUniformBuffers = reinterpret_cast<std::vector<std::shared_ptr<VulkanBuffer>>&>(uniformBuffers);
-		m_descriptorSetBuilder->AddUniformBuffers(vulkanUniformBuffers, binding, convertToVkShaderStageFlagBits(stageFlags));
+		m_descriptorSetBuilder->AddUniformBuffers(vulkanUniformBuffers, binding,
+		                                          convertToVkShaderStageFlagBits(stageFlags));
 		return this;
 	}
 
@@ -1713,8 +1724,8 @@ namespace Graphics::Vulkan {
 
 	VulkanImageBuilder::~VulkanImageBuilder() = default;
 
-	VulkanImageBuilder* VulkanImageBuilder::SetImageFormat(Graphics::ImageFormat imageFormat) {
-		m_imageFormat = std::make_optional(imageFormat);
+	VulkanImageBuilder* VulkanImageBuilder::SetPixelFormat(Graphics::PixelFormat format) {
+		m_pixelFormat = std::make_optional(format);
 		return this;
 	}
 
@@ -1748,7 +1759,7 @@ namespace Graphics::Vulkan {
 
 		stbi_image_free(pixels);
 
-		auto vkFormat = imageFormatMap[m_imageFormat.value()];
+		auto vkFormat = pixelFormatMap[m_pixelFormat.value()];
 
 		VkImage textureImage;
 		VkDeviceMemory textureImageMemory;

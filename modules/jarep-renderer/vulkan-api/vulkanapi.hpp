@@ -71,6 +71,8 @@ namespace Graphics::Vulkan {
 
 			~VulkanBackend() override;
 
+			BackendType GetType() override ;
+
 			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* nativeWindowHandleProvider) override;
 
 			std::shared_ptr<JarDevice> CreateDevice(std::shared_ptr<JarSurface>& surface) override;
@@ -271,13 +273,11 @@ namespace Graphics::Vulkan {
 
 			void EndRecording() override;
 
-			void BindPipeline(std::shared_ptr<JarPipeline> pipeline) override;
+			void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t frameIndex) override;
 
 			void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
 
 			void BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) override;
-
-			void BindUniformBuffer(std::shared_ptr<JarBuffer> uniformBuffer) override;
 
 			void Draw() override;
 
@@ -300,9 +300,6 @@ namespace Graphics::Vulkan {
 			VkSemaphore m_imageAvailableSemaphore;
 			VkSemaphore m_renderFinishedSemaphore;
 			VkFence m_frameInFlightFence;
-			uint32_t m_frameIndex;
-
-			std::shared_ptr<VulkanGraphicsPipeline> m_lastBoundPipeline;
 	};
 
 #pragma endregion VulkanCommandBuffer }
@@ -645,6 +642,7 @@ namespace Graphics::Vulkan {
 			VulkanDescriptorSetBuilder* m_descriptorSetBuilder;
 
 			static VkColorComponentFlags convertToColorComponentFlagBits(ColorWriteMask colorWriteMask);
+
 			static VkShaderStageFlagBits convertToVkShaderStageFlagBits(StageFlags stageFlags);
 	};
 
@@ -689,7 +687,7 @@ namespace Graphics::Vulkan {
 
 			~VulkanImageBuilder() override;
 
-			VulkanImageBuilder* SetImageFormat(ImageFormat format) override;
+			VulkanImageBuilder* SetPixelFormat(PixelFormat format) override;
 
 			VulkanImageBuilder* SetImagePath(std::string imagePath) override;
 
@@ -703,7 +701,7 @@ namespace Graphics::Vulkan {
 			                            VkImageView* view);
 
 		private:
-			std::optional<ImageFormat> m_imageFormat;
+			std::optional<PixelFormat> m_pixelFormat;
 			std::optional<std::string> m_imagePath;
 			static inline uint32_t m_nextImageId = 0;
 			std::shared_ptr<VulkanBackend> m_backend;
