@@ -25,6 +25,8 @@ namespace Graphics::Metal {
 
 	class MetalBuffer;
 
+	class MetalImage;
+
 	class MetalSurface final : public JarSurface {
 		public:
 			MetalSurface();
@@ -32,7 +34,6 @@ namespace Graphics::Metal {
 			~MetalSurface() override;
 
 			bool CreateFromNativeWindowProvider(NativeWindowHandleProvider* windowHandleProvider);
-
 
 			void Update() override;
 
@@ -136,13 +137,11 @@ namespace Graphics::Metal {
 
 			void EndRecording() override;
 
-			void BindPipeline(std::shared_ptr<JarPipeline> pipeline) override;
+			void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t frameIndex) override;
 
 			void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
 
 			void BindIndexBuffer(std::shared_ptr<JarBuffer> buffer) override;
-
-			void BindUniformBuffer(std::shared_ptr<JarBuffer> buffer) override;
 
 			void Draw() override;
 
@@ -287,6 +286,52 @@ namespace Graphics::Metal {
 
 #pragma endregion MetalShaderLibrary }
 
+#pragma region MetalDescriptorBinding{
+
+	class MetalUniformDescriptorBinding {
+		public:
+			MetalUniformDescriptorBinding(std::vector<std::shared_ptr<MetalBuffer>> uniformBuffers, uint32_t binding,
+			                              StageFlags stageFlags)
+					: m_uniformBuffers(uniformBuffers), m_binding(binding), m_stageFlags(stageFlags) {};
+
+			~MetalUniformDescriptorBinding() = default;
+
+			StageFlags getStageFlags() const { return m_stageFlags; }
+
+			std::shared_ptr<MetalBuffer>
+			getUniformBuffer(uint32_t frameIndex) const { return m_uniformBuffers[frameIndex]; }
+
+			uint32_t getBinding() const { return m_binding; }
+
+		private:
+			StageFlags m_stageFlags;
+			std::vector<std::shared_ptr<MetalBuffer>> m_uniformBuffers;
+			uint32_t m_binding;
+	};
+
+	class MetalTextureDescriptorBinding {
+		public:
+			MetalTextureDescriptorBinding(std::shared_ptr<MetalImage> image, uint32_t binding, StageFlags stageFlags)
+					: m_image(image), m_binding(binding), m_stageFlags(stageFlags) {};
+
+			~MetalTextureDescriptorBinding() = default;
+
+			StageFlags getStageFlags() const { return m_stageFlags; }
+
+			std::shared_ptr<MetalImage> getImage() const { return m_image; }
+
+			uint32_t getBinding() const { return m_binding; }
+
+		private:
+			StageFlags m_stageFlags;
+			std::shared_ptr<MetalImage> m_image;
+			uint32_t m_binding;
+	};
+
+#pragma endregion MetalDescriptorBinding }
+
+#pragma region MetalPipeline{
+
 	class MetalPipelineBuilder final : public JarPipelineBuilder {
 		public:
 			MetalPipelineBuilder() = default;
@@ -303,7 +348,12 @@ namespace Graphics::Metal {
 
 			MetalPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) override;
 
-			MetalPipelineBuilder* SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) override;
+			MetalPipelineBuilder*
+			BindUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding,
+			                   StageFlags stageFlags) override;
+
+			MetalPipelineBuilder*
+			BindImageBuffer(std::shared_ptr<JarImage> image, uint32_t binding, StageFlags stageFlags) override;
 
 			MetalPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment blendAttachment) override;
 
@@ -316,6 +366,8 @@ namespace Graphics::Metal {
 			MTL::Function* m_fragmentShaderFunc;
 
 			std::shared_ptr<JarRenderPass> m_renderPass;
+			std::vector<MetalUniformDescriptorBinding> m_uniformDescriptorBindings;
+			std::vector<MetalTextureDescriptorBinding> m_textureDescriptorBindings;
 
 			MTL::VertexDescriptor* m_vertexDescriptor;
 			MTL::PrimitiveTopologyClass m_topology;
@@ -332,9 +384,13 @@ namespace Graphics::Metal {
 	class MetalPipeline final : public JarPipeline {
 		public:
 			MetalPipeline(MTL::Device* device, MTL::RenderPipelineState* pipelineState,
-			              MTL::DepthStencilState* depthStencilState, std::shared_ptr<JarRenderPass> renderPass)
+			              MTL::DepthStencilState* depthStencilState, std::shared_ptr<JarRenderPass> renderPass,
+			              std::vector<MetalUniformDescriptorBinding> uniformDescriptorBindings,
+			              std::vector<MetalTextureDescriptorBinding> textureDescriptorBindings)
 					: m_device(device), m_pipelineState(pipelineState),
-					  m_depthStencilState(depthStencilState), m_renderPass(std::move(renderPass)) {};
+					  m_depthStencilState(depthStencilState), m_renderPass(std::move(renderPass)),
+					  m_uniformDescriptorBindings(uniformDescriptorBindings),
+					  m_textureDescriptorBindings(textureDescriptorBindings) {};
 
 			~MetalPipeline() override;
 
@@ -346,18 +402,32 @@ namespace Graphics::Metal {
 
 			MTL::DepthStencilState* getDSS() { return m_depthStencilState; }
 
+			std::vector<MetalUniformDescriptorBinding>
+			getUniformDescriptorBindings() { return m_uniformDescriptorBindings; }
+
+			std::vector<MetalTextureDescriptorBinding>
+			getTextureDescriptorBindings() { return m_textureDescriptorBindings; }
+
 		private:
 			MTL::RenderPipelineState* m_pipelineState;
 			MTL::DepthStencilState* m_depthStencilState;
 			MTL::Device* m_device;
 			std::shared_ptr<JarRenderPass> m_renderPass;
+			std::vector<MetalUniformDescriptorBinding> m_uniformDescriptorBindings;
+			std::vector<MetalTextureDescriptorBinding> m_textureDescriptorBindings;
 	};
+
+#pragma endregion MetalPipeline }
+
+#pragma region MetalBackend{
 
 	class MetalBackend final : public Backend {
 		public:
 			MetalBackend();
 
 			~MetalBackend() override;
+
+			BackendType GetType() override;
 
 			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* windowHandleProvider) override;
 
@@ -371,8 +441,47 @@ namespace Graphics::Metal {
 
 			JarBufferBuilder* InitBufferBuilder() override;
 
+			JarImageBuilder* InitImageBuilder() override;
+
 			JarPipelineBuilder* InitPipelineBuilder() override;
 	};
+
+#pragma endregion MetalBackend }
+
+#pragma region MetalImage{
+
+	class MetalImageBuilder final : public JarImageBuilder {
+		public:
+			MetalImageBuilder() = default;
+
+			~MetalImageBuilder() override;
+
+			MetalImageBuilder* SetPixelFormat(PixelFormat format) override;
+
+			MetalImageBuilder* SetImagePath(std::string path) override;
+
+			std::shared_ptr<JarImage> Build(std::shared_ptr<JarDevice> device) override;
+
+		private:
+			std::optional<MTL::PixelFormat> m_pixelFormat;
+			std::optional<std::string> m_imagePath;
+	};
+
+	class MetalImage final : public JarImage {
+		public:
+			MetalImage(MTL::Texture* texture) : m_texture(texture) {}
+
+			~MetalImage() override;
+
+			void Release() override;
+
+			[[nodiscard]] MTL::Texture* getTexture() const { return m_texture; }
+
+		private:
+			MTL::Texture* m_texture;
+	};
+
+#pragma endregion MetalImage }
 }
 #endif
 #endif //JAREP_METALAPI_HPP

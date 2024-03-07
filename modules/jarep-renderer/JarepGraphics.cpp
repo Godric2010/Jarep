@@ -35,7 +35,7 @@ namespace Graphics {
 			uniformBuffers.push_back(bufferBuilder->Build(device));
 		}
 
-		auto image = backend->InitImageBuilder()->SetImageFormat(ImageFormat::B8G8R8A8_UNORM)->SetImagePath(
+		auto image = backend->InitImageBuilder()->SetPixelFormat(PixelFormat::BGRA8_UNORM)->SetImagePath(
 				"../../resources/test_image.png")->Build(device);
 		images.push_back(image);
 
@@ -151,8 +151,7 @@ namespace Graphics {
 		const auto commandBuffer = queue->getNextCommandBuffer();
 		commandBuffer->StartRecording(surface, renderPass);
 
-		commandBuffer->BindPipeline(pipeline);
-		commandBuffer->BindUniformBuffer(uniformBuffers[frameCounter]);
+		commandBuffer->BindPipeline(pipeline, frameCounter);
 
 
 		for (auto& mesh: meshes) {
@@ -206,7 +205,8 @@ namespace Graphics {
 		mvp.projection = glm::perspective(glm::radians(45.0f), surfaceExtent.Width / surfaceExtent.Height, 0.1f,
 		                                  100.0f);
 
-		mvp.projection[1][1] *= -1;
+		if (backend->GetType() == BackendType::Vulkan)
+			mvp.projection[1][1] *= -1;
 
 		uniformBuffers[frameCounter]->Update(&mvp, sizeof(Internal::JarModelViewProjection));
 	}

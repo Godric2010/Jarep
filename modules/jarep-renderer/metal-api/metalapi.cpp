@@ -16,6 +16,10 @@ namespace Graphics::Metal {
 
 	MetalBackend::~MetalBackend() = default;
 
+	BackendType MetalBackend::GetType() {
+		return BackendType::Metal;
+	}
+
 	std::shared_ptr<JarSurface> MetalBackend::CreateSurface(NativeWindowHandleProvider* windowHandleProvider) {
 		auto metalSurface = std::make_shared<MetalSurface>();
 		metalSurface->CreateFromNativeWindowProvider(windowHandleProvider);
@@ -50,6 +54,10 @@ namespace Graphics::Metal {
 
 	JarPipelineBuilder* MetalBackend::InitPipelineBuilder() {
 		return new MetalPipelineBuilder();
+	}
+
+	JarImageBuilder* MetalBackend::InitImageBuilder() {
+		return new MetalImageBuilder();
 	}
 
 
@@ -177,9 +185,21 @@ namespace Graphics::Metal {
 		encoder->endEncoding();
 	}
 
-	void MetalCommandBuffer::BindPipeline(std::shared_ptr<Graphics::JarPipeline> pipeline) {
+	void MetalCommandBuffer::BindPipeline(std::shared_ptr<Graphics::JarPipeline> pipeline, uint32_t frameIndex) {
 		auto metalPipeline = reinterpret_cast<MetalPipeline*>(pipeline.get());
 		encoder->setRenderPipelineState(metalPipeline->getPSO());
+
+		for (auto& uniformDescriptorBinding: metalPipeline->getUniformDescriptorBindings()) {
+			if (uniformDescriptorBinding.getStageFlags() == Graphics::StageFlags::VertexShader)
+				encoder->setVertexBuffer(uniformDescriptorBinding.getUniformBuffer(frameIndex)->getBuffer().value(), 0,
+				                         uniformDescriptorBinding.getBinding());
+		}
+
+		for (auto& textureDescriptorBinding: metalPipeline->getTextureDescriptorBindings()) {
+			if (textureDescriptorBinding.getStageFlags() == Graphics::StageFlags::FragmentShader)
+				encoder->setFragmentTexture(textureDescriptorBinding.getImage()->getTexture(),
+				                            textureDescriptorBinding.getBinding());
+		}
 	}
 
 	void MetalCommandBuffer::BindVertexBuffer(std::shared_ptr<Graphics::JarBuffer> buffer) {
@@ -192,14 +212,9 @@ namespace Graphics::Metal {
 		indexBuffer = metalBuffer;
 	}
 
-	void MetalCommandBuffer::BindUniformBuffer(std::shared_ptr<JarBuffer> buffer) {
-		auto* metalBuffer = reinterpret_cast<MetalBuffer*>(buffer.get());
-		encoder->setVertexBuffer(metalBuffer->getBuffer().value(), 0,1);
-	}
-
 	void MetalCommandBuffer::DrawIndexed(size_t indexAmount) {
 		encoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(indexAmount), MTL::IndexTypeUInt16,
-		                              indexBuffer->getBuffer().value(), 0);
+		                               indexBuffer->getBuffer().value(), 0);
 	}
 
 	void MetalCommandBuffer::Draw() {
@@ -222,7 +237,8 @@ namespace Graphics::Metal {
 		m_colorAttachment = std::nullopt;
 	}
 
-	MetalRenderPassBuilder::~MetalRenderPassBuilder() = default;
+	MetalRenderPassBuilder::~MetalRenderPassBuilder() =
+	default;
 
 	JarRenderPassBuilder* MetalRenderPassBuilder::AddColorAttachment(Graphics::ColorAttachment colorAttachment) {
 		m_colorAttachment = std::make_optional(colorAttachment);
@@ -241,7 +257,8 @@ namespace Graphics::Metal {
 		return std::make_shared<MetalRenderPass>(m_renderPassDescriptor);
 	}
 
-	MetalRenderPass::~MetalRenderPass() = default;
+	MetalRenderPass::~MetalRenderPass() =
+	default;
 
 	void MetalRenderPass::Release() {
 	}
@@ -250,7 +267,8 @@ namespace Graphics::Metal {
 
 #pragma region MetalBuffer{
 
-	MetalBufferBuilder::~MetalBufferBuilder() = default;
+	MetalBufferBuilder::~MetalBufferBuilder() =
+	default;
 
 	MetalBufferBuilder* MetalBufferBuilder::SetUsageFlags(BufferUsage usageFlags) {
 		m_bufferUsage = std::make_optional(usageFlags);
@@ -271,7 +289,8 @@ namespace Graphics::Metal {
 	std::shared_ptr<JarBuffer> MetalBufferBuilder::Build(std::shared_ptr<JarDevice> device) {
 		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
 
-		if (m_bufferSize <= 0 || !m_data.has_value() || !m_memoryProperties.has_value() || !m_bufferUsage.has_value())
+		if (m_bufferSize <= 0 || !m_data.has_value() || !m_memoryProperties.has_value() ||
+		    !m_bufferUsage.has_value())
 			throw std::runtime_error("Could not create buffer! Provided data is insufficient.");
 
 		const auto bufferOptions = bufferUsageToMetal(m_bufferUsage.value()) & memoryPropertiesToMetal(
@@ -302,25 +321,26 @@ namespace Graphics::Metal {
 
 	MTL::ResourceOptions MetalBufferBuilder::memoryPropertiesToMetal(const MemoryProperties memProps) {
 
-		if(memProps & MemoryProperties::DeviceLocal)
+		if (memProps & MemoryProperties::DeviceLocal)
 			return MTL::StorageModePrivate;
 
-		if(memProps & MemoryProperties::HostVisible)
+		if (memProps & MemoryProperties::HostVisible)
 			return MTL::StorageModeShared;
 
-		if(memProps & MemoryProperties::HostCoherent)
+		if (memProps & MemoryProperties::HostCoherent)
 			return MTL::StorageModeManaged;
 
-		if(memProps & MemoryProperties::HostCached)
+		if (memProps & MemoryProperties::HostCached)
 			return MTL::StorageModeManaged;
 
-		if(memProps & MemoryProperties::LazilyAllocation)
+		if (memProps & MemoryProperties::LazilyAllocation)
 			return MTL::StorageModeManaged;
 
 		return 0;
 	}
 
-	MetalBuffer::~MetalBuffer() = default;
+	MetalBuffer::~MetalBuffer() =
+	default;
 
 	void MetalBuffer::Release() {
 		m_buffer->release();
@@ -340,7 +360,8 @@ namespace Graphics::Metal {
 
 #pragma region MetalShader{
 
-	MetalShaderLibraryBuilder::~MetalShaderLibraryBuilder() = default;
+	MetalShaderLibraryBuilder::~MetalShaderLibraryBuilder() =
+	default;
 
 	MetalShaderLibraryBuilder* MetalShaderLibraryBuilder::SetShader(std::string shaderCode) {
 		NS::String* shaderStr = NS::String::string(shaderCode.c_str(), NS::UTF8StringEncoding);
@@ -360,7 +381,8 @@ namespace Graphics::Metal {
 			throw std::runtime_error("Could not build shader module! Shader type and/or code are undefined!");
 
 		NS::Error* error = nullptr;
-		const auto library = metalDevice->getDevice().value()->newLibrary(m_shaderCodeString.value(), nullptr, &error);
+		const auto library = metalDevice->getDevice().value()->newLibrary(m_shaderCodeString.value(), nullptr,
+		                                                                  &error);
 		if (!library) {
 			throw std::runtime_error("Failed to load vertex shader library: " +
 			                         std::string(error->localizedDescription()->cString(NS::UTF8StringEncoding)));
@@ -370,7 +392,8 @@ namespace Graphics::Metal {
 	}
 
 
-	MetalShaderLibrary::~MetalShaderLibrary() = default;
+	MetalShaderLibrary::~MetalShaderLibrary() =
+	default;
 
 	void MetalShaderLibrary::Release() {
 		m_library->release();
@@ -465,7 +488,8 @@ namespace Graphics::Metal {
 			{StencilOpState::Invert,            MTL::StencilOperationInvert},
 	};
 
-	MetalPipelineBuilder::~MetalPipelineBuilder() = default;
+	MetalPipelineBuilder::~MetalPipelineBuilder() =
+	default;
 
 	MetalPipelineBuilder* MetalPipelineBuilder::SetShaderStage(ShaderStage shaderStage) {
 		const auto mainFunc = (shaderStage.mainFunctionName + "0").c_str();
@@ -500,7 +524,8 @@ namespace Graphics::Metal {
 		for (auto& bindingDescriptor: vertexInput.bindingDescriptions) {
 			m_vertexDescriptor->layouts()->object(bindingDescriptor.bindingIndex)->setStepFunction(
 					vertexInputRateMap[bindingDescriptor.inputRate]);
-			m_vertexDescriptor->layouts()->object(bindingDescriptor.bindingIndex)->setStride(bindingDescriptor.stride);
+			m_vertexDescriptor->layouts()->object(bindingDescriptor.bindingIndex)->setStride(
+					bindingDescriptor.stride);
 			m_vertexDescriptor->layouts()->object(bindingDescriptor.bindingIndex)->setStepRate(
 					bindingDescriptor.stepRate);
 		}
@@ -518,7 +543,21 @@ namespace Graphics::Metal {
 		return this;
 	}
 
-	MetalPipelineBuilder* MetalPipelineBuilder::SetUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) {
+	MetalPipelineBuilder* MetalPipelineBuilder::BindUniformBuffers(
+			std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding,
+			Graphics::StageFlags stageFlags) {
+
+		auto metalUniformBuffers = reinterpret_cast<std::vector<std::shared_ptr<MetalBuffer>>&>(uniformBuffers);
+		m_uniformDescriptorBindings.emplace_back(metalUniformBuffers, binding, stageFlags);
+
+		return this;
+	}
+
+	MetalPipelineBuilder* MetalPipelineBuilder::BindImageBuffer(std::shared_ptr<JarImage> image, uint32_t binding,
+	                                                            Graphics::StageFlags stageFlags) {
+
+		auto metalImage = reinterpret_cast<std::shared_ptr<MetalImage>&>(image);
+		m_textureDescriptorBindings.emplace_back(metalImage, binding, stageFlags);
 		return this;
 	}
 
@@ -531,7 +570,8 @@ namespace Graphics::Metal {
 		colorAttachment->setDestinationRGBBlendFactor(blendFactorMap[blendAttachment.destinationRgbBlendFactor]);
 		colorAttachment->setRgbBlendOperation(blendOperationMap[blendAttachment.rgbBlendOperation]);
 		colorAttachment->setSourceAlphaBlendFactor(blendFactorMap[blendAttachment.sourceAlphaBlendFactor]);
-		colorAttachment->setDestinationAlphaBlendFactor(blendFactorMap[blendAttachment.destinationAlphaBlendFactor]);
+		colorAttachment->setDestinationAlphaBlendFactor(
+				blendFactorMap[blendAttachment.destinationAlphaBlendFactor]);
 		colorAttachment->setAlphaBlendOperation(blendOperationMap[blendAttachment.alphaBlendOperation]);
 		colorAttachment->setWriteMask(convertToMetalColorWriteMask(blendAttachment.colorWriteMask));
 
@@ -539,7 +579,8 @@ namespace Graphics::Metal {
 		return this;
 	}
 
-	MetalPipelineBuilder* MetalPipelineBuilder::SetDepthStencilState(Graphics::DepthStencilState depthStencilState) {
+	MetalPipelineBuilder*
+	MetalPipelineBuilder::SetDepthStencilState(Graphics::DepthStencilState depthStencilState) {
 		m_depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
 
 		if (depthStencilState.depthTestEnable) {
@@ -597,7 +638,8 @@ namespace Graphics::Metal {
 		}
 
 		auto metalPipeline = std::make_shared<MetalPipeline>(mtlDevice, pipelineState, depthStencilState,
-		                                                     m_renderPass);
+		                                                     m_renderPass, m_uniformDescriptorBindings,
+		                                                     m_textureDescriptorBindings);
 		return metalPipeline;
 	}
 
@@ -617,12 +659,68 @@ namespace Graphics::Metal {
 		return metalMask;
 	}
 
-	MetalPipeline::~MetalPipeline() = default;
+	MetalPipeline::~MetalPipeline() =
+	default;
 
 	void MetalPipeline::Release() {
 		m_pipelineState->release();
 	}
 
 #pragma endregion MetalPipeline }
+
+#pragma region MetalImage{
+
+	MetalImageBuilder::~MetalImageBuilder() =
+	default;
+
+	MetalImageBuilder* MetalImageBuilder::SetImagePath(std::string path) {
+		m_imagePath = std::make_optional(path);
+		return this;
+	}
+
+	MetalImageBuilder* MetalImageBuilder::SetPixelFormat(Graphics::PixelFormat format) {
+		m_pixelFormat = std::make_optional(pixelFormatMap[format]);
+		return this;
+	}
+
+	std::shared_ptr<JarImage> MetalImageBuilder::Build(std::shared_ptr<JarDevice> device) {
+		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
+		if (!m_imagePath.has_value() || !m_pixelFormat.has_value())
+			throw std::runtime_error("Could not create image! Image path and/or format are undefined!");
+
+		int width, height, channels;
+		stbi_set_flip_vertically_on_load(true);
+		unsigned char* data = stbi_load(m_imagePath.value().c_str(), &width, &height, &channels, STBI_rgb_alpha);
+		if (!data)
+			throw std::runtime_error("Failed to load image from path: " + m_imagePath.value());
+
+		MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+		textureDescriptor->setTextureType(MTL::TextureType2D);
+		textureDescriptor->setPixelFormat(m_pixelFormat.value());
+		textureDescriptor->setWidth(width);
+		textureDescriptor->setHeight(height);
+
+		MTL::Texture* texture = metalDevice->getDevice().value()->newTexture(textureDescriptor);
+
+		MTL::Region region = MTL::Region::Make2D(0, 0, width, height);
+		NS::UInteger bytesPerRow = 4 * width;
+
+		texture->replaceRegion(region, 0, data, bytesPerRow);
+		textureDescriptor->release();
+		stbi_image_free(data);
+
+		return std::make_shared<MetalImage>(texture);
+	}
+
+	MetalImage::~MetalImage() =
+	default;
+
+	void MetalImage::Release() {
+		m_texture->release();
+	}
+
+
+#pragma endregion MetalImage }
+
 }
 #endif

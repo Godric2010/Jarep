@@ -34,7 +34,7 @@ namespace Graphics {
 
 	class JarSurface;
 
-	class JarDescriptorSet;
+	enum class PixelFormat;
 
 	enum ImageFormat {
 		B8G8R8A8_UNORM,
@@ -222,7 +222,7 @@ namespace Graphics {
 		public:
 			virtual ~JarImageBuilder() = default;
 
-			virtual JarImageBuilder* SetImageFormat(ImageFormat imageFormat) = 0;
+			virtual JarImageBuilder* SetPixelFormat(PixelFormat pixelFormat) = 0;
 
 			virtual JarImageBuilder* SetImagePath(std::string imagePath) = 0;
 
@@ -482,13 +482,11 @@ namespace Graphics {
 
 			virtual void EndRecording() = 0;
 
-			virtual void BindPipeline(std::shared_ptr<JarPipeline> pipeline) = 0;
+			virtual void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t imageIndex) = 0;
 
 			virtual void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) = 0;
 
 			virtual void BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) = 0;
-
-			virtual void BindUniformBuffer(std::shared_ptr<JarBuffer> uniformBuffer) = 0;
 
 			virtual void Draw() = 0;
 
@@ -530,9 +528,17 @@ namespace Graphics {
 
 #pragma region Backend{
 
+	enum class BackendType {
+		Vulkan,
+		Metal,
+	};
+
+
 	class Backend {
 		public:
 			virtual ~Backend() = default;
+
+			virtual BackendType GetType() = 0;
 
 			virtual std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* windowHandleProvider) = 0;
 
