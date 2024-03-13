@@ -36,7 +36,7 @@ namespace Graphics {
 		}
 
 		auto image = backend->InitImageBuilder()->SetPixelFormat(PixelFormat::BGRA8_UNORM)->SetImagePath(
-				"../../resources/test_image.png")->Build(device);
+				"../../resources/uv_texture.jpg")->Build(device);
 		images.push_back(image);
 
 		vertexShaderModule = createShaderModule(VertexShader, "triangle_vert");
