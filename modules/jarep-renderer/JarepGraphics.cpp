@@ -54,7 +54,7 @@ namespace Graphics {
 		stencilAttachment.StencilClearValue = 0;
 
 		DepthAttachment depthStencilAttachment;
-		depthStencilAttachment.Format = ImageFormat::D24_UNORM_S8_UINT;
+		depthStencilAttachment.Format = ImageFormat::D32_SFLOAT;
 		depthStencilAttachment.DepthLoadOp = LoadOp::Clear,
 		depthStencilAttachment.DepthStoreOp = StoreOp::DontCare,
 		depthStencilAttachment.DepthClearValue = 0.0f;
@@ -63,6 +63,7 @@ namespace Graphics {
 
 		JarRenderPassBuilder* rpBuilder = backend->InitRenderPassBuilder();
 		rpBuilder->AddColorAttachment(colorAttachment);
+		rpBuilder->AddDepthStencilAttachment(depthStencilAttachment);
 		renderPass = rpBuilder->Build(device, surface);
 		delete rpBuilder;
 
@@ -108,6 +109,14 @@ namespace Graphics {
 		colorBlendAttachment.alphaBlendOperation = BlendOperation::Add;
 		colorBlendAttachment.colorWriteMask = ColorWriteMask::All;
 
+		DepthStencilState depthStencilState{};
+		depthStencilState.depthTestEnable = true;
+		depthStencilState.depthWriteEnable = true;
+		depthStencilState.depthCompareOp = DepthCompareOperation::Less;
+		depthStencilState.stencilTestEnable = false;
+		depthStencilState.stencilOpState = {};
+
+
 		JarPipelineBuilder* pipelineBuilder = backend->InitPipelineBuilder();
 		pipelineBuilder->
 				SetShaderStage(shaderStage)->
@@ -117,7 +126,8 @@ namespace Graphics {
 				SetMultisamplingCount(1)->
 				BindUniformBuffers(uniformBuffers, 1, StageFlags::VertexShader)->
 				BindImageBuffer(images[0], 2, StageFlags::FragmentShader)->
-				SetColorBlendAttachments(colorBlendAttachment);
+				SetColorBlendAttachments(colorBlendAttachment)->
+				SetDepthStencilState(depthStencilState);
 		pipeline = pipelineBuilder->Build(device);
 		delete pipelineBuilder;
 

@@ -552,7 +552,7 @@ namespace Graphics::Vulkan {
 			~VulkanFramebuffer() override;
 
 			void CreateFramebuffer(VkDevice device, VkRenderPass renderPass,
-			                       VkImageView swapchainImageView);
+			                       VkImageView swapchainImageView, VkImageView depthImageView);
 
 			[[nodiscard]] VkFramebuffer getFramebuffer() const { return m_framebuffer; }
 
@@ -577,14 +577,16 @@ namespace Graphics::Vulkan {
 
 			VulkanRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) override;
 
+			VulkanRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) override;
+
 			std::shared_ptr<JarRenderPass>
 			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) override;
 
 		private:
 			std::optional<VkAttachmentDescription> m_colorAttachment;
 			std::optional<VkAttachmentReference> m_colorAttachmentRef;
-
-
+			std::optional<VkAttachmentDescription> m_depthStencilAttachment;
+			std::optional<VkAttachmentReference> m_depthStencilAttachmentRef;
 	};
 
 	class VulkanRenderPass final : public JarRenderPass {

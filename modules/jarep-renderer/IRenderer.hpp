@@ -98,7 +98,7 @@ namespace Graphics {
 
 			virtual JarRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) = 0;
 
-			//virtual JarRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) = 0;
+			virtual JarRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) = 0;
 
 			virtual std::shared_ptr<JarRenderPass>
 			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) = 0;

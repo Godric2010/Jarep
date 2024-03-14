@@ -443,7 +443,7 @@ namespace Graphics::Vulkan {
 		for (const auto& m_swapchainImageView: m_swapchainImageViews) {
 			auto framebuffer = std::make_shared<VulkanFramebuffer>(m_imageExtent);
 			framebuffer->CreateFramebuffer(m_device->getLogicalDevice(), renderPass->getRenderPass(),
-			                               m_swapchainImageView);
+			                               m_swapchainImageView, m_depthImageView);
 			m_swapchainFramebuffers.push_back(framebuffer);
 		}
 	}
@@ -723,15 +723,18 @@ namespace Graphics::Vulkan {
 
 		const VkExtent2D surfaceExtent = vkSurface->getSurfaceExtent();
 
+		std::vector<VkClearValue> clearValues(2);
+		clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+		clearValues[1].depthStencil = {1.0f, 0};
+
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = vkRenderPass->getRenderPass();
 		renderPassInfo.framebuffer = vkFramebuffer->getFramebuffer();
 		renderPassInfo.renderArea.offset = {0, 0};
 		renderPassInfo.renderArea.extent = surfaceExtent;
-		VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0}}};
-		renderPassInfo.clearValueCount = 1;
-		renderPassInfo.pClearValues = &clearColor;
+		renderPassInfo.clearValueCount = clearValues.size();
+		renderPassInfo.pClearValues = clearValues.data();
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;
@@ -1643,15 +1646,17 @@ namespace Graphics::Vulkan {
 	}
 
 	void VulkanFramebuffer::CreateFramebuffer(VkDevice device, VkRenderPass renderPass,
-	                                          VkImageView swapchainImageView) {
-		const VkImageView attachments[] = {
-				swapchainImageView
-		};
+	                                          VkImageView swapchainImageView, VkImageView depthImageView){
+
+		std::vector<VkImageView> attachments = std::vector<VkImageView>();
+		attachments.push_back(swapchainImageView);
+		attachments.push_back(depthImageView);
+
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferInfo.renderPass = renderPass;
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = attachments;
+		framebufferInfo.attachmentCount = attachments.size();
+		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = m_framebufferExtent.width;
 		framebufferInfo.height = m_framebufferExtent.height;
 		framebufferInfo.layers = 1;
@@ -1705,6 +1710,27 @@ namespace Graphics::Vulkan {
 		return this;
 	}
 
+	VulkanRenderPassBuilder* VulkanRenderPassBuilder::AddDepthStencilAttachment(
+			Graphics::DepthAttachment depthStencilAttachment) {
+		VkAttachmentDescription depthAttachment{};
+		depthAttachment.format = imageFormatMap[depthStencilAttachment.Format];
+		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.loadOp = loadOpMap[depthStencilAttachment.DepthLoadOp];
+		depthAttachment.storeOp = storeOpMap[depthStencilAttachment.DepthStoreOp];
+		if (depthStencilAttachment.Stencil.has_value()) {
+			depthAttachment.stencilLoadOp = loadOpMap[depthStencilAttachment.Stencil.value().StencilLoadOp];
+			depthAttachment.stencilStoreOp = storeOpMap[depthStencilAttachment.Stencil.value().StencilStoreOp];
+		}
+		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		m_depthStencilAttachment = std::make_optional(depthAttachment);
+
+		VkAttachmentReference depthAttachmentRef{};
+		depthAttachmentRef.attachment = 1;
+		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		m_depthStencilAttachmentRef = std::make_optional(depthAttachmentRef);
+	}
+
 	std::shared_ptr<JarRenderPass>
 	VulkanRenderPassBuilder::Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) {
 
@@ -1722,7 +1748,6 @@ namespace Graphics::Vulkan {
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &m_colorAttachmentRef.value();
 
-
 		VkSubpassDependency dependency{};
 		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependency.dstSubpass = 0;
@@ -1730,6 +1755,15 @@ namespace Graphics::Vulkan {
 		dependency.srcAccessMask = 0;
 		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		if (m_depthStencilAttachment.has_value()) {
+			attachments.push_back(m_depthStencilAttachment.value());
+			subpass.pDepthStencilAttachment = &m_depthStencilAttachmentRef.value();
+
+			dependency.srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+			dependency.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+			dependency.srcAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		}
 
 		VkRenderPassCreateInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
