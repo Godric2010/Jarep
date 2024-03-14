@@ -435,6 +435,7 @@ namespace Graphics::Vulkan {
 		                        m_swapchainImages.data());
 
 		createImageViews();
+		createDepthResources();
 		m_currentImageIndex = 0;
 	}
 
@@ -505,6 +506,9 @@ namespace Graphics::Vulkan {
 			framebuffer->Release(m_device);
 		}
 
+		vkDestroyImageView(m_device->getLogicalDevice(), m_depthImageView, nullptr);
+		vkFreeMemory(m_device->getLogicalDevice(), m_depthImageMemory, nullptr);
+		vkDestroyImage(m_device->getLogicalDevice(), m_depthImage, nullptr);
 		for (const auto imageView: m_swapchainImageViews) {
 			vkDestroyImageView(m_device->getLogicalDevice(), imageView, nullptr);
 		}
@@ -554,8 +558,43 @@ namespace Graphics::Vulkan {
 		for (size_t i = 0; i < m_swapchainImages.size(); i++) {
 
 			VulkanImageBuilder::createImageView(m_device, m_swapchainImages[i], m_swapchainImageFormat,
+			                                    VK_IMAGE_ASPECT_COLOR_BIT,
 			                                    &m_swapchainImageViews[i]);
 		}
+	}
+
+	VkFormat VulkanSwapchain::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
+	                                              VkFormatFeatureFlags features) {
+		for (VkFormat format: candidates) {
+			VkFormatProperties props;
+			vkGetPhysicalDeviceFormatProperties(m_device->getPhysicalDevice(), format, &props);
+
+			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+				return format;
+			} else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+				return format;
+			}
+		}
+
+		throw std::runtime_error("failed to find supported format!");
+	}
+
+	VkFormat VulkanSwapchain::findDepthFormat() {
+		return findSupportedFormat({VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+		                           VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+	}
+
+	bool VulkanSwapchain::hasStencilComponent(VkFormat format) {
+		return format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT_S8_UINT;
+	}
+
+	void VulkanSwapchain::createDepthResources() {
+		VkFormat depthFormat = findDepthFormat();
+		VulkanImageBuilder::createImage(m_device, m_imageExtent.width, m_imageExtent.height, depthFormat,
+		                                VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
+		VulkanImageBuilder::createImageView(m_device, m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT,
+		                                    &m_depthImageView);
 	}
 
 #pragma endregion VulkanSwapchain }
@@ -1209,17 +1248,17 @@ namespace Graphics::Vulkan {
 	};
 
 	static std::unordered_map<PixelFormat, VkFormat> pixelFormatMap = {
-			{PixelFormat::RGBA8_UNORM, VK_FORMAT_R8G8B8A8_UNORM},
-			{PixelFormat::BGRA8_UNORM, VK_FORMAT_B8G8R8A8_UNORM},
-			{PixelFormat::RGBA16_FLOAT, VK_FORMAT_R16G16B16A16_SFLOAT},
-			{PixelFormat::RGBA32_FLOAT, VK_FORMAT_R32G32B32A32_SFLOAT},
-			{PixelFormat::DEPTH32_FLOAT, VK_FORMAT_D32_SFLOAT},
+			{PixelFormat::RGBA8_UNORM,      VK_FORMAT_R8G8B8A8_UNORM},
+			{PixelFormat::BGRA8_UNORM,      VK_FORMAT_B8G8R8A8_UNORM},
+			{PixelFormat::RGBA16_FLOAT,     VK_FORMAT_R16G16B16A16_SFLOAT},
+			{PixelFormat::RGBA32_FLOAT,     VK_FORMAT_R32G32B32A32_SFLOAT},
+			{PixelFormat::DEPTH32_FLOAT,    VK_FORMAT_D32_SFLOAT},
 			{PixelFormat::DEPTH24_STENCIL8, VK_FORMAT_D24_UNORM_S8_UINT},
-			{PixelFormat::R8_UNORM, VK_FORMAT_R8_UNORM},
-			{PixelFormat::R16_FLOAT, VK_FORMAT_R16_SFLOAT},
-			{PixelFormat::BC1, VK_FORMAT_BC1_RGBA_UNORM_BLOCK},
-			{PixelFormat::BC3, VK_FORMAT_BC3_UNORM_BLOCK},
-			{PixelFormat::PVRTC, VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG},
+			{PixelFormat::R8_UNORM,         VK_FORMAT_R8_UNORM},
+			{PixelFormat::R16_FLOAT,        VK_FORMAT_R16_SFLOAT},
+			{PixelFormat::BC1,              VK_FORMAT_BC1_RGBA_UNORM_BLOCK},
+			{PixelFormat::BC3,              VK_FORMAT_BC3_UNORM_BLOCK},
+			{PixelFormat::PVRTC,            VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG},
 	};
 
 	static std::unordered_map<InputAssemblyTopology, VkPrimitiveTopology> topologyMap = {
@@ -1779,7 +1818,7 @@ namespace Graphics::Vulkan {
 		vkFreeMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, nullptr);
 
 		VkImageView textureImageView;
-		createImageView(vulkanDevice, textureImage, vkFormat, &textureImageView);
+		createImageView(vulkanDevice, textureImage, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, &textureImageView);
 
 		VkSampler sampler;
 		createSampler(vulkanDevice, sampler);
@@ -1831,13 +1870,14 @@ namespace Graphics::Vulkan {
 
 	void
 	VulkanImageBuilder::createImageView(std::shared_ptr<VulkanDevice>& vulkanDevice, VkImage image, VkFormat format,
+	                                    VkImageAspectFlags aspectFlags,
 	                                    VkImageView* imageView) {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = image;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.format = format;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.aspectMask = aspectFlags;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.baseArrayLayer = 0;

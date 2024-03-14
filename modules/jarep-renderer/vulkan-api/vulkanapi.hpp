@@ -71,7 +71,7 @@ namespace Graphics::Vulkan {
 
 			~VulkanBackend() override;
 
-			BackendType GetType() override ;
+			BackendType GetType() override;
 
 			std::shared_ptr<JarSurface> CreateSurface(NativeWindowHandleProvider* nativeWindowHandleProvider) override;
 
@@ -240,6 +240,9 @@ namespace Graphics::Vulkan {
 			VkSwapchainKHR m_swapchain;
 			std::vector<VkImage> m_swapchainImages;
 			std::vector<VkImageView> m_swapchainImageViews;
+			VkImage m_depthImage;
+			VkDeviceMemory m_depthImageMemory;
+			VkImageView m_depthImageView;
 			uint32_t m_currentImageIndex;
 			uint32_t m_swapchainMaxImageCount;
 
@@ -255,6 +258,15 @@ namespace Graphics::Vulkan {
 			static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 
 			void createImageViews();
+
+			void createDepthResources();
+
+			VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
+			                             VkFormatFeatureFlags features);
+
+			VkFormat findDepthFormat();
+
+			bool hasStencilComponent(VkFormat format);
 	};
 
 #pragma endregion VulkanSwapchain }
@@ -698,7 +710,7 @@ namespace Graphics::Vulkan {
 			                        VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
 			static void createImageView(std::shared_ptr<VulkanDevice>& vulkanDevice, VkImage image, VkFormat format,
-			                            VkImageView* view);
+			                            VkImageAspectFlags aspectFlags, VkImageView* view);
 
 		private:
 			std::optional<PixelFormat> m_pixelFormat;
