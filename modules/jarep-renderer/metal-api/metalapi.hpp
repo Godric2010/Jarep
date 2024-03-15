@@ -49,10 +49,15 @@ namespace Graphics::Metal {
 
 			[[nodiscard]] bool isSurfaceInitialized() const { return contentView != nullptr; }
 
+			MTL::Texture* getDepthStencilTexture() const { return m_depthStencilTexture; }
+
+
 			MTL::Texture* acquireNewDrawTexture() {
 				drawable = layer->nextDrawable();
 				return drawable->texture();
 			}
+
+			void createDepthStencilTexture(MTL::Device* device);
 
 		private:
 			NS::View* contentView;
@@ -60,6 +65,7 @@ namespace Graphics::Metal {
 			CGRect surfaceRect;
 			CA::MetalLayer* layer;
 			CA::MetalDrawable* drawable;
+			MTL::Texture* m_depthStencilTexture;
 			uint32_t maxSwapchainImageCount;
 	};
 
@@ -73,12 +79,15 @@ namespace Graphics::Metal {
 
 			JarRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) override;
 
+			JarRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) override;
+
 			std::shared_ptr<JarRenderPass>
 			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) override;
 
 		private:
 			MTL::RenderPassDescriptor* m_renderPassDescriptor;
 			std::optional<ColorAttachment> m_colorAttachment;
+			bool useDepthAttachment;
 
 			static MTL::StoreAction storeActionToMetal(const StoreOp storeOp) {
 				switch (storeOp) {

@@ -57,7 +57,7 @@ namespace Graphics {
 		depthStencilAttachment.Format = ImageFormat::D32_SFLOAT;
 		depthStencilAttachment.DepthLoadOp = LoadOp::Clear,
 		depthStencilAttachment.DepthStoreOp = StoreOp::DontCare,
-		depthStencilAttachment.DepthClearValue = 0.0f;
+		depthStencilAttachment.DepthClearValue = 1.0f;
 		depthStencilAttachment.Stencil = std::make_optional(stencilAttachment);
 
 
@@ -210,8 +210,8 @@ namespace Graphics {
 		auto surfaceExtent = surface->GetSurfaceExtent();
 
 		Internal::JarModelViewProjection mvp{};
-		mvp.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		mvp.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		mvp.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		mvp.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		mvp.projection = glm::perspective(glm::radians(45.0f), surfaceExtent.Width / surfaceExtent.Height, 0.1f,
 		                                  100.0f);
 

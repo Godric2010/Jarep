@@ -108,8 +108,21 @@ namespace Graphics::Metal {
 		layer->setPixelFormat(MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB);
 
 		window->setContentView(contentView);
+
+		createDepthStencilTexture(device);
 	}
 
+	void MetalSurface::createDepthStencilTexture(MTL::Device* device) {
+		MTL::TextureDescriptor* depthStencilDesc = MTL::TextureDescriptor::alloc()->init();
+		depthStencilDesc->setTextureType(MTL::TextureType2D);
+		depthStencilDesc->setPixelFormat(MTL::PixelFormatDepth32Float);
+		depthStencilDesc->setWidth(surfaceRect.size.width);
+		depthStencilDesc->setHeight(surfaceRect.size.height);
+		depthStencilDesc->setUsage(MTL::TextureUsageRenderTarget);
+		m_depthStencilTexture = device->newTexture(depthStencilDesc);
+
+		depthStencilDesc->release();
+	}
 
 #pragma endregion MetalSurface }
 
@@ -188,6 +201,7 @@ namespace Graphics::Metal {
 	void MetalCommandBuffer::BindPipeline(std::shared_ptr<Graphics::JarPipeline> pipeline, uint32_t frameIndex) {
 		auto metalPipeline = reinterpret_cast<MetalPipeline*>(pipeline.get());
 		encoder->setRenderPipelineState(metalPipeline->getPSO());
+		encoder->setDepthStencilState(metalPipeline->getDSS());
 
 		for (auto& uniformDescriptorBinding: metalPipeline->getUniformDescriptorBindings()) {
 			if (uniformDescriptorBinding.getStageFlags() == Graphics::StageFlags::VertexShader)
@@ -249,11 +263,29 @@ namespace Graphics::Metal {
 		return this;
 	}
 
+	JarRenderPassBuilder* MetalRenderPassBuilder::AddDepthStencilAttachment(
+			Graphics::DepthAttachment depthStencilAttachment) {
+
+		MTL::RenderPassDepthAttachmentDescriptor* depthAttachment = m_renderPassDescriptor->depthAttachment();
+		depthAttachment->setLoadAction(loadActionToMetal(depthStencilAttachment.DepthLoadOp));
+		depthAttachment->setClearDepth(depthStencilAttachment.DepthClearValue);
+		depthAttachment->setStoreAction(storeActionToMetal(depthStencilAttachment.DepthStoreOp));
+
+		useDepthAttachment = true;
+
+		return this;
+
+	}
+
 	std::shared_ptr<JarRenderPass>
 	MetalRenderPassBuilder::Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) {
 		if (!m_colorAttachment.has_value())
 			throw std::exception();
 
+		auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
+
+		if (useDepthAttachment)
+			m_renderPassDescriptor->depthAttachment()->setTexture(metalSurface->getDepthStencilTexture());
 		return std::make_shared<MetalRenderPass>(m_renderPassDescriptor);
 	}
 
