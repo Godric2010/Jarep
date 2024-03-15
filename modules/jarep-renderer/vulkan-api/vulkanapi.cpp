@@ -738,9 +738,9 @@ namespace Graphics::Vulkan {
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;
-		viewport.y = 0.0f;
+		viewport.y = static_cast<float>(surfaceExtent.height);
 		viewport.width = static_cast<float>(surfaceExtent.width);
-		viewport.height = static_cast<float>(surfaceExtent.height);
+		viewport.height = -static_cast<float>(surfaceExtent.height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(m_commandBuffer, 0, 1, &viewport);
