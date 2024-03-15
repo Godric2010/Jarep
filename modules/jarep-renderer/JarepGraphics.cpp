@@ -57,7 +57,7 @@ namespace Graphics {
 		depthStencilAttachment.Format = ImageFormat::D32_SFLOAT;
 		depthStencilAttachment.DepthLoadOp = LoadOp::Clear,
 		depthStencilAttachment.DepthStoreOp = StoreOp::DontCare,
-		depthStencilAttachment.DepthClearValue = 0.0f;
+		depthStencilAttachment.DepthClearValue = 1.0f;
 		depthStencilAttachment.Stencil = std::make_optional(stencilAttachment);
 
 
