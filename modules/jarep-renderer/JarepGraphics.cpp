@@ -212,7 +212,7 @@ namespace Graphics {
 		Internal::JarModelViewProjection mvp{};
 		mvp.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		mvp.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		mvp.projection = glm::perspective(glm::radians(45.0f), surfaceExtent.Width / surfaceExtent.Height, 0.1f,
+		mvp.projection = glm::perspectiveRH_NO(glm::radians(45.0f), surfaceExtent.Width / surfaceExtent.Height, 0.1f,
 		                                  100.0f);
 
 		uniformBuffers[frameCounter]->Update(&mvp, sizeof(Internal::JarModelViewProjection));
