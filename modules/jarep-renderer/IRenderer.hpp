@@ -224,6 +224,8 @@ namespace Graphics {
 
 			virtual JarImageBuilder* SetPixelFormat(PixelFormat pixelFormat) = 0;
 
+			virtual JarImageBuilder* EnableMipMaps(bool enabled) = 0;
+
 			virtual JarImageBuilder* SetImagePath(std::string imagePath) = 0;
 
 			virtual std::shared_ptr<JarImage> Build(std::shared_ptr<JarDevice> device) = 0;
