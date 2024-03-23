@@ -35,7 +35,7 @@ namespace Graphics {
 			uniformBuffers.push_back(bufferBuilder->Build(device));
 		}
 
-		auto image = backend->InitImageBuilder()->SetPixelFormat(PixelFormat::BGRA8_UNORM)->SetImagePath(
+		auto image = backend->InitImageBuilder()->EnableMipMaps(true)->SetPixelFormat(PixelFormat::BGRA8_UNORM)->SetImagePath(
 				"../../resources/uv_texture.jpg")->Build(device);
 		images.push_back(image);
 
