@@ -158,6 +158,8 @@ namespace Graphics::Metal {
 
 			void Present(std::shared_ptr<JarSurface>& m_surface, std::shared_ptr<JarDevice> device) override;
 
+			MTL::CommandBuffer* getCommandBuffer() const { return buffer; }
+
 		private:
 			MTL::CommandBuffer* buffer;
 			MTL::RenderCommandEncoder* encoder;
@@ -469,16 +471,22 @@ namespace Graphics::Metal {
 
 			MetalImageBuilder* SetImagePath(std::string path) override;
 
+			MetalImageBuilder* EnableMipMaps(bool enabled) override;
+
 			std::shared_ptr<JarImage> Build(std::shared_ptr<JarDevice> device) override;
 
 		private:
 			std::optional<MTL::PixelFormat> m_pixelFormat;
 			std::optional<std::string> m_imagePath;
+			bool m_enableMipMapping;
+
+			static void generateMipMaps(std::shared_ptr<MetalDevice>& device, MTL::Texture* texture);
 	};
 
 	class MetalImage final : public JarImage {
 		public:
-			MetalImage(MTL::Texture* texture) : m_texture(texture) {}
+			MetalImage(MTL::Texture* texture, MTL::SamplerState* sampler) : m_texture(texture),
+			                                                                m_samplerState(sampler) {}
 
 			~MetalImage() override;
 
@@ -486,8 +494,11 @@ namespace Graphics::Metal {
 
 			[[nodiscard]] MTL::Texture* getTexture() const { return m_texture; }
 
+			[[nodiscard]] MTL::SamplerState* getSampler() const { return m_samplerState; }
+
 		private:
 			MTL::Texture* m_texture;
+			MTL::SamplerState* m_samplerState;
 	};
 
 #pragma endregion MetalImage }

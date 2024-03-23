@@ -202,6 +202,8 @@ namespace Graphics::Metal {
 		auto metalPipeline = reinterpret_cast<MetalPipeline*>(pipeline.get());
 		encoder->setRenderPipelineState(metalPipeline->getPSO());
 		encoder->setDepthStencilState(metalPipeline->getDSS());
+		encoder->setFrontFacingWinding(MTL::Winding::WindingCounterClockwise);
+		encoder->setCullMode(MTL::CullMode::CullModeBack);
 
 		for (auto& uniformDescriptorBinding: metalPipeline->getUniformDescriptorBindings()) {
 			if (uniformDescriptorBinding.getStageFlags() == Graphics::StageFlags::VertexShader)
@@ -210,9 +212,13 @@ namespace Graphics::Metal {
 		}
 
 		for (auto& textureDescriptorBinding: metalPipeline->getTextureDescriptorBindings()) {
-			if (textureDescriptorBinding.getStageFlags() == Graphics::StageFlags::FragmentShader)
+			if (textureDescriptorBinding.getStageFlags() == Graphics::StageFlags::FragmentShader) {
 				encoder->setFragmentTexture(textureDescriptorBinding.getImage()->getTexture(),
 				                            textureDescriptorBinding.getBinding());
+				encoder->setFragmentSamplerState(textureDescriptorBinding.getImage()->getSampler(),
+				                                 textureDescriptorBinding.getBinding());
+			}
+
 		}
 	}
 
@@ -715,6 +721,11 @@ namespace Graphics::Metal {
 		return this;
 	}
 
+	MetalImageBuilder* MetalImageBuilder::EnableMipMaps(bool enabled) {
+		m_enableMipMapping = enabled;
+		return this;
+	}
+
 	std::shared_ptr<JarImage> MetalImageBuilder::Build(std::shared_ptr<JarDevice> device) {
 		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
 		if (!m_imagePath.has_value() || !m_pixelFormat.has_value())
@@ -732,16 +743,54 @@ namespace Graphics::Metal {
 		textureDescriptor->setWidth(width);
 		textureDescriptor->setHeight(height);
 
+		uint32_t mipLevels = 1;
+
+		if (m_enableMipMapping) {
+			mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+			textureDescriptor->setMipmapLevelCount(mipLevels);
+		}
+
 		MTL::Texture* texture = metalDevice->getDevice().value()->newTexture(textureDescriptor);
 
 		MTL::Region region = MTL::Region::Make2D(0, 0, width, height);
 		NS::UInteger bytesPerRow = 4 * width;
 
 		texture->replaceRegion(region, 0, data, bytesPerRow);
+
+		generateMipMaps(metalDevice, texture);
+
 		textureDescriptor->release();
 		stbi_image_free(data);
 
-		return std::make_shared<MetalImage>(texture);
+		MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
+		samplerDescriptor->setMinFilter(MTL::SamplerMinMagFilterLinear);
+		samplerDescriptor->setMagFilter(MTL::SamplerMinMagFilterLinear);
+		samplerDescriptor->setMipFilter(MTL::SamplerMipFilterLinear);
+		samplerDescriptor->setSAddressMode(MTL::SamplerAddressModeClampToEdge);
+		samplerDescriptor->setTAddressMode(MTL::SamplerAddressModeClampToEdge);
+		samplerDescriptor->setLodMinClamp(static_cast<float>(0));
+		samplerDescriptor->setLodMaxClamp(static_cast<float>(mipLevels + 1));
+
+		MTL::SamplerState* sampler = metalDevice->getDevice().value()->newSamplerState(samplerDescriptor);
+		samplerDescriptor->release();
+
+
+		return std::make_shared<MetalImage>(texture, sampler);
+	}
+
+	void MetalImageBuilder::generateMipMaps(std::shared_ptr<MetalDevice>& device, MTL::Texture* texture) {
+		auto queueBuilder = new MetalCommandQueueBuilder();
+		auto queue = queueBuilder->SetCommandBufferAmount(1)->Build(device);
+
+		auto commandBuffer = reinterpret_cast<MetalCommandBuffer*>(queue->getNextCommandBuffer());
+		auto blitCommandEncoder = commandBuffer->getCommandBuffer()->blitCommandEncoder();
+		blitCommandEncoder->generateMipmaps(texture);
+		blitCommandEncoder->endEncoding();
+		commandBuffer->getCommandBuffer()->addCompletedHandler([](MTL::CommandBuffer* buffer) {
+			buffer->release();
+		});
+		commandBuffer->getCommandBuffer()->commit();
+
 	}
 
 	MetalImage::~MetalImage() =
