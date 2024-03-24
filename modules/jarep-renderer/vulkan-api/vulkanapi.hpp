@@ -177,6 +177,8 @@ namespace Graphics::Vulkan {
 
 			void CreateLogicalDevice();
 
+			VkSampleCountFlagBits getMaxUsableSampleCount();
+
 			[[nodiscard]] VkDevice getLogicalDevice() const { return m_device; }
 
 			[[nodiscard]] VkPhysicalDevice getPhysicalDevice() const { return m_physicalDevice; }
@@ -200,6 +202,8 @@ namespace Graphics::Vulkan {
 			void findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface);
 
 			bool checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice) const;
+
+
 	};
 
 
@@ -230,6 +234,8 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] uint32_t getCurrentImageIndex() const { return m_currentImageIndex; }
 
+			[[nodiscard]] VkSampleCountFlagBits getMSAASampleBits() const { return m_msaaSamples; }
+
 			[[nodiscard]] uint32_t getMaxSwapchainImageCount() const { return m_swapchainMaxImageCount; }
 
 		private:
@@ -240,9 +246,16 @@ namespace Graphics::Vulkan {
 			VkSwapchainKHR m_swapchain;
 			std::vector<VkImage> m_swapchainImages;
 			std::vector<VkImageView> m_swapchainImageViews;
+
 			VkImage m_depthImage;
 			VkDeviceMemory m_depthImageMemory;
 			VkImageView m_depthImageView;
+
+			VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+			VkImage m_colorImage;
+			VkDeviceMemory m_colorImageMemory;
+			VkImageView m_colorImageView;
+
 			uint32_t m_currentImageIndex;
 			uint32_t m_swapchainMaxImageCount;
 
@@ -260,6 +273,8 @@ namespace Graphics::Vulkan {
 			void createImageViews();
 
 			void createDepthResources();
+
+			void createColorResources();
 
 			VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
 			                             VkFormatFeatureFlags features);
@@ -552,7 +567,7 @@ namespace Graphics::Vulkan {
 			~VulkanFramebuffer() override;
 
 			void CreateFramebuffer(VkDevice device, VkRenderPass renderPass,
-			                       VkImageView swapchainImageView, VkImageView depthImageView);
+			                       VkImageView swapchainImageView, VkImageView depthImageView, VkImageView colorImageView);
 
 			[[nodiscard]] VkFramebuffer getFramebuffer() const { return m_framebuffer; }
 
@@ -710,8 +725,9 @@ namespace Graphics::Vulkan {
 			std::shared_ptr<JarImage> Build(std::shared_ptr<JarDevice> device) override;
 
 			static void createImage(std::shared_ptr<VulkanDevice>& vulkanDevice, uint32_t texWidth, uint32_t texHeight,
-			                        uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
-			                        VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+			                        uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format,
+			                        VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+			                        VkImage& image, VkDeviceMemory& imageMemory);
 
 			static void createImageView(std::shared_ptr<VulkanDevice>& vulkanDevice, VkImage image, VkFormat format,
 			                            VkImageAspectFlags aspectFlags, VkImageView* view, uint32_t mipLevels);
@@ -733,7 +749,8 @@ namespace Graphics::Vulkan {
 			void generateMipMaps(std::shared_ptr<VulkanDevice>& vulkanDevice, VkImage image, VkFormat imageFormat,
 			                     int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 
-			static void createSampler(std::shared_ptr<VulkanDevice>& vulkanDevice, VkSampler& sampler, uint32_t mipLevels);
+			static void
+			createSampler(std::shared_ptr<VulkanDevice>& vulkanDevice, VkSampler& sampler, uint32_t mipLevels);
 	};
 
 	class VulkanImage final : public JarImage {
