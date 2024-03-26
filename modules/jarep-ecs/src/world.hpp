@@ -156,7 +156,7 @@ class World {
 
 		}
 
-		/// Update all systems
+		/// RecreateSurface all systems
 		void tick() {
 			systemManager->update();
 		}

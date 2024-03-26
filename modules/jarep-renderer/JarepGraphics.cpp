@@ -35,7 +35,8 @@ namespace Graphics {
 			uniformBuffers.push_back(bufferBuilder->Build(device));
 		}
 
-		auto image = backend->InitImageBuilder()->EnableMipMaps(true)->SetPixelFormat(PixelFormat::BGRA8_UNORM)->SetImagePath(
+		auto image = backend->InitImageBuilder()->EnableMipMaps(true)->SetPixelFormat(
+				PixelFormat::BGRA8_UNORM)->SetImagePath(
 				"../../resources/uv_texture.jpg")->Build(device);
 		images.push_back(image);
 
@@ -133,6 +134,10 @@ namespace Graphics {
 
 	}
 
+	void JarepGraphics::Resize(uint32_t width, uint32_t height) {
+		surface->RecreateSurface(width, height);
+	}
+
 	void JarepGraphics::AddMesh(Mesh& mesh) {
 
 		const size_t vertexDataSize = mesh.getVertices().size() * sizeof(Vertex);
@@ -159,7 +164,8 @@ namespace Graphics {
 		prepareModelViewProjectionForFrame();
 
 		const auto commandBuffer = queue->getNextCommandBuffer();
-		commandBuffer->StartRecording(surface, renderPass);
+		if (!commandBuffer->StartRecording(surface, renderPass))
+			return;
 
 		commandBuffer->BindPipeline(pipeline, frameCounter);
 

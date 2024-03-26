@@ -106,6 +106,8 @@ namespace Core::Window
                 {
                     width = event.window.data1;
                     height = event.window.data2;
+					renderer->Resize(width, height);
+	                continue;
                 }
                 else if (event.type == SDL_KEYDOWN)
                 {

@@ -63,6 +63,8 @@ namespace Graphics {
 
 			void Initialize(NativeWindowHandleProvider* nativeWindowHandle);
 
+			void Resize(uint32_t width, uint32_t height);
+
 			void AddMesh(Mesh& mesh);
 
 			void Render();

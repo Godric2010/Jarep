@@ -178,11 +178,6 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanSurface{
 
-	struct SwapChainSupportDetails {
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
 
 	VulkanSurface::VulkanSurface(VkSurfaceKHR surface, VkExtent2D surfaceExtend) {
 		m_surface = surface;
@@ -191,7 +186,16 @@ namespace Graphics::Vulkan {
 
 	VulkanSurface::~VulkanSurface() = default;
 
-	void VulkanSurface::Update() {
+	void VulkanSurface::RecreateSurface(uint32_t width, uint32_t height) {
+
+		vkDeviceWaitIdle(m_device->getLogicalDevice());
+
+		m_surfaceExtent.width = width;
+		m_surfaceExtent.height = height;
+
+		auto swapchainSupport = QuerySwapchainSupport(m_device->getPhysicalDevice());
+
+		m_swapchain->RecreateSwapchain(width, height, swapchainSupport);
 	}
 
 	void VulkanSurface::ReleaseSwapchain() {
@@ -211,10 +215,12 @@ namespace Graphics::Vulkan {
 	}
 
 	void VulkanSurface::FinalizeSurface(std::shared_ptr<VulkanDevice> device) {
-		auto swapchainSupport = QuerySwapchainSupport(device->getPhysicalDevice());
+		m_device = device;
 
-		m_swapchain = std::make_unique<VulkanSwapchain>();
-		m_swapchain->Initialize(device, m_surfaceExtent, swapchainSupport, m_surface);
+		auto swapchainSupport = QuerySwapchainSupport(m_device->getPhysicalDevice());
+
+		m_swapchain = std::make_unique<VulkanSwapchain>(m_device, m_surface);
+		m_swapchain->Initialize(m_surfaceExtent, swapchainSupport);
 	}
 
 
@@ -222,6 +228,7 @@ namespace Graphics::Vulkan {
 		SwapChainSupportDetails details;
 
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, m_surface, &details.capabilities);
+
 
 		uint32_t formatCount;
 		vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_surface, &formatCount, nullptr);
@@ -394,29 +401,28 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanSwapchain{
 
-	void VulkanSwapchain::Initialize(const std::shared_ptr<VulkanDevice>& device, VkExtent2D extent,
-	                                 const SwapChainSupportDetails& swapchainSupport, VkSurfaceKHR surface) {
-		m_device = device;
+	void VulkanSwapchain::Initialize(VkExtent2D extent, SwapChainSupportDetails swapchainSupport) {
+		m_swapchainSupport = std::move(swapchainSupport);
 		m_imageExtent = extent;
 
 		vkGetDeviceQueue(m_device->getLogicalDevice(), m_device->getGraphicsFamilyIndex().value(), 0, &m_graphicsQueue);
 		vkGetDeviceQueue(m_device->getLogicalDevice(), m_device->getPresentFamilyIndex().value(), 0, &m_presentQueue);
 
-		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
-		const VkPresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
-		m_imageExtent = chooseSwapExtent(swapchainSupport.capabilities, m_imageExtent);
+		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(m_swapchainSupport.formats);
+		const VkPresentModeKHR presentMode = chooseSwapPresentMode(m_swapchainSupport.presentModes);
+		m_imageExtent = chooseSwapExtent(m_swapchainSupport.capabilities, m_imageExtent);
 
 		m_swapchainImageFormat = surfaceFormat.format;
 
-		m_swapchainMaxImageCount = swapchainSupport.capabilities.minImageCount + 1;
-		if (swapchainSupport.capabilities.maxImageCount > 0 &&
-		    m_swapchainMaxImageCount > swapchainSupport.capabilities.maxImageCount) {
-			m_swapchainMaxImageCount = swapchainSupport.capabilities.maxImageCount;
+		m_swapchainMaxImageCount = m_swapchainSupport.capabilities.minImageCount + 1;
+		if (m_swapchainSupport.capabilities.maxImageCount > 0 &&
+		    m_swapchainMaxImageCount > m_swapchainSupport.capabilities.maxImageCount) {
+			m_swapchainMaxImageCount = m_swapchainSupport.capabilities.maxImageCount;
 		}
 
 		VkSwapchainCreateInfoKHR createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = surface;
+		createInfo.surface = m_surface;
 		createInfo.minImageCount = m_swapchainMaxImageCount;
 		createInfo.imageFormat = surfaceFormat.format;
 		createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -424,9 +430,9 @@ namespace Graphics::Vulkan {
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		const uint32_t queueFamilyIndices[] = {
-				device->getGraphicsFamilyIndex().value(), device->getPresentFamilyIndex().value()
+				m_device->getGraphicsFamilyIndex().value(), m_device->getPresentFamilyIndex().value()
 		};
-		if (device->getGraphicsFamilyIndex() != device->getPresentFamilyIndex()) {
+		if (m_device->getGraphicsFamilyIndex() != m_device->getPresentFamilyIndex()) {
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 			createInfo.queueFamilyIndexCount = 2;
 			createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -435,7 +441,7 @@ namespace Graphics::Vulkan {
 			createInfo.queueFamilyIndexCount = 0;
 			createInfo.pQueueFamilyIndices = nullptr;
 		}
-		createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
+		createInfo.preTransform = m_swapchainSupport.capabilities.currentTransform;
 		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 		createInfo.presentMode = presentMode;
 		createInfo.clipped = VK_TRUE;
@@ -459,21 +465,26 @@ namespace Graphics::Vulkan {
 	void VulkanSwapchain::CreateFramebuffersFromRenderPass(const std::shared_ptr<VulkanRenderPass>& renderPass) {
 		for (const auto& m_swapchainImageView: m_swapchainImageViews) {
 			auto framebuffer = std::make_shared<VulkanFramebuffer>(m_imageExtent);
-			framebuffer->CreateFramebuffer(m_device->getLogicalDevice(), renderPass->getRenderPass(),
+			framebuffer->CreateFramebuffer(m_device, renderPass->getRenderPass(),
 			                               m_swapchainImageView, m_depthImageView, m_colorImageView);
 			m_swapchainFramebuffers.push_back(framebuffer);
 		}
 	}
 
-	std::shared_ptr<VulkanFramebuffer> VulkanSwapchain::AcquireNewImage(VkSemaphore imageAvailable,
-	                                                                    VkFence frameInFlight) {
+	std::optional<std::shared_ptr<VulkanFramebuffer>> VulkanSwapchain::AcquireNewImage(VkSemaphore imageAvailable,
+	                                                                                   VkFence frameInFlight) {
 		vkWaitForFences(m_device->getLogicalDevice(), 1, &frameInFlight, VK_TRUE, UINT64_MAX);
+
+
+		auto result = vkAcquireNextImageKHR(m_device->getLogicalDevice(), m_swapchain, UINT64_MAX, imageAvailable,
+		                                    VK_NULL_HANDLE,
+		                                    &m_currentImageIndex);
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			std::cout << " swapchain out of date" << std::endl;
+			return std::nullopt;
+		}
 		vkResetFences(m_device->getLogicalDevice(), 1, &frameInFlight);
-
-		vkAcquireNextImageKHR(m_device->getLogicalDevice(), m_swapchain, UINT64_MAX, imageAvailable, VK_NULL_HANDLE,
-		                      &m_currentImageIndex);
-
-		return m_swapchainFramebuffers[m_currentImageIndex];
+		return std::make_optional(m_swapchainFramebuffers[m_currentImageIndex]);
 	}
 
 	void VulkanSwapchain::PresentImage(VkSemaphore imageAvailable, VkSemaphore renderFinished, VkFence frameInFlight,
@@ -514,13 +525,24 @@ namespace Graphics::Vulkan {
 		m_currentImageIndex = (m_currentImageIndex + 1) % m_swapchainMaxImageCount;
 	}
 
+	void VulkanSwapchain::RecreateSwapchain(uint32_t width, uint32_t height, SwapChainSupportDetails swapchainSupport) {
+		Release();
+		m_imageExtent.width = width;
+		m_imageExtent.height = height;
+		Initialize(m_imageExtent, std::move(swapchainSupport));
+		for (size_t i = 0; i < m_swapchainFramebuffers.size(); i++) {
+			m_swapchainFramebuffers[i]->RecreateFramebuffer(width, height, m_swapchainImageViews[i], m_depthImageView,
+			                                                m_colorImageView);
+		}
+	}
+
 	void VulkanSwapchain::Release() {
 
 		vkQueueWaitIdle(m_graphicsQueue);
 		vkQueueWaitIdle(m_presentQueue);
 
 		for (const auto& framebuffer: m_swapchainFramebuffers) {
-			framebuffer->Release(m_device);
+			framebuffer->Release();
 		}
 
 		vkDestroyImageView(m_device->getLogicalDevice(), m_colorImageView, nullptr);
@@ -736,13 +758,18 @@ namespace Graphics::Vulkan {
 	VulkanCommandBuffer::~VulkanCommandBuffer() = default;
 
 
-	void VulkanCommandBuffer::StartRecording(std::shared_ptr<JarSurface> surface,
+	bool VulkanCommandBuffer::StartRecording(std::shared_ptr<JarSurface> surface,
 	                                         std::shared_ptr<JarRenderPass> renderPass) {
 		auto vkRenderPass = reinterpret_cast<std::shared_ptr<VulkanRenderPass>&>(renderPass);
 		auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
 
-		auto vkFramebuffer = vkSurface->getSwapchain()->
+		auto vkFramebufferOptional = vkSurface->getSwapchain()->
 				AcquireNewImage(m_imageAvailableSemaphore, m_frameInFlightFence);
+
+		if (!vkFramebufferOptional.has_value()) {
+			return false;
+		}
+		auto vkFramebuffer = vkFramebufferOptional.value();
 
 		vkResetCommandBuffer(m_commandBuffer, 0);
 
@@ -785,6 +812,7 @@ namespace Graphics::Vulkan {
 		vkCmdSetScissor(m_commandBuffer, 0, 1, &scissor);
 
 		vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		return true;
 	}
 
 	void VulkanCommandBuffer::EndRecording() {
@@ -1676,29 +1704,52 @@ namespace Graphics::Vulkan {
 
 	VulkanFramebuffer::~VulkanFramebuffer() = default;
 
-	void VulkanFramebuffer::Release(std::shared_ptr<JarDevice> device) {
-		const auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
-		vkDestroyFramebuffer(vulkanDevice->getLogicalDevice(), m_framebuffer, nullptr);
+	void VulkanFramebuffer::Release() {
+		vkDestroyFramebuffer(m_device->getLogicalDevice(), m_framebuffer, nullptr);
 	}
 
-	void VulkanFramebuffer::CreateFramebuffer(VkDevice device, VkRenderPass renderPass,
-	                                          VkImageView swapchainImageView, VkImageView depthImageView, VkImageView colorImageView) {
+	void VulkanFramebuffer::CreateFramebuffer(std::shared_ptr<VulkanDevice> device, VkRenderPass renderPass,
+	                                          VkImageView swapchainImageView, VkImageView depthImageView,
+	                                          VkImageView colorImageView) {
+
+		m_device = device;
 
 		std::vector<VkImageView> attachments = std::vector<VkImageView>();
 		attachments.push_back(colorImageView);
 		attachments.push_back(depthImageView);
 		attachments.push_back(swapchainImageView);
 
-		VkFramebufferCreateInfo framebufferInfo{};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPass;
-		framebufferInfo.attachmentCount = attachments.size();
-		framebufferInfo.pAttachments = attachments.data();
-		framebufferInfo.width = m_framebufferExtent.width;
-		framebufferInfo.height = m_framebufferExtent.height;
-		framebufferInfo.layers = 1;
+		m_framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		m_framebufferCreateInfo.renderPass = renderPass;
+		m_framebufferCreateInfo.attachmentCount = attachments.size();
+		m_framebufferCreateInfo.pAttachments = attachments.data();
+		m_framebufferCreateInfo.width = m_framebufferExtent.width;
+		m_framebufferCreateInfo.height = m_framebufferExtent.height;
+		m_framebufferCreateInfo.layers = 1;
 
-		if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &m_framebuffer) != VK_SUCCESS) {
+		if (vkCreateFramebuffer(m_device->getLogicalDevice(), &m_framebufferCreateInfo, nullptr, &m_framebuffer) !=
+		    VK_SUCCESS) {
+			throw std::runtime_error("Failed to create framebuffer");
+		}
+	}
+
+	void VulkanFramebuffer::RecreateFramebuffer(uint32_t width, uint32_t height, VkImageView swapchainImageView,
+	                                            VkImageView depthImageView, VkImageView colorImageView) {
+
+		std::vector<VkImageView> attachments = std::vector<VkImageView>();
+		attachments.push_back(colorImageView);
+		attachments.push_back(depthImageView);
+		attachments.push_back(swapchainImageView);
+
+		m_framebufferExtent.width = width;
+		m_framebufferExtent.height = height;
+		m_framebufferCreateInfo.width = m_framebufferExtent.width;
+		m_framebufferCreateInfo.height = m_framebufferExtent.height;
+		m_framebufferCreateInfo.pAttachments = attachments.data();
+		m_framebufferCreateInfo.attachmentCount = attachments.size();
+
+		if (vkCreateFramebuffer(m_device->getLogicalDevice(), &m_framebufferCreateInfo, nullptr, &m_framebuffer) !=
+		    VK_SUCCESS) {
 			throw std::runtime_error("Failed to create framebuffer");
 		}
 	}

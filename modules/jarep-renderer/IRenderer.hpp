@@ -118,7 +118,7 @@ namespace Graphics {
 		public:
 			virtual ~JarFramebuffer() = default;
 
-			virtual void Release(std::shared_ptr<JarDevice> device) = 0;
+			virtual void Release() = 0;
 	};
 
 	struct JarExtent {
@@ -131,7 +131,7 @@ namespace Graphics {
 		public:
 			virtual ~JarSurface() = default;
 
-			virtual void Update() = 0;
+			virtual void RecreateSurface(uint32_t width, uint32_t height) = 0;
 
 			virtual void ReleaseSwapchain() = 0;
 
@@ -479,7 +479,7 @@ namespace Graphics {
 		public:
 			virtual ~JarCommandBuffer() = default;
 
-			virtual void
+			virtual bool
 			StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) = 0;
 
 			virtual void EndRecording() = 0;

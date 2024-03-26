@@ -65,14 +65,14 @@ class SystemManager {
 
 		}
 
-		/// Update all systems registered in this manager.
+		/// RecreateSurface all systems registered in this manager.
 		void update() {
 			for (auto &system: systemTypeIndexMap) {
 				system.second->update();
 			}
 		}
 
-		/// Update a system with new associated entities, signatures and their respected indices in the archetypes.
+		/// RecreateSurface a system with new associated entities, signatures and their respected indices in the archetypes.
 		/// \param systemType The type of the system to update. Since all systems can only be registered once, this identifier is unique for one system.
 		/// \param entitiesWithAccessIds A map containing the entities with their respected Signature and archetype index available for this system.
 		void addEntitiesToSystem(std::type_index systemType,

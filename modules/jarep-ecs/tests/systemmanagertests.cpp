@@ -63,7 +63,7 @@ TEST_CASE("System Manager") {
 		}
 	}
 
-	SECTION("Update with one registered system - System gets updated"){
+	SECTION("RecreateSurface with one registered system - System gets updated"){
 		systemManager->registerSystem<TestSystemA>(Signature(0), nullptr);
 		systemManager->update();
 		auto systemResult = systemManager->getSystem(typeid(TestSystemA));
@@ -86,7 +86,7 @@ TEST_CASE("System Manager") {
 		REQUIRE(otherSystemResult.has_value());
 	}
 
-	SECTION("Update system data of valid system - New system data is set"){
+	SECTION("RecreateSurface system data of valid system - New system data is set"){
 		auto newTestData = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
 		newTestData[Entity(12)] = std::make_tuple(Signature(1), 1);
 		systemManager->addEntitiesToSystem(typeid(TestSystemB), newTestData);
@@ -97,7 +97,7 @@ TEST_CASE("System Manager") {
 		REQUIRE(testSystem->getEntitiesForTest()[0] == Entity(12));
 	}
 
-	SECTION("Update system data of not registered system - Nothing happens"){
+	SECTION("RecreateSurface system data of not registered system - Nothing happens"){
 		auto newTestData = std::unordered_map<Entity, std::tuple<Signature, size_t>>();
 		newTestData[Entity(12)] = std::make_tuple(Signature(1), 1);
 		systemManager->addEntitiesToSystem(typeid(TestSystemA), newTestData);
