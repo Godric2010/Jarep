@@ -35,7 +35,7 @@ namespace Graphics::Metal {
 
 			bool CreateFromNativeWindowProvider(NativeWindowHandleProvider* windowHandleProvider);
 
-			void Update() override;
+			void RecreateSurface(uint32_t width, uint32_t height) override;
 
 			void ReleaseSwapchain() override;
 
@@ -141,16 +141,16 @@ namespace Graphics::Metal {
 
 			~MetalCommandBuffer() override;
 
-			void
+			bool
 			StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) override;
 
 			void EndRecording() override;
 
 			void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t frameIndex) override;
 
-			void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
+			void BindVertexBuffer(std::shared_ptr<JarBuffer> jarBuffer) override;
 
-			void BindIndexBuffer(std::shared_ptr<JarBuffer> buffer) override;
+			void BindIndexBuffer(std::shared_ptr<JarBuffer> jarBuffer) override;
 
 			void Draw() override;
 

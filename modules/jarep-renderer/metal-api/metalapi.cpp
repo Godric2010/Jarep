@@ -7,7 +7,6 @@
 #if defined(__APPLE__)
 
 #include "metalapi.hpp"
-#include "Vertex.hpp"
 
 namespace Graphics::Metal {
 #pragma region MetalBackend{
@@ -79,7 +78,9 @@ namespace Graphics::Metal {
 		return true;
 	}
 
-	void MetalSurface::Update() {
+	void MetalSurface::RecreateSurface(uint32_t width, uint32_t height) {
+		surfaceRect = CGRectMake(0, 0, width, height);
+		//layer->setDrawableSize(CGSizeMake(width, height));
 	}
 
 	void MetalSurface::ReleaseSwapchain() {
@@ -184,7 +185,7 @@ namespace Graphics::Metal {
 
 	MetalCommandBuffer::~MetalCommandBuffer() = default;
 
-	void
+	bool
 	MetalCommandBuffer::StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) {
 		const auto metalRenderPass = reinterpret_cast<std::shared_ptr<MetalRenderPass>&>(renderPass);
 		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
@@ -192,6 +193,7 @@ namespace Graphics::Metal {
 		auto renderPassDesc = metalRenderPass->getRenderPassDesc();
 		renderPassDesc->colorAttachments()->object(0)->setTexture(metalSurface->acquireNewDrawTexture());
 		encoder = buffer->renderCommandEncoder(renderPassDesc);
+		return true;
 	}
 
 	void MetalCommandBuffer::EndRecording() {
@@ -222,13 +224,13 @@ namespace Graphics::Metal {
 		}
 	}
 
-	void MetalCommandBuffer::BindVertexBuffer(std::shared_ptr<Graphics::JarBuffer> buffer) {
-		auto* metalBuffer = reinterpret_cast<MetalBuffer*>(buffer.get());
+	void MetalCommandBuffer::BindVertexBuffer(std::shared_ptr<Graphics::JarBuffer> jarBuffer) {
+		auto* metalBuffer = reinterpret_cast<MetalBuffer*>(jarBuffer.get());
 		encoder->setVertexBuffer(metalBuffer->getBuffer().value(), 0, 0);
 	}
 
-	void MetalCommandBuffer::BindIndexBuffer(std::shared_ptr<JarBuffer> buffer) {
-		std::shared_ptr<MetalBuffer> metalBuffer = reinterpret_cast<std::shared_ptr<MetalBuffer>&>(buffer);
+	void MetalCommandBuffer::BindIndexBuffer(std::shared_ptr<JarBuffer> jarBuffer) {
+		std::shared_ptr<MetalBuffer> metalBuffer = reinterpret_cast<std::shared_ptr<MetalBuffer>&>(jarBuffer);
 		indexBuffer = metalBuffer;
 	}
 
