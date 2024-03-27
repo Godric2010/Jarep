@@ -30,7 +30,7 @@ namespace Graphics::Metal {
 		metalDevice->Initialize();
 
 		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
-		metalSurface->FinalizeSurface(metalDevice->getDevice().value());
+		metalSurface->FinalizeSurface(metalDevice);
 
 		return metalDevice;
 	}
@@ -80,10 +80,27 @@ namespace Graphics::Metal {
 
 	void MetalSurface::RecreateSurface(uint32_t width, uint32_t height) {
 		surfaceRect = CGRectMake(0, 0, width, height);
-		//layer->setDrawableSize(CGSizeMake(width, height));
+		layer->setDrawableSize(CGSizeMake(width, height));
+
+		if (m_msaaTexture != nullptr) {
+			m_msaaTexture->release();
+			m_msaaTexture = nullptr;
+		}
+
+		if (m_depthStencilTexture != nullptr) {
+			m_depthStencilTexture->release();
+			m_depthStencilTexture = nullptr;
+		}
+
+		createMsaaTexture();
+		createDepthStencilTexture();
+		drawable = layer->nextDrawable();
+
 	}
 
 	void MetalSurface::ReleaseSwapchain() {
+		m_msaaTexture->release();
+		m_depthStencilTexture->release();
 
 	}
 
@@ -95,32 +112,47 @@ namespace Graphics::Metal {
 		return JarExtent{static_cast<float>(surfaceRect.size.width), static_cast<float>(surfaceRect.size.height)};
 	}
 
-	void MetalSurface::FinalizeSurface(MTL::Device* device) {
+	void MetalSurface::FinalizeSurface(std::shared_ptr<MetalDevice> device) {
 		Graphics::Metal::SDLSurfaceAdapter::CreateViewAndMetalLayer(surfaceRect, &contentView, &layer,
 		                                                            &maxSwapchainImageCount);
 
+		metalDevice = device;
 		if (contentView == nullptr)
 			throw std::runtime_error("Expected NS::View* to be not nullptr!");
 
 		if (layer == nullptr)
 			throw std::runtime_error("Expected metal layer not to be nullptr");
 
-		layer->setDevice(device);
+		layer->setDevice(metalDevice->getDevice().value());
 		layer->setPixelFormat(MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB);
 
 		window->setContentView(contentView);
 
-		createDepthStencilTexture(device);
+		createMsaaTexture();
+		createDepthStencilTexture();
 	}
 
-	void MetalSurface::createDepthStencilTexture(MTL::Device* device) {
+	void MetalSurface::createMsaaTexture() {
+		MTL::TextureDescriptor* msaaDesc = MTL::TextureDescriptor::alloc()->init();
+		msaaDesc->setTextureType(MTL::TextureType2DMultisample);
+		msaaDesc->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+		msaaDesc->setWidth(surfaceRect.size.width);
+		msaaDesc->setHeight(surfaceRect.size.height);
+		msaaDesc->setSampleCount(4);
+		msaaDesc->setUsage(MTL::TextureUsageRenderTarget);
+		m_msaaTexture = metalDevice->getDevice().value()->newTexture(msaaDesc);
+
+		msaaDesc->release();
+	}
+
+	void MetalSurface::createDepthStencilTexture() {
 		MTL::TextureDescriptor* depthStencilDesc = MTL::TextureDescriptor::alloc()->init();
 		depthStencilDesc->setTextureType(MTL::TextureType2D);
 		depthStencilDesc->setPixelFormat(MTL::PixelFormatDepth32Float);
 		depthStencilDesc->setWidth(surfaceRect.size.width);
 		depthStencilDesc->setHeight(surfaceRect.size.height);
 		depthStencilDesc->setUsage(MTL::TextureUsageRenderTarget);
-		m_depthStencilTexture = device->newTexture(depthStencilDesc);
+		m_depthStencilTexture = metalDevice->getDevice().value()->newTexture(depthStencilDesc);
 
 		depthStencilDesc->release();
 	}
@@ -187,7 +219,7 @@ namespace Graphics::Metal {
 
 	bool
 	MetalCommandBuffer::StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) {
-		const auto metalRenderPass = reinterpret_cast<std::shared_ptr<MetalRenderPass>&>(renderPass);
+		metalRenderPass = reinterpret_cast<std::shared_ptr<MetalRenderPass>&>(renderPass);
 		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
 
 		auto renderPassDesc = metalRenderPass->getRenderPassDesc();
@@ -245,8 +277,12 @@ namespace Graphics::Metal {
 
 	void MetalCommandBuffer::Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) {
 		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
+
+		metalRenderPass->UpdateRenderPassDescriptor(metalSurface);
+
 		buffer->presentDrawable(metalSurface->getDrawable());
 		buffer->commit();
+		buffer->waitUntilCompleted();
 	}
 
 
@@ -301,6 +337,12 @@ namespace Graphics::Metal {
 	default;
 
 	void MetalRenderPass::Release() {
+	}
+
+	void MetalRenderPass::UpdateRenderPassDescriptor(std::shared_ptr<MetalSurface> metalSurface) {
+		renderPassDesc->colorAttachments()->object(0)->setTexture(metalSurface->getMSAATexture());
+		renderPassDesc->colorAttachments()->object(0)->setResolveTexture(metalSurface->getDrawable()->texture());
+		renderPassDesc->depthAttachment()->setTexture(metalSurface->getDepthStencilTexture());
 	}
 
 #pragma endregion MetalRenderPass }

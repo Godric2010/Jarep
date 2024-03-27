@@ -23,6 +23,8 @@
 
 namespace Graphics::Metal {
 
+	class MetalDevice;
+
 	class MetalBuffer;
 
 	class MetalImage;
@@ -43,7 +45,7 @@ namespace Graphics::Metal {
 
 			JarExtent GetSurfaceExtent() override;
 
-			void FinalizeSurface(MTL::Device* device);
+			void FinalizeSurface(std::shared_ptr<MetalDevice> device);
 
 			[[nodiscard]] CA::MetalDrawable* getDrawable() const { return drawable; }
 
@@ -51,22 +53,27 @@ namespace Graphics::Metal {
 
 			MTL::Texture* getDepthStencilTexture() const { return m_depthStencilTexture; }
 
+			MTL::Texture* getMSAATexture() const {return m_msaaTexture; }
 
 			MTL::Texture* acquireNewDrawTexture() {
 				drawable = layer->nextDrawable();
 				return drawable->texture();
 			}
 
-			void createDepthStencilTexture(MTL::Device* device);
-
 		private:
+			std::shared_ptr<MetalDevice> metalDevice;
 			NS::View* contentView;
 			NS::Window* window;
 			CGRect surfaceRect;
 			CA::MetalLayer* layer;
 			CA::MetalDrawable* drawable;
+			MTL::Texture* m_msaaTexture;
 			MTL::Texture* m_depthStencilTexture;
 			uint32_t maxSwapchainImageCount;
+
+
+			void createMsaaTexture();
+			void createDepthStencilTexture();
 	};
 
 #pragma region MetalRenderPass{
@@ -127,6 +134,8 @@ namespace Graphics::Metal {
 
 			[[nodiscard]] MTL::RenderPassDescriptor* getRenderPassDesc() const { return renderPassDesc; }
 
+			void UpdateRenderPassDescriptor(std::shared_ptr<MetalSurface> metalSurface);
+
 		private:
 			MTL::RenderPassDescriptor* renderPassDesc;
 	};
@@ -164,6 +173,7 @@ namespace Graphics::Metal {
 			MTL::CommandBuffer* buffer;
 			MTL::RenderCommandEncoder* encoder;
 			std::shared_ptr<MetalBuffer> indexBuffer;
+			std::shared_ptr<MetalRenderPass> metalRenderPass;
 	};
 
 #pragma region CommandQueue{

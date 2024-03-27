@@ -124,7 +124,7 @@ namespace Graphics {
 				SetRenderPass(renderPass)->
 				SetVertexInput(vertexInput)->
 				SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
-				SetMultisamplingCount(1)->
+				SetMultisamplingCount(4)->
 				BindUniformBuffers(uniformBuffers, 1, StageFlags::VertexShader)->
 				BindImageBuffer(images[0], 2, StageFlags::FragmentShader)->
 				SetColorBlendAttachments(colorBlendAttachment)->
