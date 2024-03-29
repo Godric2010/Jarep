@@ -14,6 +14,7 @@
 #include <SDL2/SDL_syswm.h>
 #include <SDL_vulkan.h>
 #include <string>
+
 #if defined (_WIN32)
 #include <windows.h>
 #endif
@@ -45,15 +46,27 @@ namespace Core::Window {
 			int activeOptIndex;
 			bool isDirty;
 			Uint32 windowFlags;
-			int width;
-			int height;
+
+			uint32_t m_currentWidth;
+			uint32_t m_currentHeight;
+			std::optional<std::pair<uint32_t, uint32_t>> m_pendingResize;
+			std::chrono::time_point<std::chrono::steady_clock> m_lastResizeTime;
+			bool m_resizeOccurred;
+
+			std::shared_ptr<Graphics::JarepGraphics> renderer;
+
+
+			void HandleKeyDownEvent(const SDL_Event& event);
 			static std::vector<DisplayOpts> getAvailableDisplayOpts();
+
 			std::optional<SDL_DisplayMode> getDisplayModeFromOpts();
-			[[nodiscard]] std::optional<Graphics::NativeWindowHandleProvider* > getNativeWindowHandle(int sizeWidth, int sizeHeight) const;
+
+			[[nodiscard]] std::optional<Graphics::NativeWindowHandleProvider*>
+			getNativeWindowHandle(int sizeWidth, int sizeHeight) const;
 
 			[[nodiscard]] std::vector<const char*> getVulkanWindowExtensionsCStr() const;
 
-			std::shared_ptr<Graphics::JarepGraphics> renderer;
+
 	};
 }
 

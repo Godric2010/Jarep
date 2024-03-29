@@ -94,9 +94,6 @@ namespace Graphics::Metal {
 
 		createMsaaTexture();
 		createDepthStencilTexture();
-		SDLSurfaceAdapter::getDrawableFromMetalLayer(layer, &drawable);
-//		drawable = layer->nextDrawable();
-
 	}
 
 	void MetalSurface::ReleaseSwapchain() {
