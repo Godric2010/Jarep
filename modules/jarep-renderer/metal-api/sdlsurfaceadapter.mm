@@ -27,5 +27,10 @@ namespace Graphics::Metal {
 		*maxSwapchainImageCount = mLayer.maximumDrawableCount;
 	}
 
+	void SDLSurfaceAdapter::getDrawableFromMetalLayer(CA::MetalLayer* metalLayer, CA::MetalDrawable** drawable) {
+		*drawable = ( __bridge CA::MetalDrawable *) [metalLayer nextDrawable];
+	}
+
+
 }
 #endif

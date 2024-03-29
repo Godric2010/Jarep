@@ -80,7 +80,7 @@ namespace Graphics::Metal {
 
 	void MetalSurface::RecreateSurface(uint32_t width, uint32_t height) {
 		surfaceRect = CGRectMake(0, 0, width, height);
-		layer->setDrawableSize(CGSizeMake(width, height));
+		layer->setDrawableSize(surfaceRect.size);
 
 		if (m_msaaTexture != nullptr) {
 			m_msaaTexture->release();
@@ -94,7 +94,8 @@ namespace Graphics::Metal {
 
 		createMsaaTexture();
 		createDepthStencilTexture();
-		drawable = layer->nextDrawable();
+		SDLSurfaceAdapter::getDrawableFromMetalLayer(layer, &drawable);
+//		drawable = layer->nextDrawable();
 
 	}
 
@@ -125,8 +126,10 @@ namespace Graphics::Metal {
 
 		layer->setDevice(metalDevice->getDevice().value());
 		layer->setPixelFormat(MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB);
+		layer->setDrawableSize(surfaceRect.size);
 
 		window->setContentView(contentView);
+		SDLSurfaceAdapter::getDrawableFromMetalLayer(layer, &drawable);
 
 		createMsaaTexture();
 		createDepthStencilTexture();
@@ -300,6 +303,9 @@ namespace Graphics::Metal {
 
 	JarRenderPassBuilder* MetalRenderPassBuilder::AddColorAttachment(Graphics::ColorAttachment colorAttachment) {
 		m_colorAttachment = std::make_optional(colorAttachment);
+
+
+
 		MTL::RenderPassColorAttachmentDescriptor* cd = m_renderPassDescriptor->colorAttachments()->object(0);
 		cd->setLoadAction(loadActionToMetal(colorAttachment.loadOp));
 		cd->setClearColor(clearColorToMetal(colorAttachment.clearColor));
@@ -327,6 +333,11 @@ namespace Graphics::Metal {
 			throw std::exception();
 
 		auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
+
+		auto colorAttachmentDesc = m_renderPassDescriptor->colorAttachments()->object(0);
+		colorAttachmentDesc->setTexture(metalSurface->getMSAATexture());
+		colorAttachmentDesc->setResolveTexture(metalSurface->getDrawable()->texture());
+		colorAttachmentDesc->setStoreAction(MTL::StoreActionMultisampleResolve);
 
 		if (useDepthAttachment)
 			m_renderPassDescriptor->depthAttachment()->setTexture(metalSurface->getDepthStencilTexture());

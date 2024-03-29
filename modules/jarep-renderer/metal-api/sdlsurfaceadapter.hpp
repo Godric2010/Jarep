@@ -18,7 +18,11 @@ namespace Graphics::Metal {
 
 			~SDLSurfaceAdapter() = default;
 
-			static void CreateViewAndMetalLayer(CGRect surfaceRect, NS::View** viewContent, CA::MetalLayer** metalLayer, uint32_t* maxSwapchainImageCount);
+			static void CreateViewAndMetalLayer(CGRect surfaceRect, NS::View** viewContent, CA::MetalLayer** metalLayer,
+			                                    uint32_t* maxSwapchainImageCount);
+
+			static void getDrawableFromMetalLayer(CA::MetalLayer* metalLayer, CA::MetalDrawable** drawable);
+
 	};
 }
 #endif

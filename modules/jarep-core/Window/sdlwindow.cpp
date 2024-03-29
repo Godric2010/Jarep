@@ -104,6 +104,7 @@ namespace Core::Window
                 }
                 else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
                 {
+					// TODO: Pool this to save on resizing
                     width = event.window.data1;
                     height = event.window.data2;
 					renderer->Resize(width, height);
