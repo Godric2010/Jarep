@@ -7,7 +7,7 @@
 
 #if defined(__APPLE__)
 
-#include "IRenderer.hpp"
+#include "IRenderAPI.hpp"
 #include "sdlsurfaceadapter.hpp"
 #include <Metal/Metal.hpp>
 #include <Foundation/Foundation.hpp>

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 
-set(SOURCE_FILES JarepGraphics.cpp
+set(SOURCE_FILES JarRenderer.cpp
         NativeWindowHandleProvider.hpp
         Vertex.hpp
         vulkan-api/sdlsurfaceadapter.cpp
@@ -17,7 +17,7 @@ elseif (UNIX OR WIN32 OR WIN64)
 endif ()
 
 
-add_library(JAREP_RENDERER JarepGraphics.hpp ${SOURCE_FILES})
+add_library(JAREP_RENDERER JarRenderer.hpp ${SOURCE_FILES})
 
 if(APPLE)
     add_subdirectory(metal-api/metal)
@@ -37,7 +37,7 @@ find_package(stb)
 target_link_libraries(JAREP_RENDERER PUBLIC stb::stb)
 
 
-set(PublicHeaders JarepGraphics.hpp)
+set(PublicHeaders JarRenderer.hpp)
 set_target_properties(JAREP_RENDERER PROPERTIES PUBLIC_HEADERS "${PublicHeaders}")
 target_include_directories(JAREP_RENDERER PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>

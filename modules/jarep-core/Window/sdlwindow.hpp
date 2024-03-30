@@ -38,7 +38,7 @@ namespace Core::Window {
 
 			void SetDisplayOpts(int displayIndex, int resolutionIndex, int refreshRateIndex) override;
 
-			[[nodiscard]] std::shared_ptr<Graphics::JarepGraphics> getRenderer() const override;
+			[[nodiscard]] std::shared_ptr<Graphics::JarRenderer> getRenderer() const override;
 
 		private:
 			SDL_Window* window;
@@ -53,7 +53,7 @@ namespace Core::Window {
 			std::chrono::time_point<std::chrono::steady_clock> m_lastResizeTime;
 			bool m_resizeOccurred;
 
-			std::shared_ptr<Graphics::JarepGraphics> renderer;
+			std::shared_ptr<Graphics::JarRenderer> renderer;
 
 
 			void HandleKeyDownEvent(const SDL_Event& event);

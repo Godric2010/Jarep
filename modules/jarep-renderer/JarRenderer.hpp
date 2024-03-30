@@ -2,8 +2,8 @@
 // Created by Sebastian Borsch on 01.07.23.
 //
 
-#ifndef JAREP_JAREPGRAPHICS_HPP
-#define JAREP_JAREPGRAPHICS_HPP
+#ifndef JAREP_JARRENDERER_HPP
+#define JAREP_JARRENDERER_HPP
 
 #include <iostream>
 #include <memory>
@@ -11,7 +11,7 @@
 #include <fstream>
 #include <utility>
 #include <vector>
-#include "IRenderer.hpp"
+#include "IRenderAPI.hpp"
 #include "NativeWindowHandleProvider.hpp"
 #include "metal-api/metalapi.hpp"
 #include "vulkan-api/vulkanapi.hpp"
@@ -55,11 +55,11 @@ namespace Graphics {
 		};
 	}
 
-	class JarepGraphics {
+	class JarRenderer {
 		public:
-			explicit JarepGraphics(const std::vector<const char*>& extensionNames);
+			explicit JarRenderer(const std::vector<const char*>& extensionNames);
 
-			~JarepGraphics() = default;
+			~JarRenderer() = default;
 
 			void Initialize(NativeWindowHandleProvider* nativeWindowHandle);
 
@@ -118,4 +118,4 @@ namespace Graphics {
 			}
 	};
 }
-#endif //JAREP_JAREPGRAPHICS_HPP
+#endif //JAREP_JARRENDERER_HPP

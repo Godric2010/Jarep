@@ -9,7 +9,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include "JarepGraphics.hpp"
+#include "JarRenderer.hpp"
 
 namespace Core::Window {
 
@@ -69,7 +69,7 @@ namespace Core::Window {
 
 			virtual void Shutdown() = 0;
 
-			[[nodiscard]] virtual std::shared_ptr<Graphics::JarepGraphics> getRenderer() const = 0;
+			[[nodiscard]] virtual std::shared_ptr<Graphics::JarRenderer> getRenderer() const = 0;
 	};
 
 }

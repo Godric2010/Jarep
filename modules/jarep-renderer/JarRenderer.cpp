@@ -2,10 +2,10 @@
 // Created by Sebastian Borsch on 24.10.23.
 //
 
-#include "JarepGraphics.hpp"
+#include "JarRenderer.hpp"
 
 namespace Graphics {
-	JarepGraphics::JarepGraphics(const std::vector<const char*>& extensionNames) {
+	JarRenderer::JarRenderer(const std::vector<const char*>& extensionNames) {
 		extensions = extensionNames;
 #if defined(__APPLE__) && defined(__MACH__)
 		backend = std::make_shared<Metal::MetalBackend>(Metal::MetalBackend());
@@ -18,7 +18,7 @@ namespace Graphics {
 #endif
 	}
 
-	void JarepGraphics::Initialize(NativeWindowHandleProvider* nativeWindowHandle) {
+	void JarRenderer::Initialize(NativeWindowHandleProvider* nativeWindowHandle) {
 		surface = backend->CreateSurface(nativeWindowHandle);
 		device = backend->CreateDevice(surface);
 
@@ -134,11 +134,11 @@ namespace Graphics {
 
 	}
 
-	void JarepGraphics::Resize(uint32_t width, uint32_t height) {
+	void JarRenderer::Resize(uint32_t width, uint32_t height) {
 		surface->RecreateSurface(width, height);
 	}
 
-	void JarepGraphics::AddMesh(Mesh& mesh) {
+	void JarRenderer::AddMesh(Mesh& mesh) {
 
 		const size_t vertexDataSize = mesh.getVertices().size() * sizeof(Vertex);
 
@@ -158,7 +158,7 @@ namespace Graphics {
 		meshes.push_back(Internal::JarMesh(mesh, vertexBuffer, indexBuffer));
 	}
 
-	void JarepGraphics::Render() {
+	void JarRenderer::Render() {
 
 
 		prepareModelViewProjectionForFrame();
@@ -181,7 +181,7 @@ namespace Graphics {
 		frameCounter = (frameCounter + 1) % surface->GetSwapchainImageAmount();
 	}
 
-	void JarepGraphics::Shutdown() {
+	void JarRenderer::Shutdown() {
 
 		surface->ReleaseSwapchain();
 
@@ -208,7 +208,7 @@ namespace Graphics {
 		std::cout << "Shutdown renderer" << std::endl;
 	}
 
-	void JarepGraphics::prepareModelViewProjectionForFrame() {
+	void JarRenderer::prepareModelViewProjectionForFrame() {
 		static auto startTime = std::chrono::high_resolution_clock::now();
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
@@ -224,8 +224,8 @@ namespace Graphics {
 		uniformBuffers[frameCounter]->Update(&mvp, sizeof(Internal::JarModelViewProjection));
 	}
 
-	std::shared_ptr<JarShaderModule> JarepGraphics::createShaderModule(const ShaderType shaderType,
-	                                                                   const std::string& shaderName) const {
+	std::shared_ptr<JarShaderModule> JarRenderer::createShaderModule(const ShaderType shaderType,
+	                                                                 const std::string& shaderName) const {
 		const auto shaderDir = "shaders/";
 		const std::string shaderFilePath = shaderDir + shaderName + shaderFileType;
 		const std::string shaderCodeString = readFile(shaderFilePath);

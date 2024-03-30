@@ -10,7 +10,7 @@
 
 #include "Window/IWindow.hpp"
 #include "Window/sdlwindow.hpp"
-#include "JarepGraphics.hpp"
+#include "JarRenderer.hpp"
 
 
 namespace Core {
@@ -26,7 +26,7 @@ namespace Core {
 
 			void Shutdown();
 
-			[[nodiscard]] std::shared_ptr<Graphics::JarepGraphics> getRenderer() const { return window->getRenderer(); }
+			[[nodiscard]] std::shared_ptr<Graphics::JarRenderer> getRenderer() const { return window->getRenderer(); }
 
 		private:
 			std::unique_ptr<Window::IWindow> window;

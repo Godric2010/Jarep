@@ -2,8 +2,8 @@
 // Created by sebastian on 16.10.23.
 //
 
-#ifndef JAREP_IRENDERER_HPP
-#define JAREP_IRENDERER_HPP
+#ifndef JAREP_IRENDERAPI_HPP
+#define JAREP_IRENDERAPI_HPP
 
 #include <complex>
 
@@ -561,4 +561,4 @@ namespace Graphics {
 
 #pragma endregion Backend }
 }
-#endif //JAREP_IRENDERER_HPP
+#endif //JAREP_IRENDERAPI_HPP
