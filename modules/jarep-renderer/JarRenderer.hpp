@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 #include "IRenderAPI.hpp"
+#include "JarRenderStep.hpp"
 #include "NativeWindowHandleProvider.hpp"
 #include "metal-api/metalapi.hpp"
 #include "vulkan-api/vulkanapi.hpp"
@@ -67,6 +68,8 @@ namespace Graphics {
 
 			void AddMesh(Mesh& mesh);
 
+			void AddRenderStep(std::unique_ptr<JarRenderStepDescriptor> renderStepBuilder);
+
 			void Render();
 
 			void Shutdown();
@@ -78,6 +81,8 @@ namespace Graphics {
 			std::shared_ptr<JarSurface> surface;
 			std::shared_ptr<JarDevice> device;
 			std::shared_ptr<JarCommandQueue> queue;
+			std::vector<std::shared_ptr<Internal::JarRenderStep>> renderSteps;
+
 			std::shared_ptr<JarShaderModule> vertexShaderModule;
 			std::shared_ptr<JarShaderModule> fragmentShaderModule;
 			std::shared_ptr<JarPipeline> pipeline;

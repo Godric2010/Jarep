@@ -11,6 +11,7 @@
 #include "Window/IWindow.hpp"
 #include "Window/sdlwindow.hpp"
 #include "JarRenderer.hpp"
+#include "JarRenderStep.hpp"
 
 
 namespace Core {

@@ -8,6 +8,8 @@ set(SOURCE_FILES JarRenderer.cpp
         vulkan-api/sdlsurfaceadapter.hpp
         Mesh.hpp
         stb_impl.cpp
+        JarRenderStep.cpp
+        JarRenderStep.hpp
 )
 
 if(APPLE)

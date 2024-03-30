@@ -26,7 +26,7 @@ namespace Graphics {
 		queue = commandQueueBuilder->Build(device);
 
 		Internal::JarModelViewProjection mvp{};
-		mvp.model = glm::rotate(glm::mat4(1.0f), glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+//		mvp.model = glm::rotate(glm::mat4(1.0f), glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		auto bufferBuilder = backend->InitBufferBuilder()->SetUsageFlags(
 				BufferUsage::UniformBuffer)->SetMemoryProperties(
 				MemoryProperties::HostVisible | MemoryProperties::HostCoherent)->SetBufferData(
@@ -136,6 +136,11 @@ namespace Graphics {
 
 	void JarRenderer::Resize(uint32_t width, uint32_t height) {
 		surface->RecreateSurface(width, height);
+	}
+
+	void JarRenderer::AddRenderStep(std::unique_ptr<JarRenderStepDescriptor> renderStepBuilder) {
+		auto renderStep = std::make_shared<Internal::JarRenderStep>(std::move(renderStepBuilder), device, surface);
+		renderSteps.push_back(renderStep);
 	}
 
 	void JarRenderer::AddMesh(Mesh& mesh) {
