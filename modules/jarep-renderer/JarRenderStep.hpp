@@ -8,7 +8,10 @@
 #include <iostream>
 #include <memory>
 #include <utility>
+#include <filesystem>
+#include <fstream>
 #include "IRenderAPI.hpp"
+#include "Vertex.hpp"
 
 
 namespace Graphics {
@@ -31,24 +34,30 @@ namespace Graphics {
 	namespace Internal {
 		class JarRenderStep {
 			public:
-				JarRenderStep(std::unique_ptr<JarRenderStepDescriptor> desc, std::shared_ptr<JarDevice> device,
-				              std::shared_ptr<JarSurface> surface) : descriptor(std::move(desc)) {};
+				JarRenderStep(std::unique_ptr<JarRenderStepDescriptor> desc, std::shared_ptr<Backend> backend,
+				              std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface);
 
 				~JarRenderStep() = default;
 
 			private:
-				std::shared_ptr<JarShaderModule> vertexShaderModule;
-				std::shared_ptr<JarShaderModule> fragmentShaderModule;
+				ShaderStage shaderStage;
 				std::shared_ptr<JarPipeline> pipeline;
 				std::shared_ptr<JarRenderPass> renderPass;
 
 				std::unique_ptr<JarRenderStepDescriptor> descriptor;
 
-				void BuildShaderModules(std::shared_ptr<JarDevice> device);
+				void BuildShaderModules(std::shared_ptr<Backend> backend, std::shared_ptr<JarDevice> device);
 
-				void BuildRenderPass(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarDevice> device);
+				void BuildRenderPass(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarSurface> surface,
+				                     std::shared_ptr<JarDevice> device);
 
-				void BuildPipeline(std::shared_ptr<JarDevice> device);
+				void BuildPipeline(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device);
+
+				std::shared_ptr<JarShaderModule>
+				GetShaderModule(const std::string& shaderName, ShaderType type, std::shared_ptr<Backend> backend,
+				                std::shared_ptr<JarDevice> device);
+
+				static std::string readFile(const std::string& filename);
 
 
 		};

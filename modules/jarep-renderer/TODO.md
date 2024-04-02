@@ -13,7 +13,9 @@ as well as the steps successfully done so far.
 -[x] Take care of shader transpilation from GLSL to SPRI-V (vulkan) / MetalShader (metal)
 
 ## Step 2: Multiple Render Pipelines
--[ ] Bundle pipeline data into a "RenderStep" object
+-[x] Bundle pipeline data into a "RenderStep" object
+  - [ ] Bind uniform and image descriptors dynamically in vulkan
+  - [ ] Add Descriptor Class to the API interface to handle the data for vulkan and metal
 -[ ] Render each RenderStep in a separate render pass
 -[ ] Optimize JarRenderer interface
   - [ ] Make multisampling detection and options available to the outside

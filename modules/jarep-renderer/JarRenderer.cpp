@@ -73,31 +73,9 @@ namespace Graphics {
 		shaderStage.fragmentShaderModule = fragmentShaderModule;
 		shaderStage.mainFunctionName = "main";
 
-		std::vector attributeDescriptions = {AttributeDescription{}, AttributeDescription{}, AttributeDescription{}};
-		attributeDescriptions[0].vertexFormat = VertexFormat::Float3;
-		attributeDescriptions[0].offset = offsetof(Vertex, position);
-		attributeDescriptions[0].bindingIndex = 0;
-		attributeDescriptions[0].attributeLocation = 0;
-
-		attributeDescriptions[1].vertexFormat = VertexFormat::Float3;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
-		attributeDescriptions[1].bindingIndex = 0;
-		attributeDescriptions[1].attributeLocation = 1;
-
-		attributeDescriptions[2].bindingIndex = 0;
-		attributeDescriptions[2].attributeLocation = 2;
-		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-		attributeDescriptions[2].vertexFormat = VertexFormat::Float2;
-
-		std::vector bindingDescriptions = {BindingDescription{}};
-		bindingDescriptions[0].bindingIndex = 0;
-		bindingDescriptions[0].inputRate = VertexInputRate::PerVertex;
-		bindingDescriptions[0].stride = sizeof(Vertex);
-		bindingDescriptions[0].stepRate = 1;
-
 		VertexInput vertexInput{};
-		vertexInput.attributeDescriptions = attributeDescriptions;
-		vertexInput.bindingDescriptions = bindingDescriptions;
+		vertexInput.attributeDescriptions = Vertex::GetAttributeDescriptions();
+		vertexInput.bindingDescriptions = Vertex::GetBindingDescriptions();
 
 		ColorBlendAttachment colorBlendAttachment{};
 		colorBlendAttachment.pixelFormat = PixelFormat::BGRA8_UNORM;
@@ -139,7 +117,8 @@ namespace Graphics {
 	}
 
 	void JarRenderer::AddRenderStep(std::unique_ptr<JarRenderStepDescriptor> renderStepBuilder) {
-		auto renderStep = std::make_shared<Internal::JarRenderStep>(std::move(renderStepBuilder), device, surface);
+		auto renderStep = std::make_shared<Internal::JarRenderStep>(std::move(renderStepBuilder), backend, device,
+		                                                            surface);
 		renderSteps.push_back(renderStep);
 	}
 
@@ -164,7 +143,6 @@ namespace Graphics {
 	}
 
 	void JarRenderer::Render() {
-
 
 		prepareModelViewProjectionForFrame();
 
