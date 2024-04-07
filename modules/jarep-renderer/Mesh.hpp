@@ -11,17 +11,17 @@
 
 class Mesh {
 	public:
-		Mesh(std::vector<Vertex> verts, std::vector<uint16_t> idxs) : vertices(std::move(verts)),
-		                                                              indices(std::move(idxs)) {}
+		Mesh(std::vector<Graphics::Vertex> verts, std::vector<uint16_t> idxs) : vertices(std::move(verts)),
+		                                                                        indices(std::move(idxs)) {}
 
 		~Mesh() = default;
 
-		[[nodiscard]]const std::vector<Vertex>& getVertices() const { return vertices; }
+		[[nodiscard]]const std::vector<Graphics::Vertex>& getVertices() const { return vertices; }
 
 		[[nodiscard]]const std::vector<uint16_t>& getIndices() const { return indices; }
 
 	private:
-		std::vector<Vertex> vertices;
+		std::vector<Graphics::Vertex> vertices;
 		std::vector<uint16_t> indices;
 };
 

@@ -3,7 +3,7 @@
 
 int main(int argc, char* argv[]) {
 
-	const std::vector<Vertex> vertices = {
+	const std::vector<Graphics::Vertex> vertices = {
 			//back face
 			{{0.5f,  -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
 			{{-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.0f}},
