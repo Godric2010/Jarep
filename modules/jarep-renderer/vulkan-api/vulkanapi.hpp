@@ -471,20 +471,20 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanDescriptorSet{
 
-	class VulkanDescriptorSetBuilder {
+	class VulkanDescriptorBuilder : public JarDescriptorBuilder {
 		public:
-			VulkanDescriptorSetBuilder(uint32_t swapchainImageCount);
+			VulkanDescriptorBuilder(uint32_t swapchainImageCount);
 
-			~VulkanDescriptorSetBuilder() = default;
+			~VulkanDescriptorBuilder() = default;
 
 			std::shared_ptr<VulkanDescriptorSet> Build(std::shared_ptr<VulkanDevice>& vulkanDevice);
 
-			VulkanDescriptorSetBuilder*
-			AddUniformBuffers(const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers,
-			                  uint32_t binding, VkShaderStageFlags stageFlags);
+			VulkanDescriptorBuilder*
+			AddUniformBufferBinding(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers,
+			                        uint32_t binding, StageFlags stageFlags) override;
 
-			VulkanDescriptorSetBuilder* AddImage(const std::shared_ptr<VulkanImage>& image, uint32_t binding,
-			                                     VkShaderStageFlags stageFlags);
+			VulkanDescriptorBuilder* AddImageBufferBinding(std::shared_ptr<JarImage> image, uint32_t binding,
+			                                               StageFlags stageFlags) override;
 
 		private:
 			std::vector<VkDescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
@@ -495,8 +495,26 @@ namespace Graphics::Vulkan {
 			std::unordered_map<uint32_t, uint32_t> m_imageIdToBindingMap;
 
 			uint32_t m_maxSwapchainImageCount;
+
+			static VkShaderStageFlagBits convertToVkShaderStageFlagBits(StageFlags stageFlags);
 	};
 
+	class VulkanDescriptorLayout : public JarDescriptorLayout {
+		public:
+			VulkanDescriptorLayout(std::shared_ptr<VulkanDevice>& device, VkDescriptorSetLayout descriptorSetLayout)
+					: m_device(device), m_descriptorSetLayout(descriptorSetLayout) {};
+
+			~VulkanDescriptorLayout() override;
+
+			void Release() override;
+
+			[[nodiscard]] VkDescriptorSetLayout getDescriptorSetLayout() const { return m_descriptorSetLayout; }
+
+		private:
+			std::shared_ptr<VulkanDevice> m_device;
+			VkDescriptorSetLayout m_descriptorSetLayout;
+
+	};
 
 	class VulkanDescriptorSet {
 		public:
@@ -661,11 +679,7 @@ namespace Graphics::Vulkan {
 			VulkanGraphicsPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) override;
 
 			VulkanGraphicsPipelineBuilder*
-			BindUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding,
-			                   StageFlags stageFlags) override;
-
-			VulkanGraphicsPipelineBuilder*
-			BindImageBuffer(std::shared_ptr<JarImage> image, uint32_t binding, StageFlags stageFlags) override;
+			BindDescriptorLayouts(std::vector<std::shared_ptr<JarDescriptorLayout>> descriptorLayouts) override;
 
 			VulkanGraphicsPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachment) override;
 
@@ -683,25 +697,23 @@ namespace Graphics::Vulkan {
 			std::vector<VkPipelineColorBlendAttachmentState> m_colorBlendAttachmentStates;
 			std::optional<VkPipelineColorBlendStateCreateInfo> m_colorBlend;
 			std::optional<VkPipelineDepthStencilStateCreateInfo> m_depthStencil;
+			std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
 			std::vector<std::shared_ptr<VulkanBuffer>> m_uniformBuffers;
 			std::shared_ptr<VulkanRenderPass> m_renderPass;
 			VkPipelineLayout m_pipelineLayout;
 			VkPipeline m_pipeline;
-			VulkanDescriptorSetBuilder* m_descriptorSetBuilder;
 
 			static VkColorComponentFlags convertToColorComponentFlagBits(ColorWriteMask colorWriteMask);
 
-			static VkShaderStageFlagBits convertToVkShaderStageFlagBits(StageFlags stageFlags);
 	};
 
 
 	class VulkanGraphicsPipeline final : public JarPipeline {
 		public:
 			VulkanGraphicsPipeline(std::shared_ptr<VulkanDevice>& device, VkPipelineLayout pipelineLayout,
-			                       VkPipeline pipeline, std::shared_ptr<VulkanRenderPass>& renderPass,
-			                       std::shared_ptr<VulkanDescriptorSet> descriptorSet) :
+			                       VkPipeline pipeline, std::shared_ptr<VulkanRenderPass>& renderPass) :
 					m_device(device), m_pipelineLayout(pipelineLayout), m_graphicsPipeline(pipeline),
-					m_renderPass(renderPass), m_descriptorSet(std::move(descriptorSet)) {}
+					m_renderPass(renderPass) {}
 
 			~VulkanGraphicsPipeline() override;
 
@@ -714,7 +726,7 @@ namespace Graphics::Vulkan {
 			[[nodiscard]] VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
 
 			[[nodiscard]] VkDescriptorSet const* getDescriptorSetFromFrameIndex(size_t frameIndex) const {
-				return m_descriptorSet->getDescriptorSetOfFrameIndex(frameIndex);
+				return nullptr;//	return m_descriptorSet->getDescriptorSetOfFrameIndex(frameIndex);
 			}
 
 		private:
@@ -722,7 +734,6 @@ namespace Graphics::Vulkan {
 			VkPipelineLayout m_pipelineLayout;
 			VkPipeline m_graphicsPipeline;
 			std::shared_ptr<VulkanRenderPass> m_renderPass;
-			std::shared_ptr<VulkanDescriptorSet> m_descriptorSet;
 	};
 
 #pragma endregion VulkanGraphicsPipeline };

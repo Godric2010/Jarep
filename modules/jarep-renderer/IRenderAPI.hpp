@@ -34,6 +34,10 @@ namespace Graphics {
 
 	class JarSurface;
 
+	class JarDescriptor;
+
+	class JarDescriptorLayout;
+
 	enum class PixelFormat;
 
 	enum ImageFormat {
@@ -448,12 +452,7 @@ namespace Graphics {
 
 			virtual JarPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) = 0;
 
-			virtual JarPipelineBuilder*
-			BindUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding,
-			                   StageFlags stageFlags) = 0;
-
-			virtual JarPipelineBuilder*
-			BindImageBuffer(std::shared_ptr<JarImage> imageBuffer, uint32_t binding, StageFlags stageFlags) = 0;
+			virtual JarPipelineBuilder* BindDescriptorLayouts(std::vector<std::shared_ptr<JarDescriptorLayout>> descriptorLayouts) = 0;
 
 			virtual JarPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachments) = 0;
 
@@ -472,6 +471,40 @@ namespace Graphics {
 	};
 
 #pragma endregion JarPipeline }
+
+#pragma region JarDescriptor{
+
+	class JarDescriptorBuilder {
+		public:
+			virtual ~JarDescriptorBuilder() = default;
+
+			virtual JarDescriptorBuilder*
+			AddUniformBufferBinding(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding,
+			                        StageFlags stageFlags) = 0;
+
+			virtual JarDescriptorBuilder*
+			AddImageBufferBinding(std::shared_ptr<JarImage> image, uint32_t binding, StageFlags stageFlags) = 0;
+
+			virtual std::shared_ptr<JarDescriptor> Build(std::shared_ptr<JarDevice> device) = 0;
+	};
+
+	class JarDescriptorLayout {
+		public:
+			virtual ~JarDescriptorLayout() = default;
+
+			virtual void Release() = 0;
+	};
+
+	class JarDescriptor {
+		public:
+			virtual ~JarDescriptor() = default;
+
+			virtual void Release() = 0;
+
+			virtual std::shared_ptr<JarDescriptorLayout> GetDescriptorLayout() = 0;
+	};
+
+#pragma endregion JarDescriptor
 
 #pragma region JarCommandBuffer{
 

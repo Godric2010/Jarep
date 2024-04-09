@@ -1087,7 +1087,7 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanDescriptorSet{
 
-	VulkanDescriptorSetBuilder::VulkanDescriptorSetBuilder(uint32_t swapchainImageCount) {
+	VulkanDescriptorBuilder::VulkanDescriptorBuilder(uint32_t swapchainImageCount) {
 		m_maxSwapchainImageCount = swapchainImageCount;
 		for (uint32_t i = 0; i < m_maxSwapchainImageCount; ++i) {
 			m_descSetIndexBufferInfosMap.insert({i, std::vector<VkDescriptorBufferInfo>(0)});
@@ -1095,31 +1095,35 @@ namespace Graphics::Vulkan {
 	}
 
 
-	VulkanDescriptorSetBuilder* VulkanDescriptorSetBuilder::AddUniformBuffers(
-			const std::vector<std::shared_ptr<VulkanBuffer>>& uniformBuffers,
-			uint32_t binding, VkShaderStageFlags stageFlags) {
+	VulkanDescriptorBuilder* VulkanDescriptorBuilder::AddUniformBufferBinding(
+			std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding, StageFlags stageFlags) {
 		if (uniformBuffers.size() != m_maxSwapchainImageCount)
 			throw std::runtime_error("Amount of uniform buffers must be equal to the amount of swapchain images!");
+
+		std::vector<std::shared_ptr<VulkanBuffer>> vulkanUniformBuffers;
+		for (auto& buffer: uniformBuffers) {
+			vulkanUniformBuffers.push_back(reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(buffer));
+		}
 
 		VkDescriptorSetLayoutBinding uboLayoutBinding{};
 		uboLayoutBinding.binding = binding;
 		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		uboLayoutBinding.descriptorCount = 1;
-		uboLayoutBinding.stageFlags = stageFlags;
+		uboLayoutBinding.stageFlags = convertToVkShaderStageFlagBits(stageFlags);
 		uboLayoutBinding.pImmutableSamplers = nullptr;
 
 		m_descriptorSetLayoutBindings.push_back(uboLayoutBinding);
 
 		VkDescriptorPoolSize poolSize{};
 		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSize.descriptorCount = static_cast<uint32_t>(uniformBuffers.size());
+		poolSize.descriptorCount = static_cast<uint32_t>(vulkanUniformBuffers.size());
 		m_descriptorPoolSizes.push_back(poolSize);
 
 		for (int i = 0; i < m_maxSwapchainImageCount; ++i) {
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = uniformBuffers[i]->getBuffer();
+			bufferInfo.buffer = vulkanUniformBuffers[i]->getBuffer();
 			bufferInfo.offset = 0;
-			bufferInfo.range = uniformBuffers[i]->getBufferSize();
+			bufferInfo.range = vulkanUniformBuffers[i]->getBufferSize();
 
 			uint32_t descriptorWriteIndex = m_descSetIndexBufferInfosMap[i].size();
 			m_descSetIndexBufferInfosMap[i].push_back(bufferInfo);
@@ -1128,15 +1132,17 @@ namespace Graphics::Vulkan {
 		return this;
 	}
 
-	VulkanDescriptorSetBuilder*
-	VulkanDescriptorSetBuilder::AddImage(const std::shared_ptr<VulkanImage>& image, uint32_t binding,
-	                                     VkShaderStageFlags stageFlags) {
+	VulkanDescriptorBuilder*
+	VulkanDescriptorBuilder::AddImageBufferBinding(std::shared_ptr<JarImage> image, uint32_t binding,
+	                                               StageFlags stageFlags) {
+
+		auto vulkanImage = reinterpret_cast<std::shared_ptr<VulkanImage>&>(image);
 
 		VkDescriptorSetLayoutBinding imageLayoutBinding{};
 		imageLayoutBinding.binding = binding;
 		imageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		imageLayoutBinding.descriptorCount = 1;
-		imageLayoutBinding.stageFlags = stageFlags;
+		imageLayoutBinding.stageFlags = convertToVkShaderStageFlagBits(stageFlags);
 		imageLayoutBinding.pImmutableSamplers = nullptr;
 
 		m_descriptorSetLayoutBindings.push_back(imageLayoutBinding);
@@ -1148,8 +1154,8 @@ namespace Graphics::Vulkan {
 
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = image->getImageView();
-		imageInfo.sampler = image->getSampler();
+		imageInfo.imageView = vulkanImage->getImageView();
+		imageInfo.sampler = vulkanImage->getSampler();
 
 		m_descriptorImageInfos.push_back(imageInfo);
 		m_imageIdToBindingMap.insert({m_descriptorImageInfos.size() - 1, binding});
@@ -1157,7 +1163,7 @@ namespace Graphics::Vulkan {
 	}
 
 	std::shared_ptr<VulkanDescriptorSet>
-	VulkanDescriptorSetBuilder::Build(std::shared_ptr<VulkanDevice>& vulkanDevice) {
+	VulkanDescriptorBuilder::Build(std::shared_ptr<VulkanDevice>& vulkanDevice) {
 		if (m_descriptorSetLayoutBindings.empty())
 			throw std::runtime_error("DescriptorSet not correctly initialized! All fields must be set!");
 
@@ -1238,6 +1244,21 @@ namespace Graphics::Vulkan {
 		                                             descriptorSets);
 	}
 
+	VkShaderStageFlagBits
+	VulkanDescriptorBuilder::convertToVkShaderStageFlagBits(Graphics::StageFlags stageFlags) {
+		int flagBits = 0;
+		auto maskValue = static_cast<std::underlying_type<StageFlags>::type>(stageFlags);
+		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::VertexShader))
+			flagBits |= VK_SHADER_STAGE_VERTEX_BIT;
+		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::FragmentShader))
+			flagBits |= VK_SHADER_STAGE_FRAGMENT_BIT;
+		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::GeometryShader))
+			flagBits |= VK_SHADER_STAGE_GEOMETRY_BIT;
+		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::ComputeShader))
+			flagBits |= VK_SHADER_STAGE_COMPUTE_BIT;
+		return static_cast<VkShaderStageFlagBits>(flagBits);
+
+	}
 
 	void VulkanDescriptorSet::Release() {
 
@@ -1381,10 +1402,7 @@ namespace Graphics::Vulkan {
 			{StencilOpState::Replace,           VK_STENCIL_OP_REPLACE},
 	};
 
-	VulkanGraphicsPipelineBuilder::VulkanGraphicsPipelineBuilder() {
-		std::cout << "WARNING: Image count not set, defaulting to 3" << std::endl;
-		m_descriptorSetBuilder = new VulkanDescriptorSetBuilder(3);
-	}
+	VulkanGraphicsPipelineBuilder::VulkanGraphicsPipelineBuilder() = default;
 
 	VulkanGraphicsPipelineBuilder::~VulkanGraphicsPipelineBuilder() = default;
 
@@ -1500,20 +1518,13 @@ namespace Graphics::Vulkan {
 		return this;
 	}
 
-	VulkanGraphicsPipelineBuilder*
-	VulkanGraphicsPipelineBuilder::BindUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers,
-	                                                  uint32_t binding, StageFlags stageFlags) {
-		auto vulkanUniformBuffers = reinterpret_cast<std::vector<std::shared_ptr<VulkanBuffer>>&>(uniformBuffers);
-		m_descriptorSetBuilder->AddUniformBuffers(vulkanUniformBuffers, binding,
-		                                          convertToVkShaderStageFlagBits(stageFlags));
-		return this;
-	}
+	VulkanGraphicsPipelineBuilder* VulkanGraphicsPipelineBuilder::BindDescriptorLayouts(
+			std::vector<std::shared_ptr<JarDescriptorLayout>> descriptorLayouts) {
 
-	VulkanGraphicsPipelineBuilder* VulkanGraphicsPipelineBuilder::BindImageBuffer(std::shared_ptr<JarImage> image,
-	                                                                              uint32_t binding,
-	                                                                              StageFlags stageFlags) {
-		auto vulkanImage = reinterpret_cast<std::shared_ptr<VulkanImage>&>(image);
-		m_descriptorSetBuilder->AddImage(vulkanImage, binding, convertToVkShaderStageFlagBits(stageFlags));
+		for (auto& descriptorLayout: descriptorLayouts) {
+			auto vulkanDescriptorLayout = reinterpret_cast<std::shared_ptr<VulkanDescriptorLayout>&>(descriptorLayout);
+			m_descriptorSetLayouts.push_back(vulkanDescriptorLayout->getDescriptorSetLayout());
+		}
 		return this;
 	}
 
@@ -1577,19 +1588,10 @@ namespace Graphics::Vulkan {
 
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
 
-		auto vulkanDescriptorSet = m_descriptorSetBuilder->Build(vulkanDevice);
-		delete m_descriptorSetBuilder;
-
-		VkDescriptorSetLayout const* descriptorLayouts = nullptr;
-		size_t descriptorCount = 0;
-
-		descriptorLayouts = vulkanDescriptorSet->getDescriptorSetLayout();
-		descriptorCount = 1;
-
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = descriptorCount;
-		pipelineLayoutCreateInfo.pSetLayouts = descriptorLayouts;
+		pipelineLayoutCreateInfo.setLayoutCount = m_descriptorSetLayouts.size();
+		pipelineLayoutCreateInfo.pSetLayouts = m_descriptorSetLayouts.data();
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 		pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
@@ -1648,8 +1650,7 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("failed to create graphics pipeline");
 		}
 
-		return std::make_shared<VulkanGraphicsPipeline>(vulkanDevice, m_pipelineLayout, m_pipeline, m_renderPass,
-		                                                vulkanDescriptorSet);
+		return std::make_shared<VulkanGraphicsPipeline>(vulkanDevice, m_pipelineLayout, m_pipeline, m_renderPass);
 	}
 
 	VkColorComponentFlags
@@ -1667,22 +1668,6 @@ namespace Graphics::Vulkan {
 		return flagBits;
 	}
 
-	VkShaderStageFlagBits
-	VulkanGraphicsPipelineBuilder::convertToVkShaderStageFlagBits(Graphics::StageFlags stageFlags) {
-		int flagBits = 0;
-		auto maskValue = static_cast<std::underlying_type<StageFlags>::type>(stageFlags);
-		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::VertexShader))
-			flagBits |= VK_SHADER_STAGE_VERTEX_BIT;
-		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::FragmentShader))
-			flagBits |= VK_SHADER_STAGE_FRAGMENT_BIT;
-		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::GeometryShader))
-			flagBits |= VK_SHADER_STAGE_GEOMETRY_BIT;
-		if (maskValue & static_cast<std::underlying_type<StageFlags>::type>(StageFlags::ComputeShader))
-			flagBits |= VK_SHADER_STAGE_COMPUTE_BIT;
-		return static_cast<VkShaderStageFlagBits>(flagBits);
-
-	}
-
 
 	VulkanGraphicsPipeline::~VulkanGraphicsPipeline() = default;
 
@@ -1693,7 +1678,6 @@ namespace Graphics::Vulkan {
 	void VulkanGraphicsPipeline::Release() {
 
 		m_renderPass->Release();
-		m_descriptorSet->Release();
 		vkDestroyPipelineLayout(m_device->getLogicalDevice(), m_pipelineLayout, nullptr);
 		vkDestroyPipeline(m_device->getLogicalDevice(), m_graphicsPipeline, nullptr);
 	}
