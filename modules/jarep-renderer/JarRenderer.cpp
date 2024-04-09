@@ -117,9 +117,10 @@ namespace Graphics {
 	}
 
 	void JarRenderer::AddRenderStep(std::unique_ptr<JarRenderStepDescriptor> renderStepBuilder) {
-		auto renderStep = std::make_shared<Internal::JarRenderStep>(std::move(renderStepBuilder), backend, device,
-		                                                            surface);
-		renderSteps.push_back(renderStep);
+		std::cout<< "Render step is currently unavailable!" << std::endl;
+//		auto renderStep = std::make_shared<Internal::JarRenderStep>(std::move(renderStepBuilder), backend, device,
+//		                                                            surface);
+//		renderSteps.push_back(renderStep);
 	}
 
 	void JarRenderer::AddMesh(Mesh& mesh) {

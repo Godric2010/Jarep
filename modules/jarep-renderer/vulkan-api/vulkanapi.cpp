@@ -643,7 +643,7 @@ namespace Graphics::Vulkan {
 
 	void VulkanSwapchain::createColorResources() {
 		VkFormat colorFormat = m_swapchainImageFormat;
-		m_msaaSamples = m_device->getMaxUsableSampleCount();
+		m_msaaSamples = VK_SAMPLE_COUNT_4_BIT;//m_device->getMaxUsableSampleCount();
 		VulkanImageBuilder::createImage(m_device, m_imageExtent.width, m_imageExtent.height, 1, m_msaaSamples,
 		                                colorFormat, VK_IMAGE_TILING_OPTIMAL,
 		                                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -1828,7 +1828,7 @@ namespace Graphics::Vulkan {
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
 		auto vulkanSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
 
-		auto msaaSamples = vulkanSurface->getSwapchain()->getMSAASampleBits();
+		auto msaaSamples = VK_SAMPLE_COUNT_4_BIT;// vulkanSurface->getSwapchain()->getMSAASampleBits();
 		m_colorAttachment.value().samples = msaaSamples;
 
 
