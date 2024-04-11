@@ -62,7 +62,9 @@ namespace Graphics::Vulkan {
 
 	class VulkanCommandQueue;
 
-	class VulkanDescriptorSet;
+	class VulkanDescriptor;
+
+	class VulkanDescriptorLayout;
 
 #pragma region VulkanBackend{
 
@@ -89,6 +91,8 @@ namespace Graphics::Vulkan {
 			JarImageBuilder* InitImageBuilder() override;
 
 			JarPipelineBuilder* InitPipelineBuilder() override;
+
+			JarDescriptorBuilder* InitDescriptorBuilder() override;
 
 			// Staging Buffer CommandPool management
 			void onRegisterNewBuffer();
@@ -315,6 +319,8 @@ namespace Graphics::Vulkan {
 
 			void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t frameIndex) override;
 
+			void BindDescriptors(std::vector<std::shared_ptr<JarDescriptor>> descriptors) override;
+
 			void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) override;
 
 			void BindIndexBuffer(std::shared_ptr<JarBuffer> indexBuffer) override;
@@ -334,6 +340,8 @@ namespace Graphics::Vulkan {
 					std::shared_ptr<VulkanDevice>& device,
 					VkCommandBuffer commandBuffer,
 					std::shared_ptr<VulkanCommandQueue>& commandQueue);
+
+			std::optional<std::shared_ptr<VulkanGraphicsPipeline>> m_pipeline;
 
 		private:
 			VkCommandBuffer m_commandBuffer;
@@ -473,36 +481,45 @@ namespace Graphics::Vulkan {
 
 	class VulkanDescriptorBuilder : public JarDescriptorBuilder {
 		public:
-			VulkanDescriptorBuilder(uint32_t swapchainImageCount);
+			VulkanDescriptorBuilder() = default;
 
-			~VulkanDescriptorBuilder() = default;
+			~VulkanDescriptorBuilder() override;
 
-			std::shared_ptr<VulkanDescriptorSet> Build(std::shared_ptr<VulkanDevice>& vulkanDevice);
+			VulkanDescriptorBuilder* SetBinding(uint32_t binding) override;
 
-			VulkanDescriptorBuilder*
-			AddUniformBufferBinding(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers,
-			                        uint32_t binding, StageFlags stageFlags) override;
+			VulkanDescriptorBuilder* SetStageFlags(StageFlags stageFlags) override;
 
-			VulkanDescriptorBuilder* AddImageBufferBinding(std::shared_ptr<JarImage> image, uint32_t binding,
-			                                               StageFlags stageFlags) override;
+
+			std::shared_ptr<JarDescriptor>
+			BuildUniformBufferDescriptor(std::shared_ptr<JarDevice> device,
+			                             std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) override;
+
+			std::shared_ptr<JarDescriptor>
+			BuildImageBufferDescriptor(std::shared_ptr<JarDevice> device, std::shared_ptr<JarImage> image) override;
 
 		private:
-			std::vector<VkDescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
-			std::vector<VkDescriptorImageInfo> m_descriptorImageInfos;
-			std::vector<VkDescriptorPoolSize> m_descriptorPoolSizes;
-			std::unordered_map<uint32_t, std::vector<VkDescriptorBufferInfo>> m_descSetIndexBufferInfosMap;
-			std::unordered_map<uint32_t, uint32_t> m_bufferIdToBindingMap;
-			std::unordered_map<uint32_t, uint32_t> m_imageIdToBindingMap;
-
-			uint32_t m_maxSwapchainImageCount;
+			std::optional<uint32_t> m_binding;
+			std::optional<VkShaderStageFlagBits> m_stageFlags;
 
 			static VkShaderStageFlagBits convertToVkShaderStageFlagBits(StageFlags stageFlags);
+
+			std::shared_ptr<VulkanDescriptorLayout>
+			BuildDescriptorLayout(std::shared_ptr<VulkanDevice> vulkanDevice, VkDescriptorType descriptorType);
+
+			VkDescriptorPool
+			BuildDescriptorPool(std::shared_ptr<VulkanDevice> vulkanDevice, uint32_t descriptorSetCount,
+			                    VkDescriptorType descriptorType);
+
+			std::vector<VkDescriptorSet>
+			AllocateDescriptorSets(std::shared_ptr<VulkanDevice> vulkanDevice, VkDescriptorPool descriptorPool,
+			                       std::shared_ptr<VulkanDescriptorLayout> descriptorLayout, uint32_t descriptorSetCount);
 	};
 
 	class VulkanDescriptorLayout : public JarDescriptorLayout {
 		public:
-			VulkanDescriptorLayout(std::shared_ptr<VulkanDevice>& device, VkDescriptorSetLayout descriptorSetLayout)
-					: m_device(device), m_descriptorSetLayout(descriptorSetLayout) {};
+			VulkanDescriptorLayout(std::shared_ptr<VulkanDevice>& device, VkDescriptorSetLayout descriptorSetLayout,
+			                       uint32_t layoutBinding)
+					: m_device(device), m_descriptorSetLayout(descriptorSetLayout), m_layoutBinding(layoutBinding) {};
 
 			~VulkanDescriptorLayout() override;
 
@@ -510,35 +527,40 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkDescriptorSetLayout getDescriptorSetLayout() const { return m_descriptorSetLayout; }
 
+			[[nodiscard]] uint32_t getLayoutBinding() const { return m_layoutBinding; }
+
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
 			VkDescriptorSetLayout m_descriptorSetLayout;
+			uint32_t m_layoutBinding;
 
 	};
 
-	class VulkanDescriptorSet {
+	class VulkanDescriptor final : public JarDescriptor {
 		public:
-			VulkanDescriptorSet(std::shared_ptr<VulkanDevice>& device, VkDescriptorPool descriptorPool,
-			                    VkDescriptorSetLayout layoutBindings,
-			                    std::vector<VkDescriptorSet> descriptorSets) : m_device(device),
-			                                                                   m_descriptorPool(descriptorPool),
-			                                                                   m_descriptorSetLayout(layoutBindings),
-			                                                                   m_descriptorSets(
-					                                                                   std::move(descriptorSets)) {}
+			VulkanDescriptor(std::shared_ptr<VulkanDevice>& device, VkDescriptorPool descriptorPool,
+			                 std::shared_ptr<VulkanDescriptorLayout> layoutBindings,
+			                 std::vector<VkDescriptorSet> descriptorSets) : m_device(device),
+			                                                                m_descriptorPool(descriptorPool),
+			                                                                m_descriptorSetLayout(
+					                                                                std::move(layoutBindings)),
+			                                                                m_descriptorSets(
+					                                                                std::move(descriptorSets)) {}
 
-			~VulkanDescriptorSet() = default;
+			~VulkanDescriptor() override;
 
-			void Release();
+			void Release() override;
 
-			[[nodiscard]] VkDescriptorSet const* getDescriptorSetOfFrameIndex(uint32_t frameIndex);
+			std::shared_ptr<JarDescriptorLayout> GetDescriptorLayout() override;
 
-			[[nodiscard]] VkDescriptorSetLayout const* getDescriptorSetLayout() const { return &m_descriptorSetLayout; }
+			VkDescriptorSet GetNextDescriptorSet();
 
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
-			VkDescriptorSetLayout m_descriptorSetLayout;
+			std::shared_ptr<VulkanDescriptorLayout> m_descriptorSetLayout;
 			VkDescriptorPool m_descriptorPool;
 			std::vector<VkDescriptorSet> m_descriptorSets;
+			uint8_t m_descriptorSetIndex = 0;
 	};
 
 #pragma endregion VulkanDescriptorSet }
@@ -724,10 +746,6 @@ namespace Graphics::Vulkan {
 			[[nodiscard]] VkPipeline getPipeline() const { return m_graphicsPipeline; }
 
 			[[nodiscard]] VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
-
-			[[nodiscard]] VkDescriptorSet const* getDescriptorSetFromFrameIndex(size_t frameIndex) const {
-				return nullptr;//	return m_descriptorSet->getDescriptorSetOfFrameIndex(frameIndex);
-			}
 
 		private:
 			std::shared_ptr<VulkanDevice> m_device;

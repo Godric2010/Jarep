@@ -478,14 +478,15 @@ namespace Graphics {
 		public:
 			virtual ~JarDescriptorBuilder() = default;
 
-			virtual JarDescriptorBuilder*
-			AddUniformBufferBinding(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding,
-			                        StageFlags stageFlags) = 0;
+			virtual JarDescriptorBuilder* SetBinding(uint32_t binding) = 0;
 
-			virtual JarDescriptorBuilder*
-			AddImageBufferBinding(std::shared_ptr<JarImage> image, uint32_t binding, StageFlags stageFlags) = 0;
+			virtual JarDescriptorBuilder* SetStageFlags(StageFlags stageFlags) = 0;
 
-			virtual std::shared_ptr<JarDescriptor> Build(std::shared_ptr<JarDevice> device) = 0;
+			virtual std::shared_ptr<JarDescriptor>
+			BuildUniformBufferDescriptor(std::shared_ptr<JarDevice> device, std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) = 0;
+
+			virtual std::shared_ptr<JarDescriptor>
+			BuildImageBufferDescriptor(std::shared_ptr<JarDevice> device, std::shared_ptr<JarImage> image) = 0;
 	};
 
 	class JarDescriptorLayout {
@@ -518,6 +519,8 @@ namespace Graphics {
 			virtual void EndRecording() = 0;
 
 			virtual void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t imageIndex) = 0;
+
+			virtual void BindDescriptors(std::vector<std::shared_ptr<JarDescriptor>> descriptors) = 0;
 
 			virtual void BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) = 0;
 
@@ -590,6 +593,8 @@ namespace Graphics {
 			virtual JarImageBuilder* InitImageBuilder() = 0;
 
 			virtual JarPipelineBuilder* InitPipelineBuilder() = 0;
+
+			virtual JarDescriptorBuilder* InitDescriptorBuilder() = 0;
 	};
 
 #pragma endregion Backend }

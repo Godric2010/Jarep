@@ -89,6 +89,7 @@ namespace Graphics {
 			std::shared_ptr<JarRenderPass> renderPass;
 			std::vector<std::shared_ptr<JarBuffer>> uniformBuffers;
 			std::vector<std::shared_ptr<JarImage>> images;
+			std::vector<std::shared_ptr<JarDescriptor>> descriptors;
 
 			std::vector<Internal::JarMesh> meshes;
 

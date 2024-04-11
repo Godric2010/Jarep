@@ -81,6 +81,10 @@ namespace Graphics::Vulkan {
 		return new VulkanGraphicsPipelineBuilder();
 	}
 
+	JarDescriptorBuilder* VulkanBackend::InitDescriptorBuilder() {
+		return new VulkanDescriptorBuilder();
+	}
+
 	std::shared_ptr<VulkanCommandQueue> VulkanBackend::getStagingCommandQueue() {
 		if (m_stagingCommandQueue == nullptr) {
 			auto jarQueue = VulkanCommandQueueBuilder().SetCommandBufferAmount(2)->Build(m_device);
@@ -839,11 +843,23 @@ namespace Graphics::Vulkan {
 	void VulkanCommandBuffer::BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t frameIndex) {
 		const auto vkPipeline = reinterpret_cast<std::shared_ptr<VulkanGraphicsPipeline>&>(pipeline);
 		vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->getPipeline());
+		m_pipeline = std::make_optional(vkPipeline);
+	}
 
-		auto bufferDescriptorSet = vkPipeline->getDescriptorSetFromFrameIndex(frameIndex);
+	void VulkanCommandBuffer::BindDescriptors(std::vector<std::shared_ptr<JarDescriptor>> descriptors) {
 
-		vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->getPipelineLayout(), 0, 1,
-		                        bufferDescriptorSet, 0, nullptr);
+		if (!m_pipeline.has_value())
+			throw std::runtime_error("Pipeline not bound");
+
+		std::vector<VkDescriptorSet> descriptorSets;
+		for (auto descriptor: descriptors) {
+			const auto vkDescriptor = reinterpret_cast<std::shared_ptr<VulkanDescriptor>&>(descriptor);
+			descriptorSets.push_back(vkDescriptor->GetNextDescriptorSet());
+		}
+		vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+		                        m_pipeline.value()->getPipelineLayout(), 0,
+		                        static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
+
 	}
 
 	void VulkanCommandBuffer::BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) {
@@ -1087,161 +1103,169 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanDescriptorSet{
 
-	VulkanDescriptorBuilder::VulkanDescriptorBuilder(uint32_t swapchainImageCount) {
-		m_maxSwapchainImageCount = swapchainImageCount;
-		for (uint32_t i = 0; i < m_maxSwapchainImageCount; ++i) {
-			m_descSetIndexBufferInfosMap.insert({i, std::vector<VkDescriptorBufferInfo>(0)});
-		}
+	VulkanDescriptorBuilder::~VulkanDescriptorBuilder() = default;
+
+	VulkanDescriptorBuilder* VulkanDescriptorBuilder::SetBinding(uint32_t binding) {
+		m_binding = std::make_optional<uint32_t>(binding);
+		return this;
 	}
 
+	VulkanDescriptorBuilder* VulkanDescriptorBuilder::SetStageFlags(StageFlags stageFlags) {
+		auto vkStageFlags = convertToVkShaderStageFlagBits(stageFlags);
+		m_stageFlags = std::make_optional<VkShaderStageFlagBits>(vkStageFlags);
+		return this;
+	}
 
-	VulkanDescriptorBuilder* VulkanDescriptorBuilder::AddUniformBufferBinding(
-			std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding, StageFlags stageFlags) {
-		if (uniformBuffers.size() != m_maxSwapchainImageCount)
-			throw std::runtime_error("Amount of uniform buffers must be equal to the amount of swapchain images!");
+	std::shared_ptr<JarDescriptor>
+	VulkanDescriptorBuilder::BuildUniformBufferDescriptor(std::shared_ptr<JarDevice> device,
+	                                                      std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) {
+		if (!m_stageFlags.has_value())
+			throw std::runtime_error("StageFlags not set!");
 
+		if (!m_binding.has_value())
+			throw std::runtime_error("Binding not set!");
+
+		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
 		std::vector<std::shared_ptr<VulkanBuffer>> vulkanUniformBuffers;
 		for (auto& buffer: uniformBuffers) {
 			vulkanUniformBuffers.push_back(reinterpret_cast<std::shared_ptr<VulkanBuffer>&>(buffer));
 		}
+		auto descriptorAmount = vulkanUniformBuffers.size();
 
-		VkDescriptorSetLayoutBinding uboLayoutBinding{};
-		uboLayoutBinding.binding = binding;
-		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboLayoutBinding.descriptorCount = 1;
-		uboLayoutBinding.stageFlags = convertToVkShaderStageFlagBits(stageFlags);
-		uboLayoutBinding.pImmutableSamplers = nullptr;
+		auto descriptorLayout = BuildDescriptorLayout(vulkanDevice, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		auto descriptorPool = BuildDescriptorPool(vulkanDevice, descriptorAmount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		auto descriptorSets = AllocateDescriptorSets(vulkanDevice, descriptorPool, descriptorLayout, descriptorAmount);
 
-		m_descriptorSetLayoutBindings.push_back(uboLayoutBinding);
-
-		VkDescriptorPoolSize poolSize{};
-		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSize.descriptorCount = static_cast<uint32_t>(vulkanUniformBuffers.size());
-		m_descriptorPoolSizes.push_back(poolSize);
-
-		for (int i = 0; i < m_maxSwapchainImageCount; ++i) {
+		for (int i = 0; i < descriptorSets.size(); ++i) {
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = vulkanUniformBuffers[i]->getBuffer();
 			bufferInfo.offset = 0;
 			bufferInfo.range = vulkanUniformBuffers[i]->getBufferSize();
 
-			uint32_t descriptorWriteIndex = m_descSetIndexBufferInfosMap[i].size();
-			m_descSetIndexBufferInfosMap[i].push_back(bufferInfo);
-			m_bufferIdToBindingMap.insert({descriptorWriteIndex, binding});
+			VkWriteDescriptorSet descriptorWrite{};
+			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite.dstSet = descriptorSets[i];
+			descriptorWrite.dstBinding = m_binding.value();
+			descriptorWrite.dstArrayElement = 0;
+			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrite.descriptorCount = 1;
+			descriptorWrite.pBufferInfo = &bufferInfo;
+			descriptorWrite.pImageInfo = nullptr;
+			descriptorWrite.pTexelBufferView = nullptr;
+			vkUpdateDescriptorSets(vulkanDevice->getLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
 		}
-		return this;
+
+		auto vulkanDescriptor = std::make_shared<VulkanDescriptor>(vulkanDevice, descriptorPool, descriptorLayout,
+		                                                           descriptorSets);
+		return vulkanDescriptor;
 	}
 
-	VulkanDescriptorBuilder*
-	VulkanDescriptorBuilder::AddImageBufferBinding(std::shared_ptr<JarImage> image, uint32_t binding,
-	                                               StageFlags stageFlags) {
+	std::shared_ptr<JarDescriptor> VulkanDescriptorBuilder::BuildImageBufferDescriptor(
+			std::shared_ptr<JarDevice> device, std::shared_ptr<JarImage> image) {
+		if (!m_stageFlags.has_value())
+			throw std::runtime_error("StageFlags not set!");
 
+		if (!m_binding.has_value())
+			throw std::runtime_error("Binding not set!");
+
+		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
 		auto vulkanImage = reinterpret_cast<std::shared_ptr<VulkanImage>&>(image);
+		uint32_t descriptorAmount = 1;
 
-		VkDescriptorSetLayoutBinding imageLayoutBinding{};
-		imageLayoutBinding.binding = binding;
-		imageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imageLayoutBinding.descriptorCount = 1;
-		imageLayoutBinding.stageFlags = convertToVkShaderStageFlagBits(stageFlags);
-		imageLayoutBinding.pImmutableSamplers = nullptr;
-
-		m_descriptorSetLayoutBindings.push_back(imageLayoutBinding);
-
-		VkDescriptorPoolSize poolSize{};
-		poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSize.descriptorCount = m_maxSwapchainImageCount;
-		m_descriptorPoolSizes.push_back(poolSize);
+		auto descriptorLayout = BuildDescriptorLayout(vulkanDevice, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+		auto descriptorPool = BuildDescriptorPool(vulkanDevice, descriptorAmount,
+		                                          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+		auto descriptorSets = AllocateDescriptorSets(vulkanDevice, descriptorPool, descriptorLayout, descriptorAmount);
 
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = vulkanImage->getImageView();
 		imageInfo.sampler = vulkanImage->getSampler();
 
-		m_descriptorImageInfos.push_back(imageInfo);
-		m_imageIdToBindingMap.insert({m_descriptorImageInfos.size() - 1, binding});
-		return this;
+		VkWriteDescriptorSet descriptorWriteSampler{};
+		descriptorWriteSampler.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWriteSampler.dstSet = descriptorSets[0];
+		descriptorWriteSampler.dstBinding = m_binding.value();
+		descriptorWriteSampler.dstArrayElement = 0;
+		descriptorWriteSampler.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWriteSampler.descriptorCount = 1;
+		descriptorWriteSampler.pBufferInfo = nullptr;
+		descriptorWriteSampler.pImageInfo = &imageInfo;
+		descriptorWriteSampler.pTexelBufferView = nullptr;
+
+
+		vkUpdateDescriptorSets(vulkanDevice->getLogicalDevice(),1, &descriptorWriteSampler, 0, nullptr);
+
+		auto vulkanDescriptor = std::make_shared<VulkanDescriptor>(vulkanDevice, descriptorPool, descriptorLayout,
+		                                                           descriptorSets);
+		return vulkanDescriptor;
 	}
 
-	std::shared_ptr<VulkanDescriptorSet>
-	VulkanDescriptorBuilder::Build(std::shared_ptr<VulkanDevice>& vulkanDevice) {
-		if (m_descriptorSetLayoutBindings.empty())
-			throw std::runtime_error("DescriptorSet not correctly initialized! All fields must be set!");
+
+	std::shared_ptr<VulkanDescriptorLayout>
+	VulkanDescriptorBuilder::BuildDescriptorLayout(std::shared_ptr<VulkanDevice> vulkanDevice,
+	                                               VkDescriptorType descriptorType) {
+		VkDescriptorSetLayoutBinding layoutBinding{};
+		layoutBinding.binding = m_binding.value();
+		layoutBinding.descriptorType = descriptorType;
+		layoutBinding.descriptorCount = 1;
+		layoutBinding.stageFlags = m_stageFlags.value();
+		layoutBinding.pImmutableSamplers = nullptr;
 
 		VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutCreateInfo.bindingCount = m_descriptorSetLayoutBindings.size();
-		layoutCreateInfo.pBindings = m_descriptorSetLayoutBindings.data();
+		layoutCreateInfo.bindingCount = 1;
+		layoutCreateInfo.pBindings = &layoutBinding;
 
 		VkDescriptorSetLayout descriptorSetLayout;
 		if (vkCreateDescriptorSetLayout(vulkanDevice->getLogicalDevice(), &layoutCreateInfo, nullptr,
 		                                &descriptorSetLayout) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		}
+		auto vulkanDescriptorLayout = std::make_shared<VulkanDescriptorLayout>(vulkanDevice, descriptorSetLayout,
+		                                                                       m_binding.value());
+		return vulkanDescriptorLayout;
+	}
+
+	VkDescriptorPool VulkanDescriptorBuilder::BuildDescriptorPool(std::shared_ptr<VulkanDevice> vulkanDevice,
+	                                                              uint32_t descriptorSetCount,
+	                                                              VkDescriptorType descriptorType) {
+		VkDescriptorPoolSize poolSize{};
+		poolSize.type = descriptorType;
+		poolSize.descriptorCount = descriptorSetCount;
 
 		VkDescriptorPoolCreateInfo poolCreateInfo{};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolCreateInfo.poolSizeCount = m_descriptorPoolSizes.size();
-		poolCreateInfo.pPoolSizes = m_descriptorPoolSizes.data();
-		poolCreateInfo.maxSets = m_maxSwapchainImageCount;
+		poolCreateInfo.poolSizeCount = 1;
+		poolCreateInfo.pPoolSizes = &poolSize;
+		poolCreateInfo.maxSets = descriptorSetCount;
 
 		VkDescriptorPool descriptorPool;
 		if (vkCreateDescriptorPool(vulkanDevice->getLogicalDevice(), &poolCreateInfo, nullptr, &descriptorPool) !=
 		    VK_SUCCESS) {
 			throw std::runtime_error("Failed to create descriptor pool!");
 		}
-		std::vector<VkDescriptorSetLayout> layouts(m_maxSwapchainImageCount, descriptorSetLayout);
+		return descriptorPool;
+	}
+
+	std::vector<VkDescriptorSet>
+	VulkanDescriptorBuilder::AllocateDescriptorSets(std::shared_ptr<VulkanDevice> vulkanDevice,
+	                                                VkDescriptorPool descriptorPool,
+	                                                std::shared_ptr<VulkanDescriptorLayout> descriptorLayout,
+	                                                uint32_t descriptorSetCount) {
+		std::vector<VkDescriptorSetLayout> layouts(descriptorSetCount, descriptorLayout->getDescriptorSetLayout());
 		VkDescriptorSetAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocateInfo.descriptorPool = descriptorPool;
-		allocateInfo.descriptorSetCount = m_maxSwapchainImageCount;
+		allocateInfo.descriptorSetCount = descriptorSetCount;
 		allocateInfo.pSetLayouts = layouts.data();
 
-		std::vector<VkDescriptorSet> descriptorSets(m_maxSwapchainImageCount);
+		std::vector<VkDescriptorSet> descriptorSets(descriptorSetCount);
 		if (vkAllocateDescriptorSets(vulkanDevice->getLogicalDevice(), &allocateInfo, descriptorSets.data()) !=
 		    VK_SUCCESS) {
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
-
-		for (size_t i = 0; i < descriptorSets.size(); i++) {
-			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-
-			auto descriptorBufferInfos = m_descSetIndexBufferInfosMap[i];
-
-			for (uint32_t bufferIndex = 0; bufferIndex < descriptorBufferInfos.size(); ++bufferIndex) {
-				VkWriteDescriptorSet descriptorWriteUbo{};
-				descriptorWriteUbo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorWriteUbo.dstSet = descriptorSets[i];
-				descriptorWriteUbo.dstBinding = m_bufferIdToBindingMap[bufferIndex];
-				descriptorWriteUbo.dstArrayElement = 0;
-				descriptorWriteUbo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				descriptorWriteUbo.descriptorCount = 1;
-				descriptorWriteUbo.pBufferInfo = &descriptorBufferInfos[bufferIndex];
-				descriptorWriteUbo.pImageInfo = nullptr;
-				descriptorWriteUbo.pTexelBufferView = nullptr;
-				writeDescriptorSets.push_back(descriptorWriteUbo);
-			}
-
-			for (size_t imageIndex = 0; imageIndex < m_descriptorImageInfos.size(); ++imageIndex) {
-				VkWriteDescriptorSet descriptorWriteSampler{};
-				descriptorWriteSampler.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorWriteSampler.dstSet = descriptorSets[i];
-				descriptorWriteSampler.dstBinding = m_imageIdToBindingMap[imageIndex];
-				descriptorWriteSampler.dstArrayElement = 0;
-				descriptorWriteSampler.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				descriptorWriteSampler.descriptorCount = 1;
-				descriptorWriteSampler.pBufferInfo = nullptr;
-				descriptorWriteSampler.pImageInfo = &m_descriptorImageInfos[imageIndex];
-				descriptorWriteSampler.pTexelBufferView = nullptr;
-				writeDescriptorSets.push_back(descriptorWriteSampler);
-			}
-
-			vkUpdateDescriptorSets(vulkanDevice->getLogicalDevice(), writeDescriptorSets.size(),
-			                       writeDescriptorSets.data(), 0, nullptr);
-
-		}
-
-		return std::make_shared<VulkanDescriptorSet>(vulkanDevice, descriptorPool, descriptorSetLayout,
-		                                             descriptorSets);
+		return descriptorSets;
 	}
 
 	VkShaderStageFlagBits
@@ -1260,15 +1284,30 @@ namespace Graphics::Vulkan {
 
 	}
 
-	void VulkanDescriptorSet::Release() {
+	VulkanDescriptorLayout::~VulkanDescriptorLayout() = default;
 
-		vkDestroyDescriptorPool(m_device->getLogicalDevice(), m_descriptorPool, nullptr);
+	void VulkanDescriptorLayout::Release() {
 		vkDestroyDescriptorSetLayout(m_device->getLogicalDevice(), m_descriptorSetLayout, nullptr);
 	}
 
-	VkDescriptorSet const* VulkanDescriptorSet::getDescriptorSetOfFrameIndex(uint32_t frameIndex) {
-		return &m_descriptorSets[frameIndex];
+	VulkanDescriptor::~VulkanDescriptor() = default;
+
+	void VulkanDescriptor::Release() {
+		vkDestroyDescriptorPool(m_device->getLogicalDevice(), m_descriptorPool, nullptr);
+		m_descriptorSetLayout->Release();
 	}
+
+	std::shared_ptr<JarDescriptorLayout> VulkanDescriptor::GetDescriptorLayout() {
+		return m_descriptorSetLayout;
+	}
+
+	VkDescriptorSet VulkanDescriptor::GetNextDescriptorSet() {
+
+		auto descriptorSet = m_descriptorSets[m_descriptorSetIndex];
+		m_descriptorSetIndex = (m_descriptorSetIndex + 1) % m_descriptorSets.size();
+		return descriptorSet;
+	}
+
 
 #pragma endregion VulkanDescriptorSet }
 
@@ -1801,6 +1840,7 @@ namespace Graphics::Vulkan {
 		depthAttachmentRef.attachment = 1;
 		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		m_depthStencilAttachmentRef = std::make_optional(depthAttachmentRef);
+		return this;
 	}
 
 	std::shared_ptr<JarRenderPass>

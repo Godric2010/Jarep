@@ -35,10 +35,18 @@ namespace Graphics {
 			uniformBuffers.push_back(bufferBuilder->Build(device));
 		}
 
+		descriptors = std::vector<std::shared_ptr<JarDescriptor>>();
+		auto uboDescriptor = backend->InitDescriptorBuilder()->SetBinding(1)->SetStageFlags(
+				StageFlags::VertexShader)->BuildUniformBufferDescriptor(device, uniformBuffers);
+		descriptors.push_back(uboDescriptor);
+
 		auto image = backend->InitImageBuilder()->EnableMipMaps(true)->SetPixelFormat(
 				PixelFormat::BGRA8_UNORM)->SetImagePath(
 				"../../resources/uv_texture.jpg")->Build(device);
 		images.push_back(image);
+		auto imageDescriptor = backend->InitDescriptorBuilder()->SetBinding(2)->SetStageFlags(
+				StageFlags::FragmentShader)->BuildImageBufferDescriptor(device, image);
+		descriptors.push_back(imageDescriptor);
 
 		vertexShaderModule = createShaderModule(VertexShader, "triangle_vert");
 		fragmentShaderModule = createShaderModule(FragmentShader, "triangle_frag");
@@ -95,6 +103,11 @@ namespace Graphics {
 		depthStencilState.stencilTestEnable = false;
 		depthStencilState.stencilOpState = {};
 
+		std::vector<std::shared_ptr<JarDescriptorLayout>> descriptorLayouts = std::vector<std::shared_ptr<JarDescriptorLayout>>();
+		for (const auto& descriptor: descriptors) {
+			descriptorLayouts.push_back(descriptor->GetDescriptorLayout());
+		}
+
 
 		JarPipelineBuilder* pipelineBuilder = backend->InitPipelineBuilder();
 		pipelineBuilder->
@@ -103,8 +116,9 @@ namespace Graphics {
 				SetVertexInput(vertexInput)->
 				SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
 				SetMultisamplingCount(4)->
-				BindUniformBuffers(uniformBuffers, 1, StageFlags::VertexShader)->
-				BindImageBuffer(images[0], 2, StageFlags::FragmentShader)->
+				BindDescriptorLayouts(descriptorLayouts)->
+//				BindUniformBuffers(uniformBuffers, 1, StageFlags::VertexShader)->
+//				BindImageBuffer(images[0], 2, StageFlags::FragmentShader)->
 				SetColorBlendAttachments(colorBlendAttachment)->
 				SetDepthStencilState(depthStencilState);
 		pipeline = pipelineBuilder->Build(device);
@@ -117,7 +131,7 @@ namespace Graphics {
 	}
 
 	void JarRenderer::AddRenderStep(std::unique_ptr<JarRenderStepDescriptor> renderStepBuilder) {
-		std::cout<< "Render step is currently unavailable!" << std::endl;
+		std::cout << "Render step is currently unavailable!" << std::endl;
 //		auto renderStep = std::make_shared<Internal::JarRenderStep>(std::move(renderStepBuilder), backend, device,
 //		                                                            surface);
 //		renderSteps.push_back(renderStep);
@@ -152,6 +166,7 @@ namespace Graphics {
 			return;
 
 		commandBuffer->BindPipeline(pipeline, frameCounter);
+		commandBuffer->BindDescriptors(descriptors);
 
 
 		for (auto& mesh: meshes) {
@@ -177,6 +192,9 @@ namespace Graphics {
 			uniformBuffer->Release();
 		}
 
+		for (auto& descriptor: descriptors) {
+			descriptor->Release();
+		}
 		pipeline->Release();
 		vertexShaderModule->Release();
 		fragmentShaderModule->Release();
