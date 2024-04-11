@@ -48,81 +48,10 @@ namespace Graphics {
 				StageFlags::FragmentShader)->BuildImageBufferDescriptor(device, image);
 		descriptors.push_back(imageDescriptor);
 
-		vertexShaderModule = createShaderModule(VertexShader, "triangle_vert");
-		fragmentShaderModule = createShaderModule(FragmentShader, "triangle_frag");
-
-		ColorAttachment colorAttachment;
-		colorAttachment.loadOp = LoadOp::Clear;
-		colorAttachment.storeOp = StoreOp::Store;
-		colorAttachment.clearColor = ClearColor(0, 0, 0, 0);
-		colorAttachment.imageFormat = B8G8R8A8_UNORM;
-
-		StencilAttachment stencilAttachment = {};
-		stencilAttachment.StencilLoadOp = LoadOp::DontCare;
-		stencilAttachment.StencilStoreOp = StoreOp::DontCare;
-		stencilAttachment.StencilClearValue = 0;
-
-		DepthAttachment depthStencilAttachment;
-		depthStencilAttachment.Format = ImageFormat::D32_SFLOAT;
-		depthStencilAttachment.DepthLoadOp = LoadOp::Clear,
-		depthStencilAttachment.DepthStoreOp = StoreOp::DontCare,
-		depthStencilAttachment.DepthClearValue = 1.0f;
-		depthStencilAttachment.Stencil = std::make_optional(stencilAttachment);
-
-
-		JarRenderPassBuilder* rpBuilder = backend->InitRenderPassBuilder();
-		rpBuilder->AddColorAttachment(colorAttachment);
-		rpBuilder->AddDepthStencilAttachment(depthStencilAttachment);
-		renderPass = rpBuilder->Build(device, surface);
-		delete rpBuilder;
-
-		ShaderStage shaderStage{};
-		shaderStage.vertexShaderModule = vertexShaderModule;
-		shaderStage.fragmentShaderModule = fragmentShaderModule;
-		shaderStage.mainFunctionName = "main";
-
-		VertexInput vertexInput{};
-		vertexInput.attributeDescriptions = Vertex::GetAttributeDescriptions();
-		vertexInput.bindingDescriptions = Vertex::GetBindingDescriptions();
-
-		ColorBlendAttachment colorBlendAttachment{};
-		colorBlendAttachment.pixelFormat = PixelFormat::BGRA8_UNORM;
-		colorBlendAttachment.sourceRgbBlendFactor = BlendFactor::One;
-		colorBlendAttachment.destinationRgbBlendFactor = BlendFactor::Zero;
-		colorBlendAttachment.rgbBlendOperation = BlendOperation::Add;
-		colorBlendAttachment.blendingEnabled = false;
-		colorBlendAttachment.sourceAlphaBlendFactor = BlendFactor::One;
-		colorBlendAttachment.destinationAlphaBlendFactor = BlendFactor::Zero;
-		colorBlendAttachment.alphaBlendOperation = BlendOperation::Add;
-		colorBlendAttachment.colorWriteMask = ColorWriteMask::All;
-
-		DepthStencilState depthStencilState{};
-		depthStencilState.depthTestEnable = true;
-		depthStencilState.depthWriteEnable = true;
-		depthStencilState.depthCompareOp = DepthCompareOperation::Less;
-		depthStencilState.stencilTestEnable = false;
-		depthStencilState.stencilOpState = {};
-
 		std::vector<std::shared_ptr<JarDescriptorLayout>> descriptorLayouts = std::vector<std::shared_ptr<JarDescriptorLayout>>();
 		for (const auto& descriptor: descriptors) {
 			descriptorLayouts.push_back(descriptor->GetDescriptorLayout());
 		}
-
-
-		JarPipelineBuilder* pipelineBuilder = backend->InitPipelineBuilder();
-		pipelineBuilder->
-				SetShaderStage(shaderStage)->
-				SetRenderPass(renderPass)->
-				SetVertexInput(vertexInput)->
-				SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
-				SetMultisamplingCount(4)->
-				BindDescriptorLayouts(descriptorLayouts)->
-//				BindUniformBuffers(uniformBuffers, 1, StageFlags::VertexShader)->
-//				BindImageBuffer(images[0], 2, StageFlags::FragmentShader)->
-				SetColorBlendAttachments(colorBlendAttachment)->
-				SetDepthStencilState(depthStencilState);
-		pipeline = pipelineBuilder->Build(device);
-		delete pipelineBuilder;
 
 	}
 
@@ -131,10 +60,9 @@ namespace Graphics {
 	}
 
 	void JarRenderer::AddRenderStep(std::unique_ptr<JarRenderStepDescriptor> renderStepBuilder) {
-		std::cout << "Render step is currently unavailable!" << std::endl;
-//		auto renderStep = std::make_shared<Internal::JarRenderStep>(std::move(renderStepBuilder), backend, device,
-//		                                                            surface);
-//		renderSteps.push_back(renderStep);
+		auto renderStep = std::make_shared<Internal::JarRenderStep>(std::move(renderStepBuilder), backend, device,
+		                                                            surface, descriptors);
+		renderSteps.push_back(renderStep);
 	}
 
 	void JarRenderer::AddMesh(Mesh& mesh) {
@@ -162,20 +90,23 @@ namespace Graphics {
 		prepareModelViewProjectionForFrame();
 
 		const auto commandBuffer = queue->getNextCommandBuffer();
-		if (!commandBuffer->StartRecording(surface, renderPass))
-			return;
 
-		commandBuffer->BindPipeline(pipeline, frameCounter);
-		commandBuffer->BindDescriptors(descriptors);
+		for (auto& renderStep: renderSteps) {
+			if (!commandBuffer->StartRecording(surface, renderStep->getRenderPass()))
+				return;
+
+			commandBuffer->BindPipeline(renderStep->getPipeline(), frameCounter);
+			commandBuffer->BindDescriptors(renderStep->getDescriptors());
 
 
-		for (auto& mesh: meshes) {
-			commandBuffer->BindVertexBuffer(mesh.getVertexBuffer());
-			commandBuffer->BindIndexBuffer(mesh.getIndexBuffer());
-			commandBuffer->DrawIndexed(mesh.getIndexLength());
+			for (auto& mesh: meshes) {
+				commandBuffer->BindVertexBuffer(mesh.getVertexBuffer());
+				commandBuffer->BindIndexBuffer(mesh.getIndexBuffer());
+				commandBuffer->DrawIndexed(mesh.getIndexLength());
+			}
+
+			commandBuffer->EndRecording();
 		}
-
-		commandBuffer->EndRecording();
 		commandBuffer->Present(surface, device);
 		frameCounter = (frameCounter + 1) % surface->GetSwapchainImageAmount();
 	}
@@ -192,12 +123,9 @@ namespace Graphics {
 			uniformBuffer->Release();
 		}
 
-		for (auto& descriptor: descriptors) {
-			descriptor->Release();
+		for (auto& renderStep: renderSteps) {
+			renderStep->Release();
 		}
-		pipeline->Release();
-		vertexShaderModule->Release();
-		fragmentShaderModule->Release();
 
 		for (auto& mesh: meshes) {
 			mesh.Destroy();

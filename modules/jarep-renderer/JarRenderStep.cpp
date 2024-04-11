@@ -8,11 +8,21 @@ namespace Graphics {
 
 	namespace Internal {
 		JarRenderStep::JarRenderStep(std::unique_ptr<JarRenderStepDescriptor> desc, std::shared_ptr<Backend> backend,
-		                             std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface)
-				: descriptor(std::move(desc)) {
+		                             std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface,
+		                             std::vector<std::shared_ptr<JarDescriptor>> descriptors)
+				: descriptor(std::move(desc)), descriptors(descriptors) {
 			BuildShaderModules(backend, device);
 			BuildRenderPass(backend, surface, device);
-			BuildPipeline(backend, device);
+			BuildPipeline(backend, device, descriptors);
+		}
+
+		void JarRenderStep::Release() {
+			for (auto descriptor: descriptors) {
+				descriptor->Release();
+			}
+			pipeline->Release();
+			shaderStage.vertexShaderModule->Release();
+			shaderStage.fragmentShaderModule->Release();
 		}
 
 #pragma region ShaderCreation{
@@ -123,7 +133,14 @@ namespace Graphics {
 
 #pragma region PipelineCreation{
 
-		void JarRenderStep::BuildPipeline(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device) {
+		void JarRenderStep::BuildPipeline(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device,
+		                                  std::vector<std::shared_ptr<JarDescriptor>> descriptors) {
+
+			std::vector<std::shared_ptr<JarDescriptorLayout>> descriptorLayouts = std::vector<std::shared_ptr<JarDescriptorLayout>>();
+			for (const auto& descriptor: descriptors) {
+				descriptorLayouts.push_back(descriptor->GetDescriptorLayout());
+			}
+
 
 			VertexInput vertexInput{};
 			vertexInput.attributeDescriptions = Vertex::GetAttributeDescriptions();
@@ -155,6 +172,7 @@ namespace Graphics {
 					SetVertexInput(vertexInput)->
 					SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
 					SetMultisamplingCount(descriptor->m_multisamplingCount)->
+					BindDescriptorLayouts(descriptorLayouts)->
 					SetColorBlendAttachments(colorBlendAttachment)->
 					SetDepthStencilState(depthStencilState);
 			pipeline = pipelineBuilder->Build(device);

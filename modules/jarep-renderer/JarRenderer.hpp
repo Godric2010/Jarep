@@ -83,10 +83,7 @@ namespace Graphics {
 			std::shared_ptr<JarCommandQueue> queue;
 			std::vector<std::shared_ptr<Internal::JarRenderStep>> renderSteps;
 
-			std::shared_ptr<JarShaderModule> vertexShaderModule;
-			std::shared_ptr<JarShaderModule> fragmentShaderModule;
-			std::shared_ptr<JarPipeline> pipeline;
-			std::shared_ptr<JarRenderPass> renderPass;
+
 			std::vector<std::shared_ptr<JarBuffer>> uniformBuffers;
 			std::vector<std::shared_ptr<JarImage>> images;
 			std::vector<std::shared_ptr<JarDescriptor>> descriptors;
