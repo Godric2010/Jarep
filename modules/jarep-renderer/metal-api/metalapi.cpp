@@ -59,6 +59,10 @@ namespace Graphics::Metal {
 		return new MetalImageBuilder();
 	}
 
+	JarDescriptorBuilder* MetalBackend::InitDescriptorBuilder() {
+		return new MetalDescriptorBuilder();
+	}
+
 
 #pragma endregion MetalBackend }
 
@@ -238,21 +242,12 @@ namespace Graphics::Metal {
 		encoder->setDepthStencilState(metalPipeline->getDSS());
 		encoder->setFrontFacingWinding(MTL::Winding::WindingCounterClockwise);
 		encoder->setCullMode(MTL::CullMode::CullModeBack);
+	}
 
-		for (auto& uniformDescriptorBinding: metalPipeline->getUniformDescriptorBindings()) {
-			if (uniformDescriptorBinding.getStageFlags() == Graphics::StageFlags::VertexShader)
-				encoder->setVertexBuffer(uniformDescriptorBinding.getUniformBuffer(frameIndex)->getBuffer().value(), 0,
-				                         uniformDescriptorBinding.getBinding());
-		}
-
-		for (auto& textureDescriptorBinding: metalPipeline->getTextureDescriptorBindings()) {
-			if (textureDescriptorBinding.getStageFlags() == Graphics::StageFlags::FragmentShader) {
-				encoder->setFragmentTexture(textureDescriptorBinding.getImage()->getTexture(),
-				                            textureDescriptorBinding.getBinding());
-				encoder->setFragmentSamplerState(textureDescriptorBinding.getImage()->getSampler(),
-				                                 textureDescriptorBinding.getBinding());
-			}
-
+	void MetalCommandBuffer::BindDescriptors(std::vector<std::shared_ptr<JarDescriptor>> descriptors) {
+		auto metalDescriptors = reinterpret_cast<std::vector<std::shared_ptr<MetalDescriptor>>&>(descriptors);
+		for (auto& descriptor: metalDescriptors) {
+			descriptor->BindContentToEncoder(encoder);
 		}
 	}
 
@@ -300,7 +295,6 @@ namespace Graphics::Metal {
 
 	JarRenderPassBuilder* MetalRenderPassBuilder::AddColorAttachment(Graphics::ColorAttachment colorAttachment) {
 		m_colorAttachment = std::make_optional(colorAttachment);
-
 
 
 		MTL::RenderPassColorAttachmentDescriptor* cd = m_renderPassDescriptor->colorAttachments()->object(0);
@@ -633,21 +627,8 @@ namespace Graphics::Metal {
 		return this;
 	}
 
-	MetalPipelineBuilder* MetalPipelineBuilder::BindUniformBuffers(
-			std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding,
-			Graphics::StageFlags stageFlags) {
-
-		auto metalUniformBuffers = reinterpret_cast<std::vector<std::shared_ptr<MetalBuffer>>&>(uniformBuffers);
-		m_uniformDescriptorBindings.emplace_back(metalUniformBuffers, binding, stageFlags);
-
-		return this;
-	}
-
-	MetalPipelineBuilder* MetalPipelineBuilder::BindImageBuffer(std::shared_ptr<JarImage> image, uint32_t binding,
-	                                                            Graphics::StageFlags stageFlags) {
-
-		auto metalImage = reinterpret_cast<std::shared_ptr<MetalImage>&>(image);
-		m_textureDescriptorBindings.emplace_back(metalImage, binding, stageFlags);
+	MetalPipelineBuilder*
+	MetalPipelineBuilder::BindDescriptorLayouts(std::vector<std::shared_ptr<JarDescriptorLayout>> descriptors) {
 		return this;
 	}
 
@@ -728,8 +709,7 @@ namespace Graphics::Metal {
 		}
 
 		auto metalPipeline = std::make_shared<MetalPipeline>(mtlDevice, pipelineState, depthStencilState,
-		                                                     m_renderPass, m_uniformDescriptorBindings,
-		                                                     m_textureDescriptorBindings);
+		                                                     m_renderPass);
 		return metalPipeline;
 	}
 
@@ -855,5 +835,97 @@ namespace Graphics::Metal {
 
 #pragma endregion MetalImage }
 
+#pragma region MetalDescriptorBinding{
+
+	MetalDescriptorBuilder::~MetalDescriptorBuilder() = default;
+
+	MetalDescriptorBuilder* MetalDescriptorBuilder::SetBinding(uint32_t binding) {
+		m_binding = std::make_optional(binding);
+		return this;
+	}
+
+	MetalDescriptorBuilder* MetalDescriptorBuilder::SetStageFlags(Graphics::StageFlags stageFlags) {
+		m_stageFlags = std::make_optional(stageFlags);
+		return this;
+	}
+
+	std::shared_ptr<JarDescriptor>
+	MetalDescriptorBuilder::BuildUniformBufferDescriptor(std::shared_ptr<JarDevice> device,
+	                                                     std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) {
+		if (!m_binding.has_value() || !m_stageFlags.has_value())
+			throw std::runtime_error("Could not create descriptor! Binding and/or stage flags are undefined!");
+
+		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
+
+		std::vector<std::shared_ptr<MetalBuffer>> metalBuffers;
+		for (auto buffer: uniformBuffers) {
+			auto metalBuffer = reinterpret_cast<std::shared_ptr<MetalBuffer>&>(buffer);
+			metalBuffers.push_back(metalBuffer);
+		}
+
+		auto content = std::make_shared<MetalUniformDescriptorContent>(metalBuffers);
+		auto layout = std::make_shared<MetalDescriptorLayout>();
+
+		return std::make_shared<MetalDescriptor>(m_binding.value(), m_stageFlags.value(), content, layout);
+	}
+
+	std::shared_ptr<JarDescriptor> MetalDescriptorBuilder::BuildImageBufferDescriptor(std::shared_ptr<JarDevice> device,
+	                                                                                  std::shared_ptr<JarImage> image) {
+
+		if (!m_binding.has_value() || !m_stageFlags.has_value())
+			throw std::runtime_error("Could not create descriptor! Binding and/or stage flags are undefined!");
+
+		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
+		auto metalImage = reinterpret_cast<std::shared_ptr<MetalImage>&>(image);
+
+		auto content = std::make_shared<MetalImageDescriptorContent>(metalImage);
+		auto layout = std::make_shared<MetalDescriptorLayout>();
+
+		return std::make_shared<MetalDescriptor>(m_binding.value(), m_stageFlags.value(), content, layout);
+	}
+
+	MetalDescriptorLayout::~MetalDescriptorLayout() = default;
+
+	void MetalDescriptorLayout::Release() {}
+
+	MetalDescriptor::~MetalDescriptor() = default;
+
+	void MetalDescriptor::Release() {}
+
+	std::shared_ptr<JarDescriptorLayout> MetalDescriptor::GetDescriptorLayout() { return m_descriptorLayout; }
+
+	void MetalDescriptor::BindContentToEncoder(MTL::RenderCommandEncoder* encoder) {
+		m_content->BindContentToEncoder(encoder, m_binding, m_stageFlags);
+	}
+
+	MetalUniformDescriptorContent::~MetalUniformDescriptorContent() = default;
+
+	void MetalUniformDescriptorContent::Release() {}
+
+	void MetalUniformDescriptorContent::BindContentToEncoder(MTL::RenderCommandEncoder* encoder, uint32_t binding,
+	                                                         Graphics::StageFlags stageFlags) {
+		if (stageFlags != StageFlags::VertexShader)
+			std::runtime_error("Uniform buffer can only be bound to the vertex shader!");
+
+		encoder->setVertexBuffer(m_uniformBuffers[m_currentBufferIndex]->getBuffer().value(), 0, binding);
+
+		m_currentBufferIndex = (m_currentBufferIndex + 1) % m_uniformBuffers.size();
+	}
+
+	MetalImageDescriptorContent::~MetalImageDescriptorContent() = default;
+
+	void MetalImageDescriptorContent::Release() {}
+
+	void MetalImageDescriptorContent::BindContentToEncoder(MTL::RenderCommandEncoder* encoder, uint32_t binding,
+	                                                       Graphics::StageFlags stageFlags) {
+		if (stageFlags != StageFlags::FragmentShader)
+			std::runtime_error("Image buffer can only be bound to the fragment shader!");
+
+		encoder->setFragmentTexture(m_image->getTexture(), binding);
+		encoder->setFragmentSamplerState(m_image->getSampler(), binding);
+
+	}
+
+#pragma endregion MetalDescriptorBinding }
 }
 #endif

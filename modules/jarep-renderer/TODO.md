@@ -14,9 +14,9 @@ as well as the steps successfully done so far.
 
 ## Step 2: Multiple Render Pipelines
 -[x] Bundle pipeline data into a "RenderStep" object
-  - [ ] Bind uniform and image descriptors dynamically in vulkan
-  - [ ] Add Descriptor Class to the API interface to handle the data for vulkan and metal
--[ ] Render each RenderStep in a separate render pass
+  - [x] Bind uniform and image descriptors dynamically in vulkan
+  - [x] Add Descriptor Class to the API interface to handle the data for vulkan and metal
+-[x] Render each RenderStep in a separate render pass
 -[ ] Optimize JarRenderer interface
   - [ ] Make multisampling detection and options available to the outside
   - [ ] Make common rasterization settings available to the outside

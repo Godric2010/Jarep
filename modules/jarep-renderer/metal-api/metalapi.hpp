@@ -53,7 +53,7 @@ namespace Graphics::Metal {
 
 			MTL::Texture* getDepthStencilTexture() const { return m_depthStencilTexture; }
 
-			MTL::Texture* getMSAATexture() const {return m_msaaTexture; }
+			MTL::Texture* getMSAATexture() const { return m_msaaTexture; }
 
 			MTL::Texture* acquireNewDrawTexture() {
 				drawable = layer->nextDrawable();
@@ -73,6 +73,7 @@ namespace Graphics::Metal {
 
 
 			void createMsaaTexture();
+
 			void createDepthStencilTexture();
 	};
 
@@ -156,6 +157,8 @@ namespace Graphics::Metal {
 			void EndRecording() override;
 
 			void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t frameIndex) override;
+
+			void BindDescriptors(std::vector<std::shared_ptr<JarDescriptor>> descriptors) override;
 
 			void BindVertexBuffer(std::shared_ptr<JarBuffer> jarBuffer) override;
 
@@ -309,44 +312,97 @@ namespace Graphics::Metal {
 
 #pragma region MetalDescriptorBinding{
 
-	class MetalUniformDescriptorBinding {
+	class MetalDescriptorBuilder final : public JarDescriptorBuilder {
 		public:
-			MetalUniformDescriptorBinding(std::vector<std::shared_ptr<MetalBuffer>> uniformBuffers, uint32_t binding,
-			                              StageFlags stageFlags)
-					: m_uniformBuffers(uniformBuffers), m_binding(binding), m_stageFlags(stageFlags) {};
+			MetalDescriptorBuilder() = default;
 
-			~MetalUniformDescriptorBinding() = default;
+			~MetalDescriptorBuilder() override;
 
-			StageFlags getStageFlags() const { return m_stageFlags; }
+			MetalDescriptorBuilder* SetBinding(uint32_t binding) override;
 
-			std::shared_ptr<MetalBuffer>
-			getUniformBuffer(uint32_t frameIndex) const { return m_uniformBuffers[frameIndex]; }
+			MetalDescriptorBuilder* SetStageFlags(StageFlags stageFlags) override;
 
-			uint32_t getBinding() const { return m_binding; }
+			std::shared_ptr<JarDescriptor> BuildUniformBufferDescriptor(std::shared_ptr<JarDevice> device,
+			                                                            std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) override;
+
+			std::shared_ptr<JarDescriptor>
+			BuildImageBufferDescriptor(std::shared_ptr<JarDevice> device, std::shared_ptr<JarImage> image) override;
 
 		private:
-			StageFlags m_stageFlags;
-			std::vector<std::shared_ptr<MetalBuffer>> m_uniformBuffers;
-			uint32_t m_binding;
+			std::optional<uint32_t> m_binding;
+			std::optional<StageFlags> m_stageFlags;
 	};
 
-	class MetalTextureDescriptorBinding {
+	class MetalDescriptorLayout final : public JarDescriptorLayout {
 		public:
-			MetalTextureDescriptorBinding(std::shared_ptr<MetalImage> image, uint32_t binding, StageFlags stageFlags)
-					: m_image(image), m_binding(binding), m_stageFlags(stageFlags) {};
+			MetalDescriptorLayout() = default;
 
-			~MetalTextureDescriptorBinding() = default;
+			~MetalDescriptorLayout() override;
 
-			StageFlags getStageFlags() const { return m_stageFlags; }
+			void Release() override;
 
-			std::shared_ptr<MetalImage> getImage() const { return m_image; }
+	};
 
-			uint32_t getBinding() const { return m_binding; }
+	class MetalDescriptorContent {
+		public:
+			MetalDescriptorContent() = default;
+
+			virtual ~MetalDescriptorContent() = default;
+
+			virtual void Release() = 0;
+
+			virtual void BindContentToEncoder(MTL::RenderCommandEncoder* encoder, uint32_t binding, StageFlags stageFlags) = 0;
+
+	};
+
+	class MetalDescriptor final : public JarDescriptor {
+		public:
+			MetalDescriptor(uint32_t binding, StageFlags stageFlags, std::shared_ptr<MetalDescriptorContent> content, std::shared_ptr<MetalDescriptorLayout> layout) :
+					m_binding(binding), m_stageFlags(stageFlags), m_content(std::move(content)), m_descriptorLayout(std::move(layout)) {};
+
+			~MetalDescriptor() override;
+
+			void Release() override;
+
+			std::shared_ptr<JarDescriptorLayout> GetDescriptorLayout() override;
+
+			void BindContentToEncoder(MTL::RenderCommandEncoder* encoder);
 
 		private:
-			StageFlags m_stageFlags;
-			std::shared_ptr<MetalImage> m_image;
 			uint32_t m_binding;
+			StageFlags m_stageFlags;
+			std::shared_ptr<MetalDescriptorContent> m_content;
+			std::shared_ptr<MetalDescriptorLayout> m_descriptorLayout;
+	};
+
+	class MetalUniformDescriptorContent : public MetalDescriptorContent {
+		public:
+			MetalUniformDescriptorContent(std::vector<std::shared_ptr<MetalBuffer>> buffers) : m_uniformBuffers(std::move(buffers)) {};
+
+			~MetalUniformDescriptorContent() override;
+
+			void Release() override;
+
+			void BindContentToEncoder(MTL::RenderCommandEncoder* encoder, uint32_t binding, StageFlags stageFlags) override;
+
+		private:
+			std::vector<std::shared_ptr<MetalBuffer>> m_uniformBuffers;
+			uint8_t m_currentBufferIndex = 0;
+	};
+
+	class MetalImageDescriptorContent : public MetalDescriptorContent {
+		public:
+			MetalImageDescriptorContent(std::shared_ptr<MetalImage> image)
+					: m_image(image) {};
+
+			~MetalImageDescriptorContent() override;
+
+			void Release() override;
+
+			void BindContentToEncoder(MTL::RenderCommandEncoder* encoder, uint32_t binding, StageFlags stageFlags) override;
+
+		private:
+			std::shared_ptr<MetalImage> m_image;
 	};
 
 #pragma endregion MetalDescriptorBinding }
@@ -370,11 +426,7 @@ namespace Graphics::Metal {
 			MetalPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) override;
 
 			MetalPipelineBuilder*
-			BindUniformBuffers(std::vector<std::shared_ptr<JarBuffer>> uniformBuffers, uint32_t binding,
-			                   StageFlags stageFlags) override;
-
-			MetalPipelineBuilder*
-			BindImageBuffer(std::shared_ptr<JarImage> image, uint32_t binding, StageFlags stageFlags) override;
+			BindDescriptorLayouts(std::vector<std::shared_ptr<JarDescriptorLayout>> descriptors) override;
 
 			MetalPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment blendAttachment) override;
 
@@ -387,8 +439,7 @@ namespace Graphics::Metal {
 			MTL::Function* m_fragmentShaderFunc;
 
 			std::shared_ptr<JarRenderPass> m_renderPass;
-			std::vector<MetalUniformDescriptorBinding> m_uniformDescriptorBindings;
-			std::vector<MetalTextureDescriptorBinding> m_textureDescriptorBindings;
+			std::vector<MetalImageDescriptorContent> m_textureDescriptorBindings;
 
 			MTL::VertexDescriptor* m_vertexDescriptor;
 			MTL::PrimitiveTopologyClass m_topology;
@@ -405,13 +456,9 @@ namespace Graphics::Metal {
 	class MetalPipeline final : public JarPipeline {
 		public:
 			MetalPipeline(MTL::Device* device, MTL::RenderPipelineState* pipelineState,
-			              MTL::DepthStencilState* depthStencilState, std::shared_ptr<JarRenderPass> renderPass,
-			              std::vector<MetalUniformDescriptorBinding> uniformDescriptorBindings,
-			              std::vector<MetalTextureDescriptorBinding> textureDescriptorBindings)
-					: m_device(device), m_pipelineState(pipelineState),
-					  m_depthStencilState(depthStencilState), m_renderPass(std::move(renderPass)),
-					  m_uniformDescriptorBindings(uniformDescriptorBindings),
-					  m_textureDescriptorBindings(textureDescriptorBindings) {};
+			              MTL::DepthStencilState* depthStencilState, std::shared_ptr<JarRenderPass> renderPass) :
+					m_device(device), m_pipelineState(pipelineState),
+					m_depthStencilState(depthStencilState), m_renderPass(std::move(renderPass)) {};
 
 			~MetalPipeline() override;
 
@@ -423,19 +470,12 @@ namespace Graphics::Metal {
 
 			MTL::DepthStencilState* getDSS() { return m_depthStencilState; }
 
-			std::vector<MetalUniformDescriptorBinding>
-			getUniformDescriptorBindings() { return m_uniformDescriptorBindings; }
-
-			std::vector<MetalTextureDescriptorBinding>
-			getTextureDescriptorBindings() { return m_textureDescriptorBindings; }
-
 		private:
 			MTL::RenderPipelineState* m_pipelineState;
 			MTL::DepthStencilState* m_depthStencilState;
 			MTL::Device* m_device;
 			std::shared_ptr<JarRenderPass> m_renderPass;
-			std::vector<MetalUniformDescriptorBinding> m_uniformDescriptorBindings;
-			std::vector<MetalTextureDescriptorBinding> m_textureDescriptorBindings;
+			std::vector<MetalImageDescriptorContent> m_textureDescriptorBindings;
 	};
 
 #pragma endregion MetalPipeline }
@@ -465,6 +505,8 @@ namespace Graphics::Metal {
 			JarImageBuilder* InitImageBuilder() override;
 
 			JarPipelineBuilder* InitPipelineBuilder() override;
+
+			JarDescriptorBuilder* InitDescriptorBuilder() override;
 	};
 
 #pragma endregion MetalBackend }
