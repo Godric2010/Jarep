@@ -326,21 +326,6 @@ namespace Graphics {
 		TriangleStrip,
 	};
 
-	enum class PolygonMode {
-	};
-
-	enum class CullMode {
-	};
-
-	enum class FrontFace {
-	};
-
-	struct RasterizationState {
-		PolygonMode polygonMode;
-		CullMode cullMode;
-		FrontFace frontFace;
-	};
-
 	enum class PixelFormat {
 		RGBA8_UNORM,
 		BGRA8_UNORM,
@@ -423,6 +408,12 @@ namespace Graphics {
 		DecrementAndWrap,
 	};
 
+	struct DepthBias {
+		float DepthBiasConstantFactor;
+		float DepthBiasClamp;
+		float DepthBiasSlopeFactor;
+	};
+
 	struct DepthStencilState {
 		bool depthTestEnable;
 		bool depthWriteEnable;
@@ -457,6 +448,8 @@ namespace Graphics {
 			virtual JarPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachments) = 0;
 
 			virtual JarPipelineBuilder* SetDepthStencilState(DepthStencilState depthStencilState) = 0;
+
+			virtual JarPipelineBuilder* SetDepthBias(DepthBias depthBias) = 0;
 
 			virtual std::shared_ptr<JarPipeline> Build(std::shared_ptr<JarDevice> device) = 0;
 	};

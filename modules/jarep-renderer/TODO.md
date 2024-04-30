@@ -19,7 +19,7 @@ as well as the steps successfully done so far.
 -[x] Render each RenderStep in a separate render pass
 -[ ] Optimize JarRenderer interface
   - [ ] Make multisampling detection and options available to the outside
-  - [ ] Make common rasterization settings available to the outside
+  - [ ] Make common rasterization settings available to the outside  ![Rasterization Table](file:///home/sebastian/Downloads/RasterizationSettingsTable.md)
   - [ ] Make available depth settings public to the outside
   - [ ] Write high level test for testing the renderer with various settings enabled or disabled
   - [ ] Write high level documantion for the renderer
@@ -33,3 +33,4 @@ as well as the steps successfully done so far.
 - [ ] Add a camera entity
 - [ ] Manage transform stuff inside the render step and respected camera
 - [ ] Make Renderer call the entities and managers to render stuff
+- [ ] Add lighting to render process

@@ -157,6 +157,11 @@ namespace Graphics {
 			colorBlendAttachment.alphaBlendOperation = BlendOperation::Add;
 			colorBlendAttachment.colorWriteMask = ColorWriteMask::All;
 
+			DepthBias depthBias{};
+			depthBias.DepthBiasClamp = 0.0f;
+			depthBias.DepthBiasConstantFactor = 0.0f;
+			depthBias.DepthBiasSlopeFactor = 0.0f;
+
 			DepthStencilState depthStencilState{};
 			depthStencilState.depthTestEnable = true;
 			depthStencilState.depthWriteEnable = true;
@@ -174,6 +179,7 @@ namespace Graphics {
 					SetMultisamplingCount(descriptor->m_multisamplingCount)->
 					BindDescriptorLayouts(descriptorLayouts)->
 					SetColorBlendAttachments(colorBlendAttachment)->
+					SetDepthBias(depthBias)->
 					SetDepthStencilState(depthStencilState);
 			pipeline = pipelineBuilder->Build(device);
 			delete pipelineBuilder;

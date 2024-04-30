@@ -1593,6 +1593,11 @@ namespace Graphics::Vulkan {
 		return this;
 	}
 
+	VulkanGraphicsPipelineBuilder* VulkanGraphicsPipelineBuilder::SetDepthBias(Graphics::DepthBias depthBias) {
+	   m_depthBias = std::make_optional(depthBias);
+		return this;
+	}
+
 	VulkanGraphicsPipelineBuilder*
 	VulkanGraphicsPipelineBuilder::SetDepthStencilState(Graphics::DepthStencilState depthStencilState) {
 
@@ -1649,6 +1654,9 @@ namespace Graphics::Vulkan {
 		viewportState.viewportCount = 1;
 		viewportState.scissorCount = 1;
 
+		if(!m_depthBias.has_value())
+			throw std::runtime_error("Depth Bias not set!");
+
 		VkPipelineRasterizationStateCreateInfo rasterizer{};
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
@@ -1658,9 +1666,9 @@ namespace Graphics::Vulkan {
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
-		rasterizer.depthBiasConstantFactor = 0.0f;
-		rasterizer.depthBiasClamp = 0.0f;
-		rasterizer.depthBiasSlopeFactor = 0.0f;
+		rasterizer.depthBiasConstantFactor = m_depthBias->DepthBiasConstantFactor;
+		rasterizer.depthBiasClamp = m_depthBias->DepthBiasClamp;
+		rasterizer.depthBiasSlopeFactor = m_depthBias->DepthBiasSlopeFactor;
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
