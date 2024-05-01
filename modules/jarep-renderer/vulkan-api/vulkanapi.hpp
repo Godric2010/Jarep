@@ -312,6 +312,12 @@ namespace Graphics::Vulkan {
 
 			~VulkanCommandBuffer() override;
 
+			void SetDepthBias(DepthBias depthBias) override;
+
+			void SetViewport(Viewport viewport) override;
+
+			void SetScissor(Scissor scissor) override;
+
 			bool
 			StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) override;
 
@@ -705,8 +711,6 @@ namespace Graphics::Vulkan {
 
 			VulkanGraphicsPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachment) override;
 
-			VulkanGraphicsPipelineBuilder* SetDepthBias(DepthBias depthBias) override;
-
 			VulkanGraphicsPipelineBuilder* SetDepthStencilState(DepthStencilState depthStencilState) override;
 
 			std::shared_ptr<JarPipeline> Build(std::shared_ptr<JarDevice> device) override;
@@ -722,7 +726,6 @@ namespace Graphics::Vulkan {
 			std::optional<VkPipelineColorBlendStateCreateInfo> m_colorBlend;
 			std::optional<VkPipelineDepthStencilStateCreateInfo> m_depthStencil;
 			std::optional<VkPipelineRasterizationStateCreateInfo> m_rasterization;
-			std::optional<DepthBias> m_depthBias;
 			std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
 			std::vector<std::shared_ptr<VulkanBuffer>> m_uniformBuffers;
 			std::shared_ptr<VulkanRenderPass> m_renderPass;

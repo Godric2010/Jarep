@@ -761,6 +761,28 @@ namespace Graphics::Vulkan {
 
 	VulkanCommandBuffer::~VulkanCommandBuffer() = default;
 
+	void VulkanCommandBuffer::SetDepthBias(Graphics::DepthBias depthBias) {
+		vkCmdSetDepthBias(m_commandBuffer, depthBias.DepthBiasConstantFactor, depthBias.DepthBiasClamp,
+		                  depthBias.DepthBiasSlopeFactor);
+	}
+
+	void VulkanCommandBuffer::SetViewport(Graphics::Viewport viewport) {
+		VkViewport vkViewport{};
+		vkViewport.x = viewport.x;
+		vkViewport.y = viewport.height;
+		vkViewport.width = viewport.width;
+		vkViewport.height = -viewport.height;
+		vkViewport.minDepth = viewport.minDepth;
+		vkViewport.maxDepth = viewport.maxDepth;
+		vkCmdSetViewport(m_commandBuffer, 0, 1, &vkViewport);
+	}
+
+	void VulkanCommandBuffer::SetScissor(Graphics::Scissor scissor) {
+		VkRect2D vkScissor{};
+		vkScissor.offset = {scissor.x, scissor.y};
+		vkScissor.extent = {scissor.width, scissor.height};
+		vkCmdSetScissor(m_commandBuffer, 0, 1, &vkScissor);
+	}
 
 	bool VulkanCommandBuffer::StartRecording(std::shared_ptr<JarSurface> surface,
 	                                         std::shared_ptr<JarRenderPass> renderPass) {
@@ -801,19 +823,7 @@ namespace Graphics::Vulkan {
 		renderPassInfo.clearValueCount = clearValues.size();
 		renderPassInfo.pClearValues = clearValues.data();
 
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = static_cast<float>(surfaceExtent.height);
-		viewport.width = static_cast<float>(surfaceExtent.width);
-		viewport.height = -static_cast<float>(surfaceExtent.height);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(m_commandBuffer, 0, 1, &viewport);
 
-		VkRect2D scissor{};
-		scissor.offset = {0, 0};
-		scissor.extent = surfaceExtent;
-		vkCmdSetScissor(m_commandBuffer, 0, 1, &scissor);
 
 		vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		return true;
@@ -1593,11 +1603,6 @@ namespace Graphics::Vulkan {
 		return this;
 	}
 
-	VulkanGraphicsPipelineBuilder* VulkanGraphicsPipelineBuilder::SetDepthBias(Graphics::DepthBias depthBias) {
-	   m_depthBias = std::make_optional(depthBias);
-		return this;
-	}
-
 	VulkanGraphicsPipelineBuilder*
 	VulkanGraphicsPipelineBuilder::SetDepthStencilState(Graphics::DepthStencilState depthStencilState) {
 
@@ -1643,7 +1648,7 @@ namespace Graphics::Vulkan {
 		                           &m_pipelineLayout) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create pipeline layout");
 		}
-		std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+		std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_DEPTH_BIAS};
 		VkPipelineDynamicStateCreateInfo dynamicState{};
 		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
@@ -1654,9 +1659,6 @@ namespace Graphics::Vulkan {
 		viewportState.viewportCount = 1;
 		viewportState.scissorCount = 1;
 
-		if(!m_depthBias.has_value())
-			throw std::runtime_error("Depth Bias not set!");
-
 		VkPipelineRasterizationStateCreateInfo rasterizer{};
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
@@ -1665,10 +1667,7 @@ namespace Graphics::Vulkan {
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		rasterizer.depthBiasEnable = VK_FALSE;
-		rasterizer.depthBiasConstantFactor = m_depthBias->DepthBiasConstantFactor;
-		rasterizer.depthBiasClamp = m_depthBias->DepthBiasClamp;
-		rasterizer.depthBiasSlopeFactor = m_depthBias->DepthBiasSlopeFactor;
+		rasterizer.depthBiasEnable = VK_TRUE;
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

@@ -87,6 +87,25 @@ namespace Graphics {
 
 	void JarRenderer::Render() {
 
+		Viewport viewport{};
+		viewport.x = 0;
+		viewport.y = 0;
+		viewport.width = surface->GetSurfaceExtent().Width;
+		viewport.height = surface->GetSurfaceExtent().Height;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+
+		Scissor scissor{};
+		scissor.x = 0;
+		scissor.y = 0;
+		scissor.width = surface->GetSurfaceExtent().Width;
+		scissor.height = surface->GetSurfaceExtent().Height;
+
+		DepthBias depthBias{};
+		depthBias.DepthBiasClamp = 0.0f;
+		depthBias.DepthBiasConstantFactor = 0.0f;
+		depthBias.DepthBiasSlopeFactor = 0.0f;
+
 		prepareModelViewProjectionForFrame();
 
 		const auto commandBuffer = queue->getNextCommandBuffer();
@@ -95,6 +114,9 @@ namespace Graphics {
 			if (!commandBuffer->StartRecording(surface, renderStep->getRenderPass()))
 				return;
 
+			commandBuffer->SetViewport(viewport);
+			commandBuffer->SetScissor(scissor);
+			commandBuffer->SetDepthBias(depthBias);
 			commandBuffer->BindPipeline(renderStep->getPipeline(), frameCounter);
 			commandBuffer->BindDescriptors(renderStep->getDescriptors());
 

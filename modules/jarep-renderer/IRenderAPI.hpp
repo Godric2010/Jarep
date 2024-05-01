@@ -449,8 +449,6 @@ namespace Graphics {
 
 			virtual JarPipelineBuilder* SetDepthStencilState(DepthStencilState depthStencilState) = 0;
 
-			virtual JarPipelineBuilder* SetDepthBias(DepthBias depthBias) = 0;
-
 			virtual std::shared_ptr<JarPipeline> Build(std::shared_ptr<JarDevice> device) = 0;
 	};
 
@@ -502,9 +500,33 @@ namespace Graphics {
 
 #pragma region JarCommandBuffer{
 
+	struct Viewport {
+	public:
+		float x;
+		float y;
+		float width;
+		float height;
+		float minDepth;
+		float maxDepth;
+	};
+
+	struct Scissor {
+	public:
+		int32_t x;
+		int32_t y;
+		uint32_t width;
+		uint32_t height;
+	};
+
 	class JarCommandBuffer {
 		public:
 			virtual ~JarCommandBuffer() = default;
+
+			virtual void SetDepthBias(DepthBias depthBias) = 0;
+
+			virtual void SetViewport(Viewport viewport) = 0;
+
+			virtual void SetScissor(Scissor scissor) = 0;
 
 			virtual bool
 			StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) = 0;
