@@ -104,6 +104,8 @@ namespace Graphics {
 
 			virtual JarRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) = 0;
 
+			virtual JarRenderPassBuilder* SetMultisamplingCount(uint8_t multisamplingCount) = 0;
+
 			virtual std::shared_ptr<JarRenderPass>
 			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) = 0;
 	};
@@ -114,6 +116,8 @@ namespace Graphics {
 			virtual ~JarRenderPass() = default;
 
 			virtual void Release() = 0;
+
+			virtual void RecreateRenderPassFramebuffers(uint32_t width, uint32_t height, std::shared_ptr<JarSurface> surface) = 0;
 	};
 
 #pragma endregion JarRenderPass }
@@ -577,6 +581,8 @@ namespace Graphics {
 			virtual ~JarDevice() = default;
 
 			virtual void Release() = 0;
+
+			virtual uint32_t GetMaxUsableSampleCount() = 0;
 	};
 
 #pragma region Backend{

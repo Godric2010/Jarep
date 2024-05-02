@@ -19,8 +19,14 @@ as well as the steps successfully done so far.
 -[x] Render each RenderStep in a separate render pass
 -[ ] Optimize JarRenderer interface
   - [ ] Make multisampling detection and options available to the outside
+    - [x] Enable for Vulkan
+    - [ ] Enable for Metal
   - [ ] Make common rasterization settings available to the outside  ![Rasterization Table](file:///home/sebastian/Downloads/RasterizationSettingsTable.md)
-  - [ ] Make available depth settings public to the outside
+    - [x] Enable for Vulkan 
+    - [ ] Enable for Metal
+  - [ ] Make available depth settings public to the outside 
+    - [ ] Enable for Vulkan
+    - [ ] Enable for Metal
   - [ ] Write high level test for testing the renderer with various settings enabled or disabled
   - [ ] Write high level documantion for the renderer
 

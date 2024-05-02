@@ -321,19 +321,21 @@ namespace Graphics::Vulkan {
 		vkDestroyDevice(m_device, nullptr);
 	}
 
-	VkSampleCountFlagBits VulkanDevice::getMaxUsableSampleCount() {
+	uint32_t VulkanDevice::GetMaxUsableSampleCount() {
 		VkPhysicalDeviceProperties physicalDeviceProperties;
 		vkGetPhysicalDeviceProperties(m_physicalDevice, &physicalDeviceProperties);
 
 		VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
 		                            physicalDeviceProperties.limits.framebufferDepthSampleCounts;
-		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
-		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
-		if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
-		if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
-		if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
-		if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
-		return VK_SAMPLE_COUNT_1_BIT;
+
+		if (counts & VK_SAMPLE_COUNT_64_BIT) { return 64; }
+		if (counts & VK_SAMPLE_COUNT_32_BIT) { return 32; }
+		if (counts & VK_SAMPLE_COUNT_16_BIT) { return 16; }
+		if (counts & VK_SAMPLE_COUNT_8_BIT) { return 8; }
+		if (counts & VK_SAMPLE_COUNT_4_BIT) { return 4; }
+		if (counts & VK_SAMPLE_COUNT_2_BIT) { return 2; }
+
+		return 1;
 	}
 
 	bool VulkanDevice::isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice,
@@ -461,22 +463,11 @@ namespace Graphics::Vulkan {
 		                        m_swapchainImages.data());
 
 		createImageViews();
-		createColorResources();
-		createDepthResources();
 		m_currentImageIndex = 0;
 	}
 
-	void VulkanSwapchain::CreateFramebuffersFromRenderPass(const std::shared_ptr<VulkanRenderPass>& renderPass) {
-		for (const auto& m_swapchainImageView: m_swapchainImageViews) {
-			auto framebuffer = std::make_shared<VulkanFramebuffer>(m_imageExtent);
-			framebuffer->CreateFramebuffer(m_device, renderPass->getRenderPass(),
-			                               m_swapchainImageView, m_depthImageView, m_colorImageView);
-			m_swapchainFramebuffers.push_back(framebuffer);
-		}
-	}
-
-	std::optional<std::shared_ptr<VulkanFramebuffer>> VulkanSwapchain::AcquireNewImage(VkSemaphore imageAvailable,
-	                                                                                   VkFence frameInFlight) {
+	std::optional<uint32_t> VulkanSwapchain::AcquireNewImage(VkSemaphore imageAvailable,
+	                                                         VkFence frameInFlight) {
 		vkWaitForFences(m_device->getLogicalDevice(), 1, &frameInFlight, VK_TRUE, UINT64_MAX);
 
 
@@ -488,7 +479,7 @@ namespace Graphics::Vulkan {
 			return std::nullopt;
 		}
 		vkResetFences(m_device->getLogicalDevice(), 1, &frameInFlight);
-		return std::make_optional(m_swapchainFramebuffers[m_currentImageIndex]);
+		return std::make_optional(m_currentImageIndex);
 	}
 
 	void VulkanSwapchain::PresentImage(VkSemaphore imageAvailable, VkSemaphore renderFinished, VkFence frameInFlight,
@@ -534,10 +525,6 @@ namespace Graphics::Vulkan {
 		m_imageExtent.width = width;
 		m_imageExtent.height = height;
 		Initialize(m_imageExtent, std::move(swapchainSupport));
-		for (size_t i = 0; i < m_swapchainFramebuffers.size(); i++) {
-			m_swapchainFramebuffers[i]->RecreateFramebuffer(width, height, m_swapchainImageViews[i], m_depthImageView,
-			                                                m_colorImageView);
-		}
 	}
 
 	void VulkanSwapchain::Release() {
@@ -545,17 +532,7 @@ namespace Graphics::Vulkan {
 		vkQueueWaitIdle(m_graphicsQueue);
 		vkQueueWaitIdle(m_presentQueue);
 
-		for (const auto& framebuffer: m_swapchainFramebuffers) {
-			framebuffer->Release();
-		}
 
-		vkDestroyImageView(m_device->getLogicalDevice(), m_colorImageView, nullptr);
-		vkDestroyImage(m_device->getLogicalDevice(), m_colorImage, nullptr);
-		vkFreeMemory(m_device->getLogicalDevice(), m_colorImageMemory, nullptr);
-
-		vkDestroyImageView(m_device->getLogicalDevice(), m_depthImageView, nullptr);
-		vkFreeMemory(m_device->getLogicalDevice(), m_depthImageMemory, nullptr);
-		vkDestroyImage(m_device->getLogicalDevice(), m_depthImage, nullptr);
 		for (const auto imageView: m_swapchainImageViews) {
 			vkDestroyImageView(m_device->getLogicalDevice(), imageView, nullptr);
 		}
@@ -635,27 +612,6 @@ namespace Graphics::Vulkan {
 		return format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT_S8_UINT;
 	}
 
-	void VulkanSwapchain::createDepthResources() {
-		VkFormat depthFormat = findDepthFormat();
-		VulkanImageBuilder::createImage(m_device, m_imageExtent.width, m_imageExtent.height, 1, m_msaaSamples,
-		                                depthFormat, VK_IMAGE_TILING_OPTIMAL,
-		                                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-		                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
-		VulkanImageBuilder::createImageView(m_device, m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT,
-		                                    &m_depthImageView, 1);
-	}
-
-	void VulkanSwapchain::createColorResources() {
-		VkFormat colorFormat = m_swapchainImageFormat;
-		m_msaaSamples = VK_SAMPLE_COUNT_4_BIT;//m_device->getMaxUsableSampleCount();
-		VulkanImageBuilder::createImage(m_device, m_imageExtent.width, m_imageExtent.height, 1, m_msaaSamples,
-		                                colorFormat, VK_IMAGE_TILING_OPTIMAL,
-		                                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-		                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_colorImage, m_colorImageMemory);
-		VulkanImageBuilder::createImageView(m_device, m_colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT,
-		                                    &m_colorImageView, 1);
-
-	}
 
 #pragma endregion VulkanSwapchain }
 
@@ -789,13 +745,13 @@ namespace Graphics::Vulkan {
 		auto vkRenderPass = reinterpret_cast<std::shared_ptr<VulkanRenderPass>&>(renderPass);
 		auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
 
-		auto vkFramebufferOptional = vkSurface->getSwapchain()->
+		auto currentFrameIndex = vkSurface->getSwapchain()->
 				AcquireNewImage(m_imageAvailableSemaphore, m_frameInFlightFence);
 
-		if (!vkFramebufferOptional.has_value()) {
+		if (!currentFrameIndex.has_value()) {
 			return false;
 		}
-		auto vkFramebuffer = vkFramebufferOptional.value();
+		auto vkFramebuffer = vkRenderPass->AcquireNextFramebuffer(currentFrameIndex.value());
 
 		vkResetCommandBuffer(m_commandBuffer, 0);
 
@@ -822,7 +778,6 @@ namespace Graphics::Vulkan {
 		renderPassInfo.renderArea.extent = surfaceExtent;
 		renderPassInfo.clearValueCount = clearValues.size();
 		renderPassInfo.pClearValues = clearValues.data();
-
 
 
 		vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -1204,7 +1159,7 @@ namespace Graphics::Vulkan {
 		descriptorWriteSampler.pTexelBufferView = nullptr;
 
 
-		vkUpdateDescriptorSets(vulkanDevice->getLogicalDevice(),1, &descriptorWriteSampler, 0, nullptr);
+		vkUpdateDescriptorSets(vulkanDevice->getLogicalDevice(), 1, &descriptorWriteSampler, 0, nullptr);
 
 		auto vulkanDescriptor = std::make_shared<VulkanDescriptor>(vulkanDevice, descriptorPool, descriptorLayout,
 		                                                           descriptorSets);
@@ -1230,7 +1185,7 @@ namespace Graphics::Vulkan {
 		VkDescriptorSetLayout descriptorSetLayout;
 		if (vkCreateDescriptorSetLayout(vulkanDevice->getLogicalDevice(), &layoutCreateInfo, nullptr,
 		                                &descriptorSetLayout) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create descriptor set layout!");
+			throw std::runtime_error("Failed to create renderStepDescriptor set layout!");
 		}
 		auto vulkanDescriptorLayout = std::make_shared<VulkanDescriptorLayout>(vulkanDevice, descriptorSetLayout,
 		                                                                       m_binding.value());
@@ -1253,7 +1208,7 @@ namespace Graphics::Vulkan {
 		VkDescriptorPool descriptorPool;
 		if (vkCreateDescriptorPool(vulkanDevice->getLogicalDevice(), &poolCreateInfo, nullptr, &descriptorPool) !=
 		    VK_SUCCESS) {
-			throw std::runtime_error("Failed to create descriptor pool!");
+			throw std::runtime_error("Failed to create renderStepDescriptor pool!");
 		}
 		return descriptorPool;
 	}
@@ -1273,7 +1228,7 @@ namespace Graphics::Vulkan {
 		std::vector<VkDescriptorSet> descriptorSets(descriptorSetCount);
 		if (vkAllocateDescriptorSets(vulkanDevice->getLogicalDevice(), &allocateInfo, descriptorSets.data()) !=
 		    VK_SUCCESS) {
-			throw std::runtime_error("Failed to create descriptor sets!");
+			throw std::runtime_error("Failed to create renderStepDescriptor sets!");
 		}
 		return descriptorSets;
 	}
@@ -1451,6 +1406,25 @@ namespace Graphics::Vulkan {
 			{StencilOpState::Replace,           VK_STENCIL_OP_REPLACE},
 	};
 
+	VkSampleCountFlagBits convertToVkSampleCountFlagBits(uint8_t sampleCount) {
+		switch (sampleCount) {
+			case 2:
+				return VK_SAMPLE_COUNT_2_BIT;
+			case 4:
+				return VK_SAMPLE_COUNT_4_BIT;
+			case 8:
+				return VK_SAMPLE_COUNT_8_BIT;
+			case 16:
+				return VK_SAMPLE_COUNT_16_BIT;
+			case 32:
+				return VK_SAMPLE_COUNT_32_BIT;
+			case 64:
+				return VK_SAMPLE_COUNT_64_BIT;
+			default:
+				return VK_SAMPLE_COUNT_1_BIT;
+		}
+	}
+
 	VulkanGraphicsPipelineBuilder::VulkanGraphicsPipelineBuilder() = default;
 
 	VulkanGraphicsPipelineBuilder::~VulkanGraphicsPipelineBuilder() = default;
@@ -1529,32 +1503,7 @@ namespace Graphics::Vulkan {
 
 	VulkanGraphicsPipelineBuilder* VulkanGraphicsPipelineBuilder::SetMultisamplingCount(uint16_t multisamplingCount) {
 
-		VkSampleCountFlagBits sampleCountFlagBits;
-		switch (multisamplingCount) {
-			case 1:
-				sampleCountFlagBits = VK_SAMPLE_COUNT_1_BIT;
-				break;
-			case 2:
-				sampleCountFlagBits = VK_SAMPLE_COUNT_2_BIT;
-				break;
-			case 4:
-				sampleCountFlagBits = VK_SAMPLE_COUNT_4_BIT;
-				break;
-			case 8:
-				sampleCountFlagBits = VK_SAMPLE_COUNT_8_BIT;
-				break;
-			case 16:
-				sampleCountFlagBits = VK_SAMPLE_COUNT_16_BIT;
-				break;
-			case 32:
-				sampleCountFlagBits = VK_SAMPLE_COUNT_32_BIT;
-				break;
-			case 64:
-				sampleCountFlagBits = VK_SAMPLE_COUNT_64_BIT;
-				break;
-			default:
-				sampleCountFlagBits = VK_SAMPLE_COUNT_1_BIT; // Defaulting to 1 sample (no multisampling)
-		}
+		VkSampleCountFlagBits sampleCountFlagBits = convertToVkSampleCountFlagBits(multisamplingCount);
 
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -1648,7 +1597,8 @@ namespace Graphics::Vulkan {
 		                           &m_pipelineLayout) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create pipeline layout");
 		}
-		std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_DEPTH_BIAS};
+		std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
+		                                             VK_DYNAMIC_STATE_DEPTH_BIAS};
 		VkPipelineDynamicStateCreateInfo dynamicState{};
 		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
@@ -1850,6 +1800,11 @@ namespace Graphics::Vulkan {
 		return this;
 	}
 
+	VulkanRenderPassBuilder* VulkanRenderPassBuilder::SetMultisamplingCount(uint8_t multisamplingCount) {
+		m_multisamplingCount = std::make_optional(convertToVkSampleCountFlagBits(multisamplingCount));
+		return this;
+	}
+
 	std::shared_ptr<JarRenderPass>
 	VulkanRenderPassBuilder::Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) {
 
@@ -1859,9 +1814,11 @@ namespace Graphics::Vulkan {
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
 		auto vulkanSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
 
-		auto msaaSamples = VK_SAMPLE_COUNT_4_BIT;// vulkanSurface->getSwapchain()->getMSAASampleBits();
-		m_colorAttachment.value().samples = msaaSamples;
+		if (!m_multisamplingCount.has_value())
+			throw std::runtime_error("Could not create render pass without multisampling count set!");
 
+		auto msaaSamples = m_multisamplingCount.value();
+		m_colorAttachment.value().samples = msaaSamples;
 
 		std::vector<VkAttachmentDescription> attachments = std::vector<VkAttachmentDescription>();
 		attachments.push_back(m_colorAttachment.value());
@@ -1921,15 +1878,85 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("failed to create render pass!");
 		}
 
-		auto vulkanRenderPass = std::make_shared<VulkanRenderPass>(vulkanDevice, renderPass);
-		vulkanSurface->getSwapchain()->CreateFramebuffersFromRenderPass(vulkanRenderPass);
+		auto vulkanRenderPassFramebuffers = std::make_unique<VulkanRenderPassFramebuffers>();
+		vulkanRenderPassFramebuffers->CreateRenderPassFramebuffers(vulkanDevice, vulkanSurface, renderPass, msaaSamples);
 
+		auto vulkanRenderPass = std::make_shared<VulkanRenderPass>(vulkanDevice, renderPass, vulkanRenderPassFramebuffers);
 		return vulkanRenderPass;
+	}
+
+	void VulkanRenderPassFramebuffers::CreateRenderPassFramebuffers(std::shared_ptr<VulkanDevice> device,
+	                                                                std::shared_ptr<VulkanSurface> surface,
+	                                                                VkRenderPass renderPass,
+	                                                                VkSampleCountFlagBits multisamplingCount) {
+		m_device = device;
+		auto imageExtent = surface->getSwapchain()->getSwapchainImageExtent();
+		auto colorFormat = surface->getSwapchain()->getSwapchainImageFormat();
+		auto depthFormat = surface->getSwapchain()->findDepthFormat();
+
+		m_msaaSamples = multisamplingCount;
+
+		createColorResources(imageExtent, colorFormat);
+		createDepthResources(imageExtent, depthFormat);
+
+		for (const auto& m_swapchainImageView: surface->getSwapchain()->getSwapchainImageViews()) {
+			auto framebuffer = std::make_shared<VulkanFramebuffer>(imageExtent);
+			framebuffer->CreateFramebuffer(m_device, renderPass, m_swapchainImageView, m_depthImageView,
+			                               m_colorImageView);
+			m_framebuffers.push_back(framebuffer);
+		}
+	}
+
+	std::shared_ptr<VulkanFramebuffer> VulkanRenderPassFramebuffers::GetFramebuffer(uint32_t index) {
+		return m_framebuffers[index];
+	}
+
+	void VulkanRenderPassFramebuffers::Release() {
+		for (const auto& framebuffer: m_framebuffers) {
+			framebuffer->Release();
+		}
+
+		vkDestroyImageView(m_device->getLogicalDevice(), m_colorImageView, nullptr);
+		vkDestroyImage(m_device->getLogicalDevice(), m_colorImage, nullptr);
+		vkFreeMemory(m_device->getLogicalDevice(), m_colorImageMemory, nullptr);
+
+		vkDestroyImageView(m_device->getLogicalDevice(), m_depthImageView, nullptr);
+		vkFreeMemory(m_device->getLogicalDevice(), m_depthImageMemory, nullptr);
+		vkDestroyImage(m_device->getLogicalDevice(), m_depthImage, nullptr);
+	}
+
+	void VulkanRenderPassFramebuffers::RecreateFramebuffers(VkExtent2D swapchainExtent,
+	                                                        std::shared_ptr<VulkanSurface> surface) {
+		auto swapchainImageViews = surface->getSwapchain()->getSwapchainImageViews();
+		for (int i = 0; i < m_framebuffers.size(); ++i) {
+			m_framebuffers[i]->RecreateFramebuffer(swapchainExtent.width, swapchainExtent.height,
+			                                       swapchainImageViews[i], m_depthImageView, m_colorImageView);
+		}
+	}
+
+	void VulkanRenderPassFramebuffers::createDepthResources(VkExtent2D imageExtent, VkFormat depthFormat) {
+		VulkanImageBuilder::createImage(m_device, imageExtent.width, imageExtent.height, 1, m_msaaSamples,
+		                                depthFormat, VK_IMAGE_TILING_OPTIMAL,
+		                                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
+		VulkanImageBuilder::createImageView(m_device, m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT,
+		                                    &m_depthImageView, 1);
+	}
+
+	void VulkanRenderPassFramebuffers::createColorResources(VkExtent2D imageExtent, VkFormat colorFormat) {
+		VulkanImageBuilder::createImage(m_device, imageExtent.width, imageExtent.height, 1, m_msaaSamples,
+		                                colorFormat, VK_IMAGE_TILING_OPTIMAL,
+		                                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_colorImage, m_colorImageMemory);
+		VulkanImageBuilder::createImageView(m_device, m_colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT,
+		                                    &m_colorImageView, 1);
+
 	}
 
 	VulkanRenderPass::~VulkanRenderPass() = default;
 
 	void VulkanRenderPass::Release() {
+		m_framebuffers->Release();
 		vkDestroyRenderPass(m_device->getLogicalDevice(), m_renderPass, nullptr);
 	}
 

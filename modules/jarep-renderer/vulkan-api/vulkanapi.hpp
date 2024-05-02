@@ -184,11 +184,11 @@ namespace Graphics::Vulkan {
 
 			void Release() override;
 
+			uint32_t GetMaxUsableSampleCount() override;
+
 			void CreatePhysicalDevice(VkInstance instance, std::shared_ptr<VulkanSurface>& surface);
 
 			void CreateLogicalDevice();
-
-			VkSampleCountFlagBits getMaxUsableSampleCount();
 
 			[[nodiscard]] VkDevice getLogicalDevice() const { return m_device; }
 
@@ -231,11 +231,7 @@ namespace Graphics::Vulkan {
 
 			void Initialize(VkExtent2D extent, SwapChainSupportDetails swapchainSupport);
 
-
-			void CreateFramebuffersFromRenderPass(const std::shared_ptr<VulkanRenderPass>& renderPass);
-
-			std::optional<std::shared_ptr<VulkanFramebuffer>>
-			AcquireNewImage(VkSemaphore imageAvailable, VkFence frameInFlight);
+			std::optional<uint32_t> AcquireNewImage(VkSemaphore imageAvailable, VkFence frameInFlight);
 
 			void PresentImage(VkSemaphore imageAvailable, VkSemaphore renderFinished, VkFence frameInFlight,
 			                  VkCommandBuffer* cmdBuffer);
@@ -247,11 +243,15 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkFormat getSwapchainImageFormat() const { return m_swapchainImageFormat; }
 
+			VkFormat findDepthFormat();
+
 			[[nodiscard]] uint32_t getCurrentImageIndex() const { return m_currentImageIndex; }
 
-			[[nodiscard]] VkSampleCountFlagBits getMSAASampleBits() const { return m_msaaSamples; }
-
 			[[nodiscard]] uint32_t getMaxSwapchainImageCount() const { return m_swapchainMaxImageCount; }
+
+			[[nodiscard]] VkExtent2D getSwapchainImageExtent() const { return m_imageExtent; }
+
+			[[nodiscard]] std::vector<VkImageView> getSwapchainImageViews() const { return m_swapchainImageViews; }
 
 		private:
 			VkSurfaceKHR m_surface;
@@ -266,19 +266,8 @@ namespace Graphics::Vulkan {
 			std::vector<VkImage> m_swapchainImages;
 			std::vector<VkImageView> m_swapchainImageViews;
 
-			VkImage m_depthImage;
-			VkDeviceMemory m_depthImageMemory;
-			VkImageView m_depthImageView;
-
-			VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-			VkImage m_colorImage;
-			VkDeviceMemory m_colorImageMemory;
-			VkImageView m_colorImageView;
-
 			uint32_t m_currentImageIndex;
 			uint32_t m_swapchainMaxImageCount;
-
-			std::vector<std::shared_ptr<VulkanFramebuffer>> m_swapchainFramebuffers;
 
 			[[nodiscard]] static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
 			                                                 VkExtent2D surfaceExtent);
@@ -289,14 +278,8 @@ namespace Graphics::Vulkan {
 
 			void createImageViews();
 
-			void createDepthResources();
-
-			void createColorResources();
-
 			VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
 			                             VkFormatFeatureFlags features);
-
-			VkFormat findDepthFormat();
 
 			bool hasStencilComponent(VkFormat format);
 	};
@@ -518,7 +501,8 @@ namespace Graphics::Vulkan {
 
 			std::vector<VkDescriptorSet>
 			AllocateDescriptorSets(std::shared_ptr<VulkanDevice> vulkanDevice, VkDescriptorPool descriptorPool,
-			                       std::shared_ptr<VulkanDescriptorLayout> descriptorLayout, uint32_t descriptorSetCount);
+			                       std::shared_ptr<VulkanDescriptorLayout> descriptorLayout,
+			                       uint32_t descriptorSetCount);
 	};
 
 	class VulkanDescriptorLayout : public JarDescriptorLayout {
@@ -659,6 +643,8 @@ namespace Graphics::Vulkan {
 
 			VulkanRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) override;
 
+			VulkanRenderPassBuilder* SetMultisamplingCount(uint8_t multisamplingCount) override;
+
 			std::shared_ptr<JarRenderPass>
 			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) override;
 
@@ -667,13 +653,53 @@ namespace Graphics::Vulkan {
 			std::optional<VkAttachmentReference> m_colorAttachmentRef;
 			std::optional<VkAttachmentDescription> m_depthStencilAttachment;
 			std::optional<VkAttachmentReference> m_depthStencilAttachmentRef;
+			std::optional<VkSampleCountFlagBits> m_multisamplingCount;
 	};
+
+	class VulkanRenderPassFramebuffers {
+		public:
+			VulkanRenderPassFramebuffers() = default;
+
+			~VulkanRenderPassFramebuffers() = default;
+
+			void
+			CreateRenderPassFramebuffers(std::shared_ptr<VulkanDevice> device, std::shared_ptr<VulkanSurface> surface,
+			                             VkRenderPass renderPass, VkSampleCountFlagBits multisamplingCount);
+
+			std::shared_ptr<VulkanFramebuffer> GetFramebuffer(uint32_t index);
+
+			void RecreateFramebuffers(VkExtent2D swapchainExtent, std::shared_ptr<VulkanSurface> surface);
+
+			void Release();
+
+		private:
+			std::shared_ptr<VulkanDevice> m_device;
+			std::vector<std::shared_ptr<VulkanFramebuffer>> m_framebuffers;
+
+			VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+
+			VkImage m_depthImage;
+			VkDeviceMemory m_depthImageMemory;
+			VkImageView m_depthImageView;
+
+			VkImage m_colorImage;
+			VkDeviceMemory m_colorImageMemory;
+			VkImageView m_colorImageView;
+
+			void createDepthResources(VkExtent2D swapchainExtent, VkFormat depthFormat);
+
+			void createColorResources(VkExtent2D swapchainExtent, VkFormat colorFormat);
+	};
+
 
 	class VulkanRenderPass final : public JarRenderPass {
 		public:
-			VulkanRenderPass(std::shared_ptr<VulkanDevice>& device, VkRenderPass renderPass) : m_device(device),
-			                                                                                   m_renderPass(
-					                                                                                   renderPass) {};
+			VulkanRenderPass(std::shared_ptr<VulkanDevice>& device, VkRenderPass renderPass,
+			                 std::unique_ptr<VulkanRenderPassFramebuffers>& framebuffers) : m_device(device),
+			                                                                               m_renderPass(
+					                                                                               renderPass),
+			                                                                               m_framebuffers(std::move(
+					                                                                               framebuffers)) {};
 
 			~VulkanRenderPass() override;
 
@@ -681,10 +707,22 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkRenderPass getRenderPass() const { return m_renderPass; }
 
+			void RecreateRenderPassFramebuffers(uint32_t width, uint32_t height,
+			                                    std::shared_ptr<JarSurface> surface) override {
+				auto vulkanSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
+				m_framebuffers->RecreateFramebuffers({width, height}, vulkanSurface);
+			}
+
+			std::shared_ptr<VulkanFramebuffer> AcquireNextFramebuffer(uint32_t frameIndex) {
+				return m_framebuffers->GetFramebuffer(frameIndex);
+			};
+
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
 			VkRenderPass m_renderPass;
+			std::unique_ptr<VulkanRenderPassFramebuffers> m_framebuffers;
 	};
+
 
 #pragma endregion VulkanRenderPass }
 

@@ -57,6 +57,9 @@ namespace Graphics {
 
 	void JarRenderer::Resize(uint32_t width, uint32_t height) {
 		surface->RecreateSurface(width, height);
+		for (const auto& renderStep: renderSteps) {
+			renderStep->getRenderPass()->RecreateRenderPassFramebuffers(width, height, surface);
+		}
 	}
 
 	void JarRenderer::AddRenderStep(std::unique_ptr<JarRenderStepDescriptor> renderStepBuilder) {
@@ -82,7 +85,7 @@ namespace Graphics {
 				SetMemoryProperties(MemoryProperties::DeviceLocal)->
 				SetUsageFlags(BufferUsage::IndexBuffer);
 		std::shared_ptr<JarBuffer> indexBuffer = indexBufferBuilder->Build(device);
-		meshes.push_back(Internal::JarMesh(mesh, vertexBuffer, indexBuffer));
+		meshes.emplace_back(mesh, vertexBuffer, indexBuffer);
 	}
 
 	void JarRenderer::Render() {
@@ -98,8 +101,8 @@ namespace Graphics {
 		Scissor scissor{};
 		scissor.x = 0;
 		scissor.y = 0;
-		scissor.width = surface->GetSurfaceExtent().Width;
-		scissor.height = surface->GetSurfaceExtent().Height;
+		scissor.width = static_cast<uint32_t>(surface->GetSurfaceExtent().Width);
+		scissor.height = static_cast<uint32_t>(surface->GetSurfaceExtent().Height);
 
 		DepthBias depthBias{};
 		depthBias.DepthBiasClamp = 0.0f;
@@ -174,20 +177,5 @@ namespace Graphics {
 		                                       100.0f);
 
 		uniformBuffers[frameCounter]->Update(&mvp, sizeof(Internal::JarModelViewProjection));
-	}
-
-	std::shared_ptr<JarShaderModule> JarRenderer::createShaderModule(const ShaderType shaderType,
-	                                                                 const std::string& shaderName) const {
-		const auto shaderDir = "shaders/";
-		const std::string shaderFilePath = shaderDir + shaderName + shaderFileType;
-		const std::string shaderCodeString = readFile(shaderFilePath);
-
-		const auto shaderModuleBuilder = backend->InitShaderModuleBuilder();
-		shaderModuleBuilder->SetShader(shaderCodeString);
-		shaderModuleBuilder->SetShaderType(shaderType);
-		auto shaderModule = shaderModuleBuilder->Build(device);
-		delete shaderModuleBuilder;
-
-		return shaderModule;
 	}
 }

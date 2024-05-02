@@ -10,7 +10,7 @@ namespace Graphics {
 		JarRenderStep::JarRenderStep(std::unique_ptr<JarRenderStepDescriptor> desc, std::shared_ptr<Backend> backend,
 		                             std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface,
 		                             std::vector<std::shared_ptr<JarDescriptor>> descriptors)
-				: descriptor(std::move(desc)), descriptors(descriptors) {
+				: renderStepDescriptor(std::move(desc)), descriptors(descriptors) {
 			BuildShaderModules(backend, device);
 			BuildRenderPass(backend, surface, device);
 			BuildPipeline(backend, device, descriptors);
@@ -28,9 +28,9 @@ namespace Graphics {
 #pragma region ShaderCreation{
 
 		void JarRenderStep::BuildShaderModules(std::shared_ptr<Backend> backend, std::shared_ptr<JarDevice> device) {
-			auto vertexShaderModule = GetShaderModule(descriptor->m_vertexShaderName, ShaderType::VertexShader, backend,
+			auto vertexShaderModule = GetShaderModule(renderStepDescriptor->m_vertexShaderName, ShaderType::VertexShader, backend,
 			                                          device);
-			auto fragmentShaderModule = GetShaderModule(descriptor->m_fragmentShaderName, ShaderType::FragmentShader,
+			auto fragmentShaderModule = GetShaderModule(renderStepDescriptor->m_fragmentShaderName, ShaderType::FragmentShader,
 			                                            backend, device);
 
 			ShaderStage stage = {};
@@ -104,10 +104,18 @@ namespace Graphics {
 			JarRenderPassBuilder* rpBuilder = backend->InitRenderPassBuilder();
 			rpBuilder->AddColorAttachment(colorAttachment);
 
-			if (descriptor->m_depthTestEnabled) {
+			uint32_t maxMultisamplingCount = device->GetMaxUsableSampleCount();
+			uint32_t multisamplingCount = renderStepDescriptor->m_multisamplingCount;
+			if(multisamplingCount > maxMultisamplingCount){
+				multisamplingCount = maxMultisamplingCount;
+				std::cout<<"Set multisampling count to device limit: "<<maxMultisamplingCount<<std::endl;
+			}
+			rpBuilder->SetMultisamplingCount(multisamplingCount);
+
+			if (renderStepDescriptor->m_depthTestEnabled) {
 				std::optional<StencilAttachment> stencilAttachment = std::nullopt;
 
-				if (descriptor->m_stencilTestEnabled) {
+				if (renderStepDescriptor->m_stencilTestEnabled) {
 
 					StencilAttachment stencil = {};
 					stencil.StencilLoadOp = LoadOp::DontCare;
@@ -164,6 +172,12 @@ namespace Graphics {
 			depthStencilState.stencilTestEnable = false;
 			depthStencilState.stencilOpState = {};
 
+			uint32_t maxMultisamplingCount = device->GetMaxUsableSampleCount();
+			uint32_t multisamplingCount = renderStepDescriptor->m_multisamplingCount;
+			if(multisamplingCount > maxMultisamplingCount){
+				multisamplingCount = maxMultisamplingCount;
+				std::cout<<"Set multisampling count to device limit: "<<maxMultisamplingCount<<std::endl;
+			}
 
 			JarPipelineBuilder* pipelineBuilder = backend->InitPipelineBuilder();
 			pipelineBuilder->
@@ -171,7 +185,7 @@ namespace Graphics {
 					SetRenderPass(renderPass)->
 					SetVertexInput(vertexInput)->
 					SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
-					SetMultisamplingCount(descriptor->m_multisamplingCount)->
+					SetMultisamplingCount(multisamplingCount)->
 					BindDescriptorLayouts(descriptorLayouts)->
 					SetColorBlendAttachments(colorBlendAttachment)->
 					SetDepthStencilState(depthStencilState);

@@ -26,7 +26,7 @@ namespace Graphics {
 			std::string m_fragmentShaderName;
 			bool m_depthTestEnabled;
 			bool m_stencilTestEnabled;
-			uint32_t m_multisamplingCount;
+			uint8_t m_multisamplingCount;
 
 
 	};
@@ -54,7 +54,7 @@ namespace Graphics {
 				std::shared_ptr<JarRenderPass> renderPass;
 				std::vector<std::shared_ptr<JarDescriptor>> descriptors;
 
-				std::unique_ptr<JarRenderStepDescriptor> descriptor;
+				std::unique_ptr<JarRenderStepDescriptor> renderStepDescriptor;
 
 				void BuildShaderModules(std::shared_ptr<Backend> backend, std::shared_ptr<JarDevice> device);
 
