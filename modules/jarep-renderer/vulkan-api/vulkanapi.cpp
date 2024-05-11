@@ -8,6 +8,25 @@
 #include "Vertex.hpp"
 
 namespace Graphics::Vulkan {
+
+	static std::unordered_map<PixelFormat, VkFormat> pixelFormatMap = {
+			{PixelFormat::R8Unorm,              VK_FORMAT_R8_UNORM},
+			{PixelFormat::RG8Unorm,             VK_FORMAT_R8G8_UNORM},
+			{PixelFormat::RGBA8Unorm,           VK_FORMAT_R8G8B8A8_UNORM},
+			{PixelFormat::BGRA8Unorm,           VK_FORMAT_B8G8R8A8_UNORM},
+			{PixelFormat::R16Unorm,             VK_FORMAT_R16_UNORM},
+			{PixelFormat::RG16Unorm,            VK_FORMAT_R16G16_UNORM},
+			{PixelFormat::RGBA16Unorm,          VK_FORMAT_R16G16B16A16_UNORM},
+			{PixelFormat::RGBA16Float,          VK_FORMAT_R16G16B16A16_SFLOAT},
+			{PixelFormat::R32Float,             VK_FORMAT_R32_SFLOAT},
+			{PixelFormat::RG32Float,            VK_FORMAT_R32G32_SFLOAT},
+			{PixelFormat::RGBA32Float,          VK_FORMAT_R32G32B32A32_SFLOAT},
+			{PixelFormat::Depth32Float,         VK_FORMAT_D32_SFLOAT},
+			{PixelFormat::Depth24Stencil8,      VK_FORMAT_D24_UNORM_S8_UINT},
+			{PixelFormat::Depth16Unorm,         VK_FORMAT_D16_UNORM},
+			{PixelFormat::Depth32FloatStencil8, VK_FORMAT_D32_SFLOAT_S8_UINT},
+	};
+
 #pragma region VulkanBackend{
 
 	VulkanBackend::VulkanBackend(const std::vector<const char*>& extensions) {
@@ -338,6 +357,18 @@ namespace Graphics::Vulkan {
 		return 1;
 	}
 
+	bool VulkanDevice::IsFormatSupported(Graphics::PixelFormat pixelFormat) {
+		VkFormat vkPixelFormat = pixelFormatMap[pixelFormat];
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(m_physicalDevice, vkPixelFormat, &props);
+
+		if ((props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) ==
+		    VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+			return true;
+		}
+		return false;
+	}
+
 	bool VulkanDevice::isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice,
 	                                            std::shared_ptr<VulkanSurface>& surface) {
 		VkPhysicalDeviceProperties deviceProperties;
@@ -585,31 +616,6 @@ namespace Graphics::Vulkan {
 			                                    VK_IMAGE_ASPECT_COLOR_BIT,
 			                                    &m_swapchainImageViews[i], 1);
 		}
-	}
-
-	VkFormat VulkanSwapchain::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
-	                                              VkFormatFeatureFlags features) {
-		for (VkFormat format: candidates) {
-			VkFormatProperties props;
-			vkGetPhysicalDeviceFormatProperties(m_device->getPhysicalDevice(), format, &props);
-
-			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-				return format;
-			} else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
-				return format;
-			}
-		}
-
-		throw std::runtime_error("failed to find supported format!");
-	}
-
-	VkFormat VulkanSwapchain::findDepthFormat() {
-		return findSupportedFormat({VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-		                           VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-	}
-
-	bool VulkanSwapchain::hasStencilComponent(VkFormat format) {
-		return format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT_S8_UINT;
 	}
 
 
@@ -1337,24 +1343,6 @@ namespace Graphics::Vulkan {
 			{VertexFormat::Int4,   VK_FORMAT_R32G32B32A32_SINT},
 	};
 
-	static std::unordered_map<PixelFormat, VkFormat> pixelFormatMap = {
-			{PixelFormat::R8Unorm,              VK_FORMAT_R8_UNORM},
-			{PixelFormat::RG8Unorm,             VK_FORMAT_R8G8_UNORM},
-			{PixelFormat::RGBA8Unorm,           VK_FORMAT_R8G8B8A8_UNORM},
-			{PixelFormat::BGRA8Unorm,           VK_FORMAT_B8G8R8A8_UNORM},
-			{PixelFormat::R16Unorm,             VK_FORMAT_R16_UNORM},
-			{PixelFormat::RG16Unorm,            VK_FORMAT_R16G16_UNORM},
-			{PixelFormat::RGBA16Unorm,          VK_FORMAT_R16G16B16A16_UNORM},
-			{PixelFormat::RGBA16Float,          VK_FORMAT_R16G16B16A16_SFLOAT},
-			{PixelFormat::R32Float,             VK_FORMAT_R32_SFLOAT},
-			{PixelFormat::RG32Float,            VK_FORMAT_R32G32_SFLOAT},
-			{PixelFormat::RGBA32Float,          VK_FORMAT_R32G32B32A32_SFLOAT},
-			{PixelFormat::Depth32Float,         VK_FORMAT_D32_SFLOAT},
-			{PixelFormat::Depth24Stencil8,      VK_FORMAT_D24_UNORM_S8_UINT},
-			{PixelFormat::Depth16Unorm,         VK_FORMAT_D16_UNORM},
-			{PixelFormat::Depth32FloatStencil8, VK_FORMAT_D32_SFLOAT_S8_UINT},
-	};
-
 	static std::unordered_map<InputAssemblyTopology, VkPrimitiveTopology> topologyMap = {
 			{InputAssemblyTopology::LineList,      VK_PRIMITIVE_TOPOLOGY_LINE_LIST},
 			{InputAssemblyTopology::LineStrip,     VK_PRIMITIVE_TOPOLOGY_LINE_STRIP},
@@ -1388,15 +1376,15 @@ namespace Graphics::Vulkan {
 			{BlendOperation::Max,             VK_BLEND_OP_MAX},
 	};
 
-	static std::unordered_map<DepthCompareOperation, VkCompareOp> depthCompareOpMap = {
-			{DepthCompareOperation::Never,        VK_COMPARE_OP_NEVER},
-			{DepthCompareOperation::Less,         VK_COMPARE_OP_LESS},
-			{DepthCompareOperation::LessEqual,    VK_COMPARE_OP_LESS_OR_EQUAL},
-			{DepthCompareOperation::Equal,        VK_COMPARE_OP_EQUAL},
-			{DepthCompareOperation::GreaterEqual, VK_COMPARE_OP_GREATER_OR_EQUAL},
-			{DepthCompareOperation::Greater,      VK_COMPARE_OP_GREATER},
-			{DepthCompareOperation::NotEqual,     VK_COMPARE_OP_NOT_EQUAL},
-			{DepthCompareOperation::AllTime,      VK_COMPARE_OP_ALWAYS},
+	static std::unordered_map<CompareOperation, VkCompareOp> compareOpMap = {
+			{CompareOperation::Never,        VK_COMPARE_OP_NEVER},
+			{CompareOperation::Less,         VK_COMPARE_OP_LESS},
+			{CompareOperation::LessEqual,    VK_COMPARE_OP_LESS_OR_EQUAL},
+			{CompareOperation::Equal,        VK_COMPARE_OP_EQUAL},
+			{CompareOperation::GreaterEqual, VK_COMPARE_OP_GREATER_OR_EQUAL},
+			{CompareOperation::Greater,      VK_COMPARE_OP_GREATER},
+			{CompareOperation::NotEqual,     VK_COMPARE_OP_NOT_EQUAL},
+			{CompareOperation::AllTime,      VK_COMPARE_OP_ALWAYS},
 	};
 
 	static std::unordered_map<StencilOpState, VkStencilOp> stencilCompareOpMap = {
@@ -1562,25 +1550,21 @@ namespace Graphics::Vulkan {
 		VkPipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo{};
 		depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		depthStencilStateCreateInfo.depthTestEnable = static_cast<VkBool32>(depthStencilState.depthTestEnable);
-		depthStencilStateCreateInfo.depthCompareOp = depthCompareOpMap[depthStencilState.depthCompareOp];
+		depthStencilStateCreateInfo.depthCompareOp = compareOpMap[depthStencilState.depthCompareOp];
 		depthStencilStateCreateInfo.depthWriteEnable = static_cast<VkBool32>(depthStencilState.depthWriteEnable);
 		depthStencilStateCreateInfo.stencilTestEnable = static_cast<VkBool32>(depthStencilState.stencilTestEnable);
 		if (depthStencilState.stencilTestEnable) {
-			depthStencilStateCreateInfo.front.failOp = stencilCompareOpMap[depthStencilState.stencilOpState];
-			depthStencilStateCreateInfo.front.passOp = stencilCompareOpMap[depthStencilState.stencilOpState];
-			depthStencilStateCreateInfo.front.depthFailOp = stencilCompareOpMap[depthStencilState.stencilOpState];
-			depthStencilStateCreateInfo.front.compareOp = VK_COMPARE_OP_ALWAYS;
-			depthStencilStateCreateInfo.front.compareMask = 0xFF;
-			depthStencilStateCreateInfo.front.writeMask = 0xFF;
-			depthStencilStateCreateInfo.front.reference = 1;
+			VkStencilOpState stencilOpState{};
+			stencilOpState.failOp = stencilCompareOpMap[depthStencilState.stencilFailOp];
+			stencilOpState.passOp = stencilCompareOpMap[depthStencilState.stencilPassOp];
+			stencilOpState.depthFailOp = stencilCompareOpMap[depthStencilState.stencilDepthFailOp];
+			stencilOpState.compareOp = compareOpMap[depthStencilState.stencilCompareOp];
+			stencilOpState.compareMask = 0xFF;
+			stencilOpState.writeMask = 0xFF;
+			stencilOpState.reference = 1;
 
-			depthStencilStateCreateInfo.back.failOp = stencilCompareOpMap[depthStencilState.stencilOpState];
-			depthStencilStateCreateInfo.back.passOp = stencilCompareOpMap[depthStencilState.stencilOpState];
-			depthStencilStateCreateInfo.back.depthFailOp = stencilCompareOpMap[depthStencilState.stencilOpState];
-			depthStencilStateCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
-			depthStencilStateCreateInfo.back.compareMask = 0xFF;
-			depthStencilStateCreateInfo.back.writeMask = 0xFF;
-			depthStencilStateCreateInfo.back.reference = 1;
+			depthStencilStateCreateInfo.front = stencilOpState;
+			depthStencilStateCreateInfo.back = stencilOpState;
 		}
 		m_depthStencil = std::make_optional(depthStencilStateCreateInfo);
 		return this;
@@ -1700,7 +1684,8 @@ namespace Graphics::Vulkan {
 
 		std::vector<VkImageView> attachments = std::vector<VkImageView>();
 		attachments.push_back(colorImageView);
-		attachments.push_back(depthImageView);
+		if (depthImageView != nullptr)
+			attachments.push_back(depthImageView);
 		attachments.push_back(swapchainImageView);
 
 		m_framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -1779,7 +1764,8 @@ namespace Graphics::Vulkan {
 	VulkanRenderPassBuilder* VulkanRenderPassBuilder::AddDepthStencilAttachment(
 			Graphics::DepthAttachment depthStencilAttachment) {
 		VkAttachmentDescription depthAttachment{};
-		depthAttachment.format = pixelFormatMap[depthStencilAttachment.Format];
+		m_depthFormat = std::make_optional(pixelFormatMap[depthStencilAttachment.Format]);
+		depthAttachment.format = m_depthFormat.value();
 		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		depthAttachment.loadOp = loadOpMap[depthStencilAttachment.DepthLoadOp];
 		depthAttachment.storeOp = storeOpMap[depthStencilAttachment.DepthStoreOp];
@@ -1836,12 +1822,6 @@ namespace Graphics::Vulkan {
 		colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-		VkAttachmentReference colorAttachmentResolveRef{};
-		colorAttachmentResolveRef.attachment = 2;
-		colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		subpass.pResolveAttachments = &colorAttachmentResolveRef;
-
 		VkSubpassDependency dependency{};
 		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependency.dstSubpass = 0;
@@ -1862,6 +1842,11 @@ namespace Graphics::Vulkan {
 
 		attachments.push_back(colorAttachmentResolve);
 
+		VkAttachmentReference colorAttachmentResolveRef{};
+		colorAttachmentResolveRef.attachment = attachments.size() - 1;
+		colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		subpass.pResolveAttachments = &colorAttachmentResolveRef;
+
 		VkRenderPassCreateInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassInfo.attachmentCount = attachments.size();
@@ -1878,26 +1863,40 @@ namespace Graphics::Vulkan {
 
 		auto vulkanRenderPassFramebuffers = std::make_unique<VulkanRenderPassFramebuffers>();
 		vulkanRenderPassFramebuffers->CreateRenderPassFramebuffers(vulkanDevice, vulkanSurface, renderPass,
-		                                                           msaaSamples);
+		                                                           msaaSamples, m_depthFormat);
 
 		auto vulkanRenderPass = std::make_shared<VulkanRenderPass>(vulkanDevice, renderPass,
 		                                                           vulkanRenderPassFramebuffers);
 		return vulkanRenderPass;
 	}
 
+	VulkanRenderPassFramebuffers::VulkanRenderPassFramebuffers() {
+		m_depthImage = nullptr;
+		m_depthImageMemory = nullptr;
+		m_depthImageView = nullptr;
+
+		m_colorImage = nullptr;
+		m_colorImageMemory = nullptr;
+		m_colorImageView = nullptr;
+
+		m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+	}
+
 	void VulkanRenderPassFramebuffers::CreateRenderPassFramebuffers(std::shared_ptr<VulkanDevice> device,
 	                                                                std::shared_ptr<VulkanSurface> surface,
 	                                                                VkRenderPass renderPass,
-	                                                                VkSampleCountFlagBits multisamplingCount) {
+	                                                                VkSampleCountFlagBits multisamplingCount,
+	                                                                std::optional<VkFormat> depthFormat) {
 		m_device = device;
 		auto imageExtent = surface->getSwapchain()->getSwapchainImageExtent();
 		auto colorFormat = surface->getSwapchain()->getSwapchainImageFormat();
-		auto depthFormat = surface->getSwapchain()->findDepthFormat();
 
 		m_msaaSamples = multisamplingCount;
 
 		createColorResources(imageExtent, colorFormat);
-		createDepthResources(imageExtent, depthFormat);
+
+		if (depthFormat.has_value())
+			createDepthResources(imageExtent, depthFormat.value());
 
 		for (const auto& m_swapchainImageView: surface->getSwapchain()->getSwapchainImageViews()) {
 			auto framebuffer = std::make_shared<VulkanFramebuffer>(imageExtent);

@@ -186,6 +186,8 @@ namespace Graphics::Vulkan {
 
 			uint32_t GetMaxUsableSampleCount() override;
 
+			bool IsFormatSupported(PixelFormat pixelFormat) override;
+
 			void CreatePhysicalDevice(VkInstance instance, std::shared_ptr<VulkanSurface>& surface);
 
 			void CreateLogicalDevice();
@@ -243,8 +245,6 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkFormat getSwapchainImageFormat() const { return m_swapchainImageFormat; }
 
-			VkFormat findDepthFormat();
-
 			[[nodiscard]] uint32_t getCurrentImageIndex() const { return m_currentImageIndex; }
 
 			[[nodiscard]] uint32_t getMaxSwapchainImageCount() const { return m_swapchainMaxImageCount; }
@@ -277,11 +277,6 @@ namespace Graphics::Vulkan {
 			static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 
 			void createImageViews();
-
-			VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
-			                             VkFormatFeatureFlags features);
-
-			bool hasStencilComponent(VkFormat format);
 	};
 
 #pragma endregion VulkanSwapchain }
@@ -654,17 +649,19 @@ namespace Graphics::Vulkan {
 			std::optional<VkAttachmentDescription> m_depthStencilAttachment;
 			std::optional<VkAttachmentReference> m_depthStencilAttachmentRef;
 			std::optional<VkSampleCountFlagBits> m_multisamplingCount;
+			std::optional<VkFormat> m_depthFormat;
 	};
 
 	class VulkanRenderPassFramebuffers {
 		public:
-			VulkanRenderPassFramebuffers() = default;
+			VulkanRenderPassFramebuffers();
 
 			~VulkanRenderPassFramebuffers() = default;
 
 			void
 			CreateRenderPassFramebuffers(std::shared_ptr<VulkanDevice> device, std::shared_ptr<VulkanSurface> surface,
-			                             VkRenderPass renderPass, VkSampleCountFlagBits multisamplingCount);
+			                             VkRenderPass renderPass, VkSampleCountFlagBits multisamplingCount,
+			                             std::optional<VkFormat> depthFormat);
 
 			std::shared_ptr<VulkanFramebuffer> GetFramebuffer(uint32_t index);
 
@@ -696,10 +693,10 @@ namespace Graphics::Vulkan {
 		public:
 			VulkanRenderPass(std::shared_ptr<VulkanDevice>& device, VkRenderPass renderPass,
 			                 std::unique_ptr<VulkanRenderPassFramebuffers>& framebuffers) : m_device(device),
-			                                                                               m_renderPass(
-					                                                                               renderPass),
-			                                                                               m_framebuffers(std::move(
-					                                                                               framebuffers)) {};
+			                                                                                m_renderPass(
+					                                                                                renderPass),
+			                                                                                m_framebuffers(std::move(
+					                                                                                framebuffers)) {};
 
 			~VulkanRenderPass() override;
 

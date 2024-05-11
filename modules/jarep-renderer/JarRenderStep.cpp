@@ -28,9 +28,11 @@ namespace Graphics {
 #pragma region ShaderCreation{
 
 		void JarRenderStep::BuildShaderModules(std::shared_ptr<Backend> backend, std::shared_ptr<JarDevice> device) {
-			auto vertexShaderModule = GetShaderModule(renderStepDescriptor->m_vertexShaderName, ShaderType::VertexShader, backend,
+			auto vertexShaderModule = GetShaderModule(renderStepDescriptor->m_vertexShaderName,
+			                                          ShaderType::VertexShader, backend,
 			                                          device);
-			auto fragmentShaderModule = GetShaderModule(renderStepDescriptor->m_fragmentShaderName, ShaderType::FragmentShader,
+			auto fragmentShaderModule = GetShaderModule(renderStepDescriptor->m_fragmentShaderName,
+			                                            ShaderType::FragmentShader,
 			                                            backend, device);
 
 			ShaderStage stage = {};
@@ -106,30 +108,41 @@ namespace Graphics {
 
 			uint32_t maxMultisamplingCount = device->GetMaxUsableSampleCount();
 			uint32_t multisamplingCount = renderStepDescriptor->m_multisamplingCount;
-			if(multisamplingCount > maxMultisamplingCount){
+			if (multisamplingCount > maxMultisamplingCount) {
 				multisamplingCount = maxMultisamplingCount;
-				std::cout<<"Set multisampling count to device limit: "<<maxMultisamplingCount<<std::endl;
+				std::cout << "Set multisampling count to device limit: " << maxMultisamplingCount << std::endl;
 			}
 			rpBuilder->SetMultisamplingCount(multisamplingCount);
 
 			if (renderStepDescriptor->m_depthTestEnabled) {
+
+				PixelFormat depthFormat = PixelFormat::Depth32Float;
+				if (!device->IsFormatSupported(depthFormat))
+					throw std::runtime_error("The selected depth format is not supported by the device!");
+
 				std::optional<StencilAttachment> stencilAttachment = std::nullopt;
+				DepthAttachment depthStencilAttachment;
+				depthStencilAttachment.Format = depthFormat;
+				depthStencilAttachment.DepthLoadOp = LoadOp::Clear,
+				depthStencilAttachment.DepthStoreOp = StoreOp::DontCare,
+				depthStencilAttachment.DepthClearValue = 1.0f;
+				depthStencilAttachment.Stencil = stencilAttachment;
 
 				if (renderStepDescriptor->m_stencilTestEnabled) {
+
+					PixelFormat depthStencilFormat = PixelFormat::Depth32FloatStencil8;
+					if (!device->IsFormatSupported(depthStencilFormat))
+						throw std::runtime_error("The selected depth stencil format is not supported by the device!");
 
 					StencilAttachment stencil = {};
 					stencil.StencilLoadOp = LoadOp::DontCare;
 					stencil.StencilStoreOp = StoreOp::DontCare;
 					stencil.StencilClearValue = 0;
 					stencilAttachment = std::make_optional(stencil);
-				}
 
-				DepthAttachment depthStencilAttachment;
-				depthStencilAttachment.Format = PixelFormat::Depth32Float;
-				depthStencilAttachment.DepthLoadOp = LoadOp::Clear,
-				depthStencilAttachment.DepthStoreOp = StoreOp::DontCare,
-				depthStencilAttachment.DepthClearValue = 1.0f;
-				depthStencilAttachment.Stencil = stencilAttachment;
+					depthStencilAttachment.Stencil = stencilAttachment;
+					depthStencilAttachment.Format = depthStencilFormat;
+				}
 
 				rpBuilder->AddDepthStencilAttachment(depthStencilAttachment);
 			}
@@ -149,7 +162,6 @@ namespace Graphics {
 				descriptorLayouts.push_back(descriptor->GetDescriptorLayout());
 			}
 
-
 			VertexInput vertexInput{};
 			vertexInput.attributeDescriptions = Vertex::GetAttributeDescriptions();
 			vertexInput.bindingDescriptions = Vertex::GetBindingDescriptions();
@@ -165,21 +177,29 @@ namespace Graphics {
 			colorBlendAttachment.alphaBlendOperation = BlendOperation::Add;
 			colorBlendAttachment.colorWriteMask = ColorWriteMask::All;
 
+			bool depthTestEnabled = renderStepDescriptor->m_depthTestEnabled;
+			bool stencilTestEnabled = renderStepDescriptor->m_stencilTestEnabled;
 			DepthStencilState depthStencilState{};
-			depthStencilState.depthTestEnable = true;
-			depthStencilState.depthWriteEnable = true;
-			depthStencilState.depthCompareOp = DepthCompareOperation::Less;
-			depthStencilState.stencilTestEnable = false;
-			depthStencilState.stencilOpState = {};
+			depthStencilState.depthTestEnable = depthTestEnabled;
+			depthStencilState.depthWriteEnable = depthTestEnabled;
+			depthStencilState.depthCompareOp = CompareOperation::Less;
+			depthStencilState.stencilTestEnable = stencilTestEnabled;
+			depthStencilState.stencilFailOp = StencilOpState::Keep;
+			depthStencilState.stencilPassOp = StencilOpState::Replace;
+			depthStencilState.stencilDepthFailOp = StencilOpState::Keep;
+			depthStencilState.stencilCompareOp = CompareOperation::AllTime;
 
 			uint32_t maxMultisamplingCount = device->GetMaxUsableSampleCount();
 			uint32_t multisamplingCount = renderStepDescriptor->m_multisamplingCount;
-			if(multisamplingCount > maxMultisamplingCount){
+			if (multisamplingCount > maxMultisamplingCount) {
 				multisamplingCount = maxMultisamplingCount;
-				std::cout<<"Set multisampling count to device limit: "<<maxMultisamplingCount<<std::endl;
+				std::cout << "Set multisampling count to device limit: " << maxMultisamplingCount << std::endl;
 			}
 
 			JarPipelineBuilder* pipelineBuilder = backend->InitPipelineBuilder();
+			if (depthTestEnabled)
+				pipelineBuilder->SetDepthStencilState(depthStencilState);
+
 			pipelineBuilder->
 					SetShaderStage(shaderStage)->
 					SetRenderPass(renderPass)->
@@ -187,8 +207,7 @@ namespace Graphics {
 					SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
 					SetMultisamplingCount(multisamplingCount)->
 					BindDescriptorLayouts(descriptorLayouts)->
-					SetColorBlendAttachments(colorBlendAttachment)->
-					SetDepthStencilState(depthStencilState);
+					SetColorBlendAttachments(colorBlendAttachment);
 			pipeline = pipelineBuilder->Build(device);
 			delete pipelineBuilder;
 

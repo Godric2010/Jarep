@@ -390,7 +390,7 @@ namespace Graphics {
 		ColorWriteMask colorWriteMask;
 	};
 
-	enum class DepthCompareOperation {
+	enum class CompareOperation {
 		Never,
 		Less,
 		Equal,
@@ -421,9 +421,12 @@ namespace Graphics {
 	struct DepthStencilState {
 		bool depthTestEnable;
 		bool depthWriteEnable;
-		DepthCompareOperation depthCompareOp;
+		CompareOperation depthCompareOp;
 		bool stencilTestEnable;
-		StencilOpState stencilOpState;
+		StencilOpState stencilFailOp;
+		StencilOpState stencilPassOp;
+		StencilOpState stencilDepthFailOp;
+		CompareOperation stencilCompareOp;
 	};
 
 	enum class StageFlags {
@@ -585,6 +588,8 @@ namespace Graphics {
 			virtual void Release() = 0;
 
 			virtual uint32_t GetMaxUsableSampleCount() = 0;
+
+			virtual bool IsFormatSupported(PixelFormat format) = 0;
 	};
 
 #pragma region Backend{
