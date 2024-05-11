@@ -621,7 +621,10 @@ namespace Graphics::Vulkan {
 			VkFramebufferCreateInfo m_framebufferCreateInfo{};
 			VkFramebuffer m_framebuffer;
 			VkExtent2D m_framebufferExtent{};
+			VkRenderPass m_renderPass;
 			std::shared_ptr<VulkanDevice> m_device;
+
+			void buildFramebuffer(std::vector<VkImageView> attachments);
 	};
 
 #pragma endregion VulkanFrambuffer }
@@ -675,10 +678,12 @@ namespace Graphics::Vulkan {
 
 			VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
+			VkFormat m_depthFormat;
 			VkImage m_depthImage;
 			VkDeviceMemory m_depthImageMemory;
 			VkImageView m_depthImageView;
 
+			VkFormat m_colorFormat;
 			VkImage m_colorImage;
 			VkDeviceMemory m_colorImageMemory;
 			VkImageView m_colorImageView;
@@ -686,6 +691,10 @@ namespace Graphics::Vulkan {
 			void createDepthResources(VkExtent2D swapchainExtent, VkFormat depthFormat);
 
 			void createColorResources(VkExtent2D swapchainExtent, VkFormat colorFormat);
+
+			void destroyDepthResources();
+
+			void destroyColorResources();
 	};
 
 

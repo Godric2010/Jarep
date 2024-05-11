@@ -1687,19 +1687,9 @@ namespace Graphics::Vulkan {
 		if (depthImageView != nullptr)
 			attachments.push_back(depthImageView);
 		attachments.push_back(swapchainImageView);
+		m_renderPass = renderPass;
 
-		m_framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		m_framebufferCreateInfo.renderPass = renderPass;
-		m_framebufferCreateInfo.attachmentCount = attachments.size();
-		m_framebufferCreateInfo.pAttachments = attachments.data();
-		m_framebufferCreateInfo.width = m_framebufferExtent.width;
-		m_framebufferCreateInfo.height = m_framebufferExtent.height;
-		m_framebufferCreateInfo.layers = 1;
-
-		if (vkCreateFramebuffer(m_device->getLogicalDevice(), &m_framebufferCreateInfo, nullptr, &m_framebuffer) !=
-		    VK_SUCCESS) {
-			throw std::runtime_error("Failed to create framebuffer");
-		}
+		buildFramebuffer(attachments);
 	}
 
 	void VulkanFramebuffer::RecreateFramebuffer(uint32_t width, uint32_t height, VkImageView swapchainImageView,
@@ -1712,10 +1702,19 @@ namespace Graphics::Vulkan {
 
 		m_framebufferExtent.width = width;
 		m_framebufferExtent.height = height;
+		buildFramebuffer(attachments);
+	}
+
+	void VulkanFramebuffer::buildFramebuffer(std::vector<VkImageView> attachments) {
+
+		m_framebufferCreateInfo = {};
+		m_framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		m_framebufferCreateInfo.renderPass = m_renderPass;
+		m_framebufferCreateInfo.attachmentCount = attachments.size();
+		m_framebufferCreateInfo.pAttachments = attachments.data();
 		m_framebufferCreateInfo.width = m_framebufferExtent.width;
 		m_framebufferCreateInfo.height = m_framebufferExtent.height;
-		m_framebufferCreateInfo.pAttachments = attachments.data();
-		m_framebufferCreateInfo.attachmentCount = attachments.size();
+		m_framebufferCreateInfo.layers = 1;
 
 		if (vkCreateFramebuffer(m_device->getLogicalDevice(), &m_framebufferCreateInfo, nullptr, &m_framebuffer) !=
 		    VK_SUCCESS) {
@@ -1871,6 +1870,7 @@ namespace Graphics::Vulkan {
 	}
 
 	VulkanRenderPassFramebuffers::VulkanRenderPassFramebuffers() {
+		m_depthFormat = VK_FORMAT_UNDEFINED;
 		m_depthImage = nullptr;
 		m_depthImageMemory = nullptr;
 		m_depthImageView = nullptr;
@@ -1888,15 +1888,16 @@ namespace Graphics::Vulkan {
 	                                                                VkSampleCountFlagBits multisamplingCount,
 	                                                                std::optional<VkFormat> depthFormat) {
 		m_device = device;
-		auto imageExtent = surface->getSwapchain()->getSwapchainImageExtent();
-		auto colorFormat = surface->getSwapchain()->getSwapchainImageFormat();
-
+		VkExtent2D imageExtent = surface->getSwapchain()->getSwapchainImageExtent();
+		m_colorFormat = surface->getSwapchain()->getSwapchainImageFormat();
 		m_msaaSamples = multisamplingCount;
 
-		createColorResources(imageExtent, colorFormat);
+		createColorResources(imageExtent, m_colorFormat);
 
-		if (depthFormat.has_value())
-			createDepthResources(imageExtent, depthFormat.value());
+		if (depthFormat.has_value()){
+			m_depthFormat = depthFormat.value();
+			createDepthResources(imageExtent, m_depthFormat);
+		}
 
 		for (const auto& m_swapchainImageView: surface->getSwapchain()->getSwapchainImageViews()) {
 			auto framebuffer = std::make_shared<VulkanFramebuffer>(imageExtent);
@@ -1915,18 +1916,20 @@ namespace Graphics::Vulkan {
 			framebuffer->Release();
 		}
 
-		vkDestroyImageView(m_device->getLogicalDevice(), m_colorImageView, nullptr);
-		vkDestroyImage(m_device->getLogicalDevice(), m_colorImage, nullptr);
-		vkFreeMemory(m_device->getLogicalDevice(), m_colorImageMemory, nullptr);
-
-		vkDestroyImageView(m_device->getLogicalDevice(), m_depthImageView, nullptr);
-		vkFreeMemory(m_device->getLogicalDevice(), m_depthImageMemory, nullptr);
-		vkDestroyImage(m_device->getLogicalDevice(), m_depthImage, nullptr);
+		destroyColorResources();
+		destroyDepthResources();
 	}
 
 	void VulkanRenderPassFramebuffers::RecreateFramebuffers(VkExtent2D swapchainExtent,
 	                                                        std::shared_ptr<VulkanSurface> surface) {
 		auto swapchainImageViews = surface->getSwapchain()->getSwapchainImageViews();
+		Release();
+
+		createColorResources(swapchainExtent, m_colorFormat);
+		if(m_depthFormat != VK_FORMAT_UNDEFINED) {
+			createDepthResources(swapchainExtent, m_depthFormat);
+		}
+
 		for (int i = 0; i < m_framebuffers.size(); ++i) {
 			m_framebuffers[i]->RecreateFramebuffer(swapchainExtent.width, swapchainExtent.height,
 			                                       swapchainImageViews[i], m_depthImageView, m_colorImageView);
@@ -1950,6 +1953,18 @@ namespace Graphics::Vulkan {
 		VulkanImageBuilder::createImageView(m_device, m_colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT,
 		                                    &m_colorImageView, 1);
 
+	}
+
+	void VulkanRenderPassFramebuffers::destroyColorResources() {
+		vkDestroyImageView(m_device->getLogicalDevice(), m_colorImageView, nullptr);
+		vkDestroyImage(m_device->getLogicalDevice(), m_colorImage, nullptr);
+		vkFreeMemory(m_device->getLogicalDevice(), m_colorImageMemory, nullptr);
+	}
+
+	void VulkanRenderPassFramebuffers::destroyDepthResources() {
+		vkDestroyImageView(m_device->getLogicalDevice(), m_depthImageView, nullptr);
+		vkFreeMemory(m_device->getLogicalDevice(), m_depthImageMemory, nullptr);
+		vkDestroyImage(m_device->getLogicalDevice(), m_depthImage, nullptr);
 	}
 
 	VulkanRenderPass::~VulkanRenderPass() = default;

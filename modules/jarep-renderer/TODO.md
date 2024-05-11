@@ -25,7 +25,7 @@ as well as the steps successfully done so far.
     - [x] Enable for Vulkan 
     - [ ] Enable for Metal
   - [ ] Make available depth settings public to the outside 
-    - [ ] Enable for Vulkan
+    - [x] Enable for Vulkan
     - [ ] Enable for Metal
   - [ ] Write high level test for testing the renderer with various settings enabled or disabled
   - [ ] Write high level documantion for the renderer
