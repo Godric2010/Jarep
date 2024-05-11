@@ -41,7 +41,7 @@ namespace Graphics {
 		descriptors.push_back(uboDescriptor);
 
 		auto image = backend->InitImageBuilder()->EnableMipMaps(true)->SetPixelFormat(
-				PixelFormat::BGRA8_UNORM)->SetImagePath(
+				PixelFormat::BGRA8Unorm)->SetImagePath(
 				"../../resources/uv_texture.jpg")->Build(device);
 		images.push_back(image);
 		auto imageDescriptor = backend->InitDescriptorBuilder()->SetBinding(2)->SetStageFlags(

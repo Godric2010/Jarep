@@ -99,7 +99,7 @@ namespace Graphics {
 			colorAttachment.loadOp = LoadOp::Clear;
 			colorAttachment.storeOp = StoreOp::Store;
 			colorAttachment.clearColor = ClearColor(0, 0, 0, 0);
-			colorAttachment.imageFormat = B8G8R8A8_UNORM;
+			colorAttachment.imageFormat = PixelFormat::BGRA8Unorm;
 
 			JarRenderPassBuilder* rpBuilder = backend->InitRenderPassBuilder();
 			rpBuilder->AddColorAttachment(colorAttachment);
@@ -125,7 +125,7 @@ namespace Graphics {
 				}
 
 				DepthAttachment depthStencilAttachment;
-				depthStencilAttachment.Format = ImageFormat::D32_SFLOAT;
+				depthStencilAttachment.Format = PixelFormat::Depth32Float;
 				depthStencilAttachment.DepthLoadOp = LoadOp::Clear,
 				depthStencilAttachment.DepthStoreOp = StoreOp::DontCare,
 				depthStencilAttachment.DepthClearValue = 1.0f;
@@ -155,7 +155,7 @@ namespace Graphics {
 			vertexInput.bindingDescriptions = Vertex::GetBindingDescriptions();
 
 			ColorBlendAttachment colorBlendAttachment{};
-			colorBlendAttachment.pixelFormat = PixelFormat::BGRA8_UNORM;
+			colorBlendAttachment.pixelFormat = PixelFormat::BGRA8Unorm;
 			colorBlendAttachment.sourceRgbBlendFactor = BlendFactor::One;
 			colorBlendAttachment.destinationRgbBlendFactor = BlendFactor::Zero;
 			colorBlendAttachment.rgbBlendOperation = BlendOperation::Add;

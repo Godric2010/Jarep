@@ -40,11 +40,24 @@ namespace Graphics {
 
 	enum class PixelFormat;
 
-	enum ImageFormat {
-		B8G8R8A8_UNORM,
-		D32_SFLOAT,
-		D24_UNORM_S8_UINT,
+	enum class PixelFormat {
+		R8Unorm,
+		RG8Unorm,
+		RGBA8Unorm,
+		BGRA8Unorm,
+		R16Unorm,
+		RG16Unorm,
+		RGBA16Unorm,
+		R32Float,
+		RG32Float,
+		RGBA16Float,
+		RGBA32Float,
+		Depth32Float,
+		Depth24Stencil8,
+		Depth32FloatStencil8,
+		Depth16Unorm,
 	};
+
 #pragma region JarRenderPass{
 
 	enum class StoreOp {
@@ -71,12 +84,12 @@ namespace Graphics {
 
 	struct ColorAttachment {
 		public:
-			ImageFormat imageFormat;
+			PixelFormat imageFormat;
 			LoadOp loadOp;
 			StoreOp storeOp;
 			ClearColor clearColor;
 
-			ColorAttachment() : clearColor(0, 0, 0, 0), imageFormat(ImageFormat::B8G8R8A8_UNORM), loadOp(LoadOp::Clear),
+			ColorAttachment() : clearColor(0, 0, 0, 0), imageFormat(PixelFormat::BGRA8Unorm), loadOp(LoadOp::Clear),
 			                    storeOp(StoreOp::DontCare) {
 			}
 	};
@@ -88,7 +101,7 @@ namespace Graphics {
 	};
 	struct DepthAttachment {
 		public:
-			ImageFormat Format;
+			PixelFormat Format;
 			StoreOp DepthStoreOp;
 			LoadOp DepthLoadOp;
 			float DepthClearValue;
@@ -117,7 +130,8 @@ namespace Graphics {
 
 			virtual void Release() = 0;
 
-			virtual void RecreateRenderPassFramebuffers(uint32_t width, uint32_t height, std::shared_ptr<JarSurface> surface) = 0;
+			virtual void
+			RecreateRenderPassFramebuffers(uint32_t width, uint32_t height, std::shared_ptr<JarSurface> surface) = 0;
 	};
 
 #pragma endregion JarRenderPass }
@@ -330,20 +344,6 @@ namespace Graphics {
 		TriangleStrip,
 	};
 
-	enum class PixelFormat {
-		RGBA8_UNORM,
-		BGRA8_UNORM,
-		RGBA16_FLOAT,
-		RGBA32_FLOAT,
-		DEPTH32_FLOAT,
-		DEPTH24_STENCIL8,
-		R8_UNORM,
-		R16_FLOAT,
-		BC1,
-		BC3,
-		PVRTC,
-	};
-
 	enum class BlendFactor {
 		Zero,
 		One,
@@ -447,7 +447,8 @@ namespace Graphics {
 
 			virtual JarPipelineBuilder* SetMultisamplingCount(uint16_t multisamplingCount) = 0;
 
-			virtual JarPipelineBuilder* BindDescriptorLayouts(std::vector<std::shared_ptr<JarDescriptorLayout>> descriptorLayouts) = 0;
+			virtual JarPipelineBuilder*
+			BindDescriptorLayouts(std::vector<std::shared_ptr<JarDescriptorLayout>> descriptorLayouts) = 0;
 
 			virtual JarPipelineBuilder* SetColorBlendAttachments(ColorBlendAttachment colorBlendAttachments) = 0;
 
@@ -478,7 +479,8 @@ namespace Graphics {
 			virtual JarDescriptorBuilder* SetStageFlags(StageFlags stageFlags) = 0;
 
 			virtual std::shared_ptr<JarDescriptor>
-			BuildUniformBufferDescriptor(std::shared_ptr<JarDevice> device, std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) = 0;
+			BuildUniformBufferDescriptor(std::shared_ptr<JarDevice> device,
+			                             std::vector<std::shared_ptr<JarBuffer>> uniformBuffers) = 0;
 
 			virtual std::shared_ptr<JarDescriptor>
 			BuildImageBufferDescriptor(std::shared_ptr<JarDevice> device, std::shared_ptr<JarImage> image) = 0;
@@ -505,21 +507,21 @@ namespace Graphics {
 #pragma region JarCommandBuffer{
 
 	struct Viewport {
-	public:
-		float x;
-		float y;
-		float width;
-		float height;
-		float minDepth;
-		float maxDepth;
+		public:
+			float x;
+			float y;
+			float width;
+			float height;
+			float minDepth;
+			float maxDepth;
 	};
 
 	struct Scissor {
-	public:
-		int32_t x;
-		int32_t y;
-		uint32_t width;
-		uint32_t height;
+		public:
+			int32_t x;
+			int32_t y;
+			uint32_t width;
+			uint32_t height;
 	};
 
 	class JarCommandBuffer {

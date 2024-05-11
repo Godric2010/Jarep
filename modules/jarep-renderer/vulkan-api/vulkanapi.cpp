@@ -1338,17 +1338,21 @@ namespace Graphics::Vulkan {
 	};
 
 	static std::unordered_map<PixelFormat, VkFormat> pixelFormatMap = {
-			{PixelFormat::RGBA8_UNORM,      VK_FORMAT_R8G8B8A8_UNORM},
-			{PixelFormat::BGRA8_UNORM,      VK_FORMAT_B8G8R8A8_UNORM},
-			{PixelFormat::RGBA16_FLOAT,     VK_FORMAT_R16G16B16A16_SFLOAT},
-			{PixelFormat::RGBA32_FLOAT,     VK_FORMAT_R32G32B32A32_SFLOAT},
-			{PixelFormat::DEPTH32_FLOAT,    VK_FORMAT_D32_SFLOAT},
-			{PixelFormat::DEPTH24_STENCIL8, VK_FORMAT_D24_UNORM_S8_UINT},
-			{PixelFormat::R8_UNORM,         VK_FORMAT_R8_UNORM},
-			{PixelFormat::R16_FLOAT,        VK_FORMAT_R16_SFLOAT},
-			{PixelFormat::BC1,              VK_FORMAT_BC1_RGBA_UNORM_BLOCK},
-			{PixelFormat::BC3,              VK_FORMAT_BC3_UNORM_BLOCK},
-			{PixelFormat::PVRTC,            VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG},
+			{PixelFormat::R8Unorm,              VK_FORMAT_R8_UNORM},
+			{PixelFormat::RG8Unorm,             VK_FORMAT_R8G8_UNORM},
+			{PixelFormat::RGBA8Unorm,           VK_FORMAT_R8G8B8A8_UNORM},
+			{PixelFormat::BGRA8Unorm,           VK_FORMAT_B8G8R8A8_UNORM},
+			{PixelFormat::R16Unorm,             VK_FORMAT_R16_UNORM},
+			{PixelFormat::RG16Unorm,            VK_FORMAT_R16G16_UNORM},
+			{PixelFormat::RGBA16Unorm,          VK_FORMAT_R16G16B16A16_UNORM},
+			{PixelFormat::RGBA16Float,          VK_FORMAT_R16G16B16A16_SFLOAT},
+			{PixelFormat::R32Float,             VK_FORMAT_R32_SFLOAT},
+			{PixelFormat::RG32Float,            VK_FORMAT_R32G32_SFLOAT},
+			{PixelFormat::RGBA32Float,          VK_FORMAT_R32G32B32A32_SFLOAT},
+			{PixelFormat::Depth32Float,         VK_FORMAT_D32_SFLOAT},
+			{PixelFormat::Depth24Stencil8,      VK_FORMAT_D24_UNORM_S8_UINT},
+			{PixelFormat::Depth16Unorm,         VK_FORMAT_D16_UNORM},
+			{PixelFormat::Depth32FloatStencil8, VK_FORMAT_D32_SFLOAT_S8_UINT},
 	};
 
 	static std::unordered_map<InputAssemblyTopology, VkPrimitiveTopology> topologyMap = {
@@ -1738,12 +1742,6 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanRenderPass{
 
-	static std::unordered_map<ImageFormat, VkFormat> imageFormatMap = {
-			{ImageFormat::B8G8R8A8_UNORM,    VK_FORMAT_B8G8R8A8_UNORM},
-			{ImageFormat::D32_SFLOAT,        VK_FORMAT_D32_SFLOAT},
-			{ImageFormat::D24_UNORM_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-	};
-
 	static std::unordered_map<StoreOp, VkAttachmentStoreOp> storeOpMap = {
 			{StoreOp::Store,    VK_ATTACHMENT_STORE_OP_STORE},
 			{StoreOp::DontCare, VK_ATTACHMENT_STORE_OP_DONT_CARE},
@@ -1759,7 +1757,7 @@ namespace Graphics::Vulkan {
 
 	VulkanRenderPassBuilder* VulkanRenderPassBuilder::AddColorAttachment(Graphics::ColorAttachment colorAttachment) {
 		VkAttachmentDescription colorAttachmentDesc{};
-		colorAttachmentDesc.format = imageFormatMap[colorAttachment.imageFormat];
+		colorAttachmentDesc.format = pixelFormatMap[colorAttachment.imageFormat];
 		colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachmentDesc.loadOp = loadOpMap[colorAttachment.loadOp];
 		colorAttachmentDesc.storeOp = storeOpMap[colorAttachment.storeOp];
@@ -1781,7 +1779,7 @@ namespace Graphics::Vulkan {
 	VulkanRenderPassBuilder* VulkanRenderPassBuilder::AddDepthStencilAttachment(
 			Graphics::DepthAttachment depthStencilAttachment) {
 		VkAttachmentDescription depthAttachment{};
-		depthAttachment.format = imageFormatMap[depthStencilAttachment.Format];
+		depthAttachment.format = pixelFormatMap[depthStencilAttachment.Format];
 		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		depthAttachment.loadOp = loadOpMap[depthStencilAttachment.DepthLoadOp];
 		depthAttachment.storeOp = storeOpMap[depthStencilAttachment.DepthStoreOp];
@@ -1879,9 +1877,11 @@ namespace Graphics::Vulkan {
 		}
 
 		auto vulkanRenderPassFramebuffers = std::make_unique<VulkanRenderPassFramebuffers>();
-		vulkanRenderPassFramebuffers->CreateRenderPassFramebuffers(vulkanDevice, vulkanSurface, renderPass, msaaSamples);
+		vulkanRenderPassFramebuffers->CreateRenderPassFramebuffers(vulkanDevice, vulkanSurface, renderPass,
+		                                                           msaaSamples);
 
-		auto vulkanRenderPass = std::make_shared<VulkanRenderPass>(vulkanDevice, renderPass, vulkanRenderPassFramebuffers);
+		auto vulkanRenderPass = std::make_shared<VulkanRenderPass>(vulkanDevice, renderPass,
+		                                                           vulkanRenderPassFramebuffers);
 		return vulkanRenderPass;
 	}
 
