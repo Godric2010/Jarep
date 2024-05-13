@@ -18,15 +18,15 @@ as well as the steps successfully done so far.
   - [x] Add Descriptor Class to the API interface to handle the data for vulkan and metal
 -[x] Render each RenderStep in a separate render pass
 -[ ] Optimize JarRenderer interface
-  - [ ] Make multisampling detection and options available to the outside
+  - [x] Make multisampling detection and options available to the outside
     - [x] Enable for Vulkan
-    - [ ] Enable for Metal
-  - [ ] Make common rasterization settings available to the outside  ![Rasterization Table](file:///home/sebastian/Downloads/RasterizationSettingsTable.md)
+    - [x] Enable for Metal
+  - [x] Make common rasterization settings available to the outside  ![Rasterization Table](file:///home/sebastian/Downloads/RasterizationSettingsTable.md)
     - [x] Enable for Vulkan 
-    - [ ] Enable for Metal
-  - [ ] Make available depth settings public to the outside 
+    - [x] Enable for Metal
+  - [x] Make available depth settings public to the outside 
     - [x] Enable for Vulkan
-    - [ ] Enable for Metal
+    - [x] Enable for Metal
   - [ ] Write high level test for testing the renderer with various settings enabled or disabled
   - [ ] Write high level documantion for the renderer
 
