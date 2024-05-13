@@ -110,7 +110,6 @@ namespace Graphics {
 			uint32_t multisamplingCount = renderStepDescriptor->m_multisamplingCount;
 			if (multisamplingCount > maxMultisamplingCount) {
 				multisamplingCount = maxMultisamplingCount;
-				std::cout << "Set multisampling count to device limit: " << maxMultisamplingCount << std::endl;
 			}
 			rpBuilder->SetMultisamplingCount(multisamplingCount);
 
@@ -193,7 +192,6 @@ namespace Graphics {
 			uint32_t multisamplingCount = renderStepDescriptor->m_multisamplingCount;
 			if (multisamplingCount > maxMultisamplingCount) {
 				multisamplingCount = maxMultisamplingCount;
-				std::cout << "Set multisampling count to device limit: " << maxMultisamplingCount << std::endl;
 			}
 
 			JarPipelineBuilder* pipelineBuilder = backend->InitPipelineBuilder();
