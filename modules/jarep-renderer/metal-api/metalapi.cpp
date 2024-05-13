@@ -9,6 +9,25 @@
 #include "metalapi.hpp"
 
 namespace Graphics::Metal {
+
+	static std::unordered_map<PixelFormat, MTL::PixelFormat> pixelFormatMap{
+			{PixelFormat::R8Unorm,              MTL::PixelFormatR8Unorm},
+			{PixelFormat::RG8Unorm,             MTL::PixelFormatRG8Unorm},
+			{PixelFormat::RGBA8Unorm,           MTL::PixelFormatRGBA8Unorm},
+			{PixelFormat::BGRA8Unorm,           MTL::PixelFormatBGRA8Unorm},
+			{PixelFormat::R16Unorm,             MTL::PixelFormatR16Unorm},
+			{PixelFormat::RG16Unorm,            MTL::PixelFormatRG16Unorm},
+			{PixelFormat::RGBA16Unorm,          MTL::PixelFormatRGBA16Unorm},
+			{PixelFormat::RGBA16Float,          MTL::PixelFormatRGBA16Float},
+			{PixelFormat::R32Float,             MTL::PixelFormatR32Float},
+			{PixelFormat::RG32Float,            MTL::PixelFormatRG32Float},
+			{PixelFormat::RGBA32Float,          MTL::PixelFormatRGBA32Float},
+			{PixelFormat::Depth32Float,         MTL::PixelFormatDepth32Float},
+			{PixelFormat::Depth24Stencil8,      MTL::PixelFormatDepth24Unorm_Stencil8},
+			{PixelFormat::Depth32FloatStencil8, MTL::PixelFormatDepth32Float_Stencil8},
+			{PixelFormat::Depth16Unorm,         MTL::PixelFormatDepth16Unorm}
+	};
+
 #pragma region MetalBackend{
 
 	MetalBackend::MetalBackend() = default;
@@ -85,25 +104,9 @@ namespace Graphics::Metal {
 	void MetalSurface::RecreateSurface(uint32_t width, uint32_t height) {
 		surfaceRect = CGRectMake(0, 0, width, height);
 		layer->setDrawableSize(surfaceRect.size);
-
-		if (m_msaaTexture != nullptr) {
-			m_msaaTexture->release();
-			m_msaaTexture = nullptr;
-		}
-
-		if (m_depthStencilTexture != nullptr) {
-			m_depthStencilTexture->release();
-			m_depthStencilTexture = nullptr;
-		}
-
-		createMsaaTexture();
-		createDepthStencilTexture();
 	}
 
 	void MetalSurface::ReleaseSwapchain() {
-		m_msaaTexture->release();
-		m_depthStencilTexture->release();
-
 	}
 
 	uint32_t MetalSurface::GetSwapchainImageAmount() {
@@ -131,34 +134,10 @@ namespace Graphics::Metal {
 
 		window->setContentView(contentView);
 		SDLSurfaceAdapter::getDrawableFromMetalLayer(layer, &drawable);
-
-		createMsaaTexture();
-		createDepthStencilTexture();
 	}
 
-	void MetalSurface::createMsaaTexture() {
-		MTL::TextureDescriptor* msaaDesc = MTL::TextureDescriptor::alloc()->init();
-		msaaDesc->setTextureType(MTL::TextureType2DMultisample);
-		msaaDesc->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
-		msaaDesc->setWidth(surfaceRect.size.width);
-		msaaDesc->setHeight(surfaceRect.size.height);
-		msaaDesc->setSampleCount(4);
-		msaaDesc->setUsage(MTL::TextureUsageRenderTarget);
-		m_msaaTexture = metalDevice->getDevice().value()->newTexture(msaaDesc);
-
-		msaaDesc->release();
-	}
-
-	void MetalSurface::createDepthStencilTexture() {
-		MTL::TextureDescriptor* depthStencilDesc = MTL::TextureDescriptor::alloc()->init();
-		depthStencilDesc->setTextureType(MTL::TextureType2D);
-		depthStencilDesc->setPixelFormat(MTL::PixelFormatDepth32Float);
-		depthStencilDesc->setWidth(surfaceRect.size.width);
-		depthStencilDesc->setHeight(surfaceRect.size.height);
-		depthStencilDesc->setUsage(MTL::TextureUsageRenderTarget);
-		m_depthStencilTexture = metalDevice->getDevice().value()->newTexture(depthStencilDesc);
-
-		depthStencilDesc->release();
+	MTL::PixelFormat MetalSurface::getDrawablePixelFormat() const {
+		return drawable->texture()->pixelFormat();
 	}
 
 #pragma endregion MetalSurface }
@@ -178,6 +157,35 @@ namespace Graphics::Metal {
 	void MetalDevice::Release() {
 		if (!_device.has_value()) return;
 		_device.value()->release();
+	}
+
+	uint32_t MetalDevice::GetMaxUsableSampleCount() {
+		MTL::Device* device = _device.value();
+		std::vector<uint32_t> possibleSampleCounts = {64, 32, 16, 8, 4, 2};
+		for (const auto sampleCount: possibleSampleCounts) {
+			if (device->supportsTextureSampleCount(sampleCount))
+				return sampleCount;
+		}
+		return 1;
+	}
+
+	bool MetalDevice::IsFormatSupported(Graphics::PixelFormat format) {
+		MTL::TextureDescriptor* descriptor = MTL::TextureDescriptor::alloc()->init();
+		descriptor->setTextureType(MTL::TextureType2D);
+		descriptor->setPixelFormat(pixelFormatMap[format]);
+		descriptor->setWidth(1);  // Minimum size
+		descriptor->setHeight(1);
+		descriptor->setDepth(1);
+		descriptor->setStorageMode(MTL::StorageModePrivate);
+		descriptor->setUsage(MTL::TextureUsageRenderTarget);
+
+		MTL::Texture* testTexture = _device.value()->newTexture(descriptor);
+		bool isSupported = (testTexture != nullptr);
+		if (testTexture) {
+			testTexture->release();  // Clean up
+		}
+		descriptor->release();
+		return isSupported;
 	}
 
 #pragma endregion MetalDevice }
@@ -239,7 +247,11 @@ namespace Graphics::Metal {
 	void MetalCommandBuffer::BindPipeline(std::shared_ptr<Graphics::JarPipeline> pipeline, uint32_t frameIndex) {
 		auto metalPipeline = reinterpret_cast<MetalPipeline*>(pipeline.get());
 		encoder->setRenderPipelineState(metalPipeline->getPSO());
-		encoder->setDepthStencilState(metalPipeline->getDSS());
+
+		auto depthStencilState = metalPipeline->getDSS();
+		if (depthStencilState.has_value())
+			encoder->setDepthStencilState(depthStencilState.value());
+
 		encoder->setFrontFacingWinding(MTL::Winding::WindingCounterClockwise);
 		encoder->setCullMode(MTL::CullMode::CullModeBack);
 	}
@@ -259,6 +271,31 @@ namespace Graphics::Metal {
 	void MetalCommandBuffer::BindIndexBuffer(std::shared_ptr<JarBuffer> jarBuffer) {
 		std::shared_ptr<MetalBuffer> metalBuffer = reinterpret_cast<std::shared_ptr<MetalBuffer>&>(jarBuffer);
 		indexBuffer = metalBuffer;
+	}
+
+	void MetalCommandBuffer::SetDepthBias(Graphics::DepthBias depthBias) {
+		encoder->setDepthBias(depthBias.DepthBiasConstantFactor, depthBias.DepthBiasClamp,
+		                      depthBias.DepthBiasSlopeFactor);
+	}
+
+	void MetalCommandBuffer::SetViewport(Graphics::Viewport viewport) {
+		auto metalViewport = MTL::Viewport();
+		metalViewport.height = viewport.height;
+		metalViewport.width = viewport.width;
+		metalViewport.originX = viewport.x;
+		metalViewport.originY = viewport.y;
+		metalViewport.znear = viewport.minDepth;
+		metalViewport.zfar = viewport.maxDepth;
+		encoder->setViewport(metalViewport);
+	}
+
+	void MetalCommandBuffer::SetScissor(Graphics::Scissor scissor) {
+		auto metalScissor = MTL::ScissorRect();
+		metalScissor.x = scissor.x;
+		metalScissor.y = scissor.y;
+		metalScissor.width = scissor.width;
+		metalScissor.height = scissor.height;
+		encoder->setScissorRect(metalScissor);
 	}
 
 	void MetalCommandBuffer::DrawIndexed(size_t indexAmount) {
@@ -296,7 +333,6 @@ namespace Graphics::Metal {
 	JarRenderPassBuilder* MetalRenderPassBuilder::AddColorAttachment(Graphics::ColorAttachment colorAttachment) {
 		m_colorAttachment = std::make_optional(colorAttachment);
 
-
 		MTL::RenderPassColorAttachmentDescriptor* cd = m_renderPassDescriptor->colorAttachments()->object(0);
 		cd->setLoadAction(loadActionToMetal(colorAttachment.loadOp));
 		cd->setClearColor(clearColorToMetal(colorAttachment.clearColor));
@@ -312,10 +348,13 @@ namespace Graphics::Metal {
 		depthAttachment->setClearDepth(depthStencilAttachment.DepthClearValue);
 		depthAttachment->setStoreAction(storeActionToMetal(depthStencilAttachment.DepthStoreOp));
 
-		useDepthAttachment = true;
-
+		m_depthStencilFormat = std::make_optional(pixelFormatMap[depthStencilAttachment.Format]);
 		return this;
+	}
 
+	JarRenderPassBuilder* MetalRenderPassBuilder::SetMultisamplingCount(uint8_t multisamplingCount) {
+		m_multisamplingCount = std::make_optional(multisamplingCount);
+		return this;
 	}
 
 	std::shared_ptr<JarRenderPass>
@@ -324,27 +363,97 @@ namespace Graphics::Metal {
 			throw std::exception();
 
 		auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
+		auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
+		auto renderPassImages = new MetalRenderPassImages(metalDevice);
+
+		renderPassImages->CreateRenderPassImages(metalSurface->GetSurfaceExtent().Width,
+		                                         metalSurface->GetSurfaceExtent().Height,
+		                                         m_multisamplingCount.value(),
+		                                         metalSurface->getDrawablePixelFormat(),
+		                                         m_depthStencilFormat);
 
 		auto colorAttachmentDesc = m_renderPassDescriptor->colorAttachments()->object(0);
-		colorAttachmentDesc->setTexture(metalSurface->getMSAATexture());
+		colorAttachmentDesc->setTexture(renderPassImages->getMSAATexture());
 		colorAttachmentDesc->setResolveTexture(metalSurface->getDrawable()->texture());
 		colorAttachmentDesc->setStoreAction(MTL::StoreActionMultisampleResolve);
 
-		if (useDepthAttachment)
-			m_renderPassDescriptor->depthAttachment()->setTexture(metalSurface->getDepthStencilTexture());
-		return std::make_shared<MetalRenderPass>(m_renderPassDescriptor);
+		if (m_depthStencilFormat.has_value())
+			m_renderPassDescriptor->depthAttachment()->setTexture(renderPassImages->getDepthStencilTexture());
+		return std::make_shared<MetalRenderPass>(m_renderPassDescriptor, renderPassImages);
 	}
 
-	MetalRenderPass::~MetalRenderPass() =
-	default;
+	void MetalRenderPassImages::CreateRenderPassImages(uint32_t width, uint32_t height, uint8_t multisamplingCount,
+	                                                   MTL::PixelFormat colorFormat,
+	                                                   std::optional<MTL::PixelFormat> depthStencilFormat) {
+		m_multisamplingCount = multisamplingCount;
+		createMSAATexture(width, height, colorFormat, multisamplingCount);
+		if (depthStencilFormat.has_value()) {
+			m_depthStencilFormat = depthStencilFormat.value();
+			createDepthStencilTexture(width, height, depthStencilFormat.value(), m_multisamplingCount);
+		}
+
+	}
+
+	void MetalRenderPassImages::RecreateRenderPassImages(uint32_t width, uint32_t height, MTL::PixelFormat msaaFormat) {
+		m_msaaTexture->release();
+		m_depthStencilTexture->release();
+		createMSAATexture(width, height, msaaFormat, m_multisamplingCount);
+		if (m_depthStencilTexture != nullptr)
+			createDepthStencilTexture(width, height, m_depthStencilFormat, m_multisamplingCount);
+	}
+
+	void MetalRenderPassImages::Release() {
+		m_msaaTexture->release();
+		if (m_depthStencilTexture != nullptr)
+			m_depthStencilTexture->release();
+	}
+
+	void MetalRenderPassImages::createMSAATexture(uint32_t width, uint32_t height, MTL::PixelFormat format,
+	                                              uint8_t multisamplingCount) {
+		MTL::TextureDescriptor* msaaDesc = MTL::TextureDescriptor::alloc()->init();
+		msaaDesc->setTextureType(MTL::TextureType2DMultisample);
+		msaaDesc->setPixelFormat(format);
+		msaaDesc->setWidth(width);
+		msaaDesc->setHeight(height);
+		msaaDesc->setSampleCount(multisamplingCount);
+		msaaDesc->setUsage(MTL::TextureUsageRenderTarget);
+		m_msaaTexture = m_device->getDevice().value()->newTexture(msaaDesc);
+
+		msaaDesc->release();
+	}
+
+	void MetalRenderPassImages::createDepthStencilTexture(uint32_t width, uint32_t height, MTL::PixelFormat format,
+	                                                      uint8_t multisamplingCount) {
+		MTL::TextureDescriptor* depthStencilDesc = MTL::TextureDescriptor::alloc()->init();
+		depthStencilDesc->setTextureType(MTL::TextureType2DMultisample);
+		depthStencilDesc->setPixelFormat(format);
+		depthStencilDesc->setWidth(width);
+		depthStencilDesc->setHeight(height);
+		depthStencilDesc->setUsage(MTL::TextureUsageRenderTarget);
+		depthStencilDesc->setSampleCount(multisamplingCount);
+		m_depthStencilTexture = m_device->getDevice().value()->newTexture(depthStencilDesc);
+
+		depthStencilDesc->release();
+	}
+
+	MetalRenderPass::~MetalRenderPass() = default;
 
 	void MetalRenderPass::Release() {
+		renderPassImages->Release();
+	}
+
+	void MetalRenderPass::RecreateRenderPassFramebuffers(uint32_t width, uint32_t height,
+	                                                     std::shared_ptr<JarSurface> surface) {
+		auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
+		renderPassImages->RecreateRenderPassImages(width, height, metalSurface->getDrawablePixelFormat());
+		renderPassDesc->colorAttachments()->object(0)->setTexture(renderPassImages->getMSAATexture());
+		renderPassDesc->depthAttachment()->setTexture(renderPassImages->getDepthStencilTexture());
 	}
 
 	void MetalRenderPass::UpdateRenderPassDescriptor(std::shared_ptr<MetalSurface> metalSurface) {
-		renderPassDesc->colorAttachments()->object(0)->setTexture(metalSurface->getMSAATexture());
+		renderPassDesc->colorAttachments()->object(0)->setTexture(renderPassImages->getMSAATexture());
 		renderPassDesc->colorAttachments()->object(0)->setResolveTexture(metalSurface->getDrawable()->texture());
-		renderPassDesc->depthAttachment()->setTexture(metalSurface->getDepthStencilTexture());
+		renderPassDesc->depthAttachment()->setTexture(renderPassImages->getDepthStencilTexture());
 	}
 
 #pragma endregion MetalRenderPass }
@@ -511,19 +620,6 @@ namespace Graphics::Metal {
 			{InputAssemblyTopology::TriangleStrip, MTL::PrimitiveTopologyClassTriangle},
 	};
 
-	static std::unordered_map<PixelFormat, MTL::PixelFormat> pixelFormatMap{
-			{PixelFormat::BC1,              MTL::PixelFormatBC1_RGBA},
-			{PixelFormat::BC3,              MTL::PixelFormatBC3_RGBA},
-			{PixelFormat::BGRA8_UNORM,      MTL::PixelFormat::PixelFormatBGRA8Unorm},
-			{PixelFormat::RGBA8_UNORM,      MTL::PixelFormatRGBA8Unorm},
-			{PixelFormat::DEPTH24_STENCIL8, MTL::PixelFormatDepth24Unorm_Stencil8},
-			{PixelFormat::DEPTH32_FLOAT,    MTL::PixelFormatDepth32Float},
-			{PixelFormat::PVRTC,            MTL::PixelFormatPVRTC_RGBA_4BPP},
-			{PixelFormat::RGBA16_FLOAT,     MTL::PixelFormatRGBA16Float},
-			{PixelFormat::RGBA32_FLOAT,     MTL::PixelFormatRGBA32Float},
-			{PixelFormat::R16_FLOAT,        MTL::PixelFormatR16Float},
-			{PixelFormat::R8_UNORM,         MTL::PixelFormatR8Unorm}
-	};
 
 	static std::unordered_map<BlendFactor, MTL::BlendFactor> blendFactorMap{
 			{BlendFactor::Zero,                  MTL::BlendFactorZero},
@@ -550,15 +646,15 @@ namespace Graphics::Metal {
 			{BlendOperation::Max,             MTL::BlendOperationMax},
 	};
 
-	static std::unordered_map<DepthCompareOperation, MTL::CompareFunction> depthCompareMap{
-			{DepthCompareOperation::Never,        MTL::CompareFunctionNever},
-			{DepthCompareOperation::Less,         MTL::CompareFunctionLess},
-			{DepthCompareOperation::LessEqual,    MTL::CompareFunctionLessEqual},
-			{DepthCompareOperation::Equal,        MTL::CompareFunctionEqual},
-			{DepthCompareOperation::Greater,      MTL::CompareFunctionGreater},
-			{DepthCompareOperation::GreaterEqual, MTL::CompareFunctionGreaterEqual},
-			{DepthCompareOperation::NotEqual,     MTL::CompareFunctionNotEqual},
-			{DepthCompareOperation::AllTime,      MTL::CompareFunctionAlways}
+	static std::unordered_map<CompareOperation, MTL::CompareFunction> depthCompareMap{
+			{CompareOperation::Never,        MTL::CompareFunctionNever},
+			{CompareOperation::Less,         MTL::CompareFunctionLess},
+			{CompareOperation::LessEqual,    MTL::CompareFunctionLessEqual},
+			{CompareOperation::Equal,        MTL::CompareFunctionEqual},
+			{CompareOperation::Greater,      MTL::CompareFunctionGreater},
+			{CompareOperation::GreaterEqual, MTL::CompareFunctionGreaterEqual},
+			{CompareOperation::NotEqual,     MTL::CompareFunctionNotEqual},
+			{CompareOperation::AllTime,      MTL::CompareFunctionAlways}
 	};
 
 	static std::unordered_map<StencilOpState, MTL::StencilOperation> stencilOpMap{
@@ -576,8 +672,9 @@ namespace Graphics::Metal {
 	default;
 
 	MetalPipelineBuilder* MetalPipelineBuilder::SetShaderStage(ShaderStage shaderStage) {
-		const auto mainFunc = (shaderStage.mainFunctionName + "0").c_str();
-		NS::String* mainFuncName = NS::String::string(mainFunc, NS::StringEncoding::ASCIIStringEncoding);
+		std::string shaderMainFuncName = shaderStage.mainFunctionName + "0";
+		NS::String* mainFuncName = NS::String::string(shaderMainFuncName.c_str(),
+		                                              NS::StringEncoding::ASCIIStringEncoding);
 
 		const auto metalVertexShaderModule = reinterpret_cast<std::shared_ptr<MetalShaderLibrary>&>(shaderStage.
 				vertexShaderModule);
@@ -664,9 +761,9 @@ namespace Graphics::Metal {
 		if (depthStencilState.stencilTestEnable) {
 			m_stencilDescriptor = MTL::StencilDescriptor::alloc()->init();
 			m_stencilDescriptor->setStencilCompareFunction(depthCompareMap[depthStencilState.depthCompareOp]);
-			m_stencilDescriptor->setStencilFailureOperation(stencilOpMap[depthStencilState.stencilOpState]);
-			m_stencilDescriptor->setDepthFailureOperation(stencilOpMap[depthStencilState.stencilOpState]);
-			m_stencilDescriptor->setDepthStencilPassOperation(stencilOpMap[depthStencilState.stencilOpState]);
+			m_stencilDescriptor->setStencilFailureOperation(stencilOpMap[depthStencilState.stencilFailOp]);
+			m_stencilDescriptor->setDepthFailureOperation(stencilOpMap[depthStencilState.stencilDepthFailOp]);
+			m_stencilDescriptor->setDepthStencilPassOperation(stencilOpMap[depthStencilState.stencilPassOp]);
 
 			m_depthStencilDescriptor->setFrontFaceStencil(m_stencilDescriptor);
 			m_depthStencilDescriptor->setBackFaceStencil(m_stencilDescriptor);
@@ -703,13 +800,15 @@ namespace Graphics::Metal {
 			                         std::string(error->localizedDescription()->utf8String()));
 		}
 
-		MTL::DepthStencilState* depthStencilState = nullptr;
+		std::optional<MTL::DepthStencilState*> depthStencilState = std::nullopt;
 		if (m_depthStencilDescriptor) {
-			depthStencilState = metalDevice->getDevice().value()->newDepthStencilState(m_depthStencilDescriptor);
+			depthStencilState = std::make_optional(metalDevice->getDevice().value()->
+					newDepthStencilState(m_depthStencilDescriptor));
 		}
 
-		auto metalPipeline = std::make_shared<MetalPipeline>(mtlDevice, pipelineState, depthStencilState,
-		                                                     m_renderPass);
+		std::shared_ptr<MetalPipeline> metalPipeline = std::make_shared<MetalPipeline>(mtlDevice, pipelineState,
+		                                                                               depthStencilState,
+		                                                                               m_renderPass);
 		return metalPipeline;
 	}
 

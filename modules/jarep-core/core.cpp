@@ -21,7 +21,7 @@ namespace Core {
 		renderStepDescriptor->m_vertexShaderName = std::string("triangle_vert");
 		renderStepDescriptor->m_fragmentShaderName = "triangle_frag";
 		renderStepDescriptor->m_depthTestEnabled = true;
-		renderStepDescriptor->m_stencilTestEnabled = true;
+		renderStepDescriptor->m_stencilTestEnabled = false;
 		renderStepDescriptor->m_multisamplingCount = 64;
 		window->getRenderer()->AddRenderStep(std::move(renderStepDescriptor));
 	}

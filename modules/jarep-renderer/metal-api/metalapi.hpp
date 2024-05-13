@@ -29,6 +29,13 @@ namespace Graphics::Metal {
 
 	class MetalImage;
 
+	class MetalRenderPassBuilder;
+
+	class MetalRenderPass;
+
+	class MetalCommandBuffer;
+
+
 	class MetalSurface final : public JarSurface {
 		public:
 			MetalSurface();
@@ -47,13 +54,11 @@ namespace Graphics::Metal {
 
 			void FinalizeSurface(std::shared_ptr<MetalDevice> device);
 
+			MTL::PixelFormat getDrawablePixelFormat() const;
+
 			[[nodiscard]] CA::MetalDrawable* getDrawable() const { return drawable; }
 
 			[[nodiscard]] bool isSurfaceInitialized() const { return contentView != nullptr; }
-
-			MTL::Texture* getDepthStencilTexture() const { return m_depthStencilTexture; }
-
-			MTL::Texture* getMSAATexture() const { return m_msaaTexture; }
 
 			MTL::Texture* acquireNewDrawTexture() {
 				drawable = layer->nextDrawable();
@@ -67,14 +72,7 @@ namespace Graphics::Metal {
 			CGRect surfaceRect;
 			CA::MetalLayer* layer;
 			CA::MetalDrawable* drawable;
-			MTL::Texture* m_msaaTexture;
-			MTL::Texture* m_depthStencilTexture;
 			uint32_t maxSwapchainImageCount;
-
-
-			void createMsaaTexture();
-
-			void createDepthStencilTexture();
 	};
 
 #pragma region MetalRenderPass{
@@ -89,13 +87,16 @@ namespace Graphics::Metal {
 
 			JarRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) override;
 
+			JarRenderPassBuilder* SetMultisamplingCount(uint8_t multisamplingCount) override;
+
 			std::shared_ptr<JarRenderPass>
 			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) override;
 
 		private:
 			MTL::RenderPassDescriptor* m_renderPassDescriptor;
 			std::optional<ColorAttachment> m_colorAttachment;
-			bool useDepthAttachment;
+			std::optional<MTL::PixelFormat> m_depthStencilFormat;
+			std::optional<uint8_t> m_multisamplingCount;
 
 			static MTL::StoreAction storeActionToMetal(const StoreOp storeOp) {
 				switch (storeOp) {
@@ -124,14 +125,40 @@ namespace Graphics::Metal {
 			}
 	};
 
+	class MetalRenderPassImages{
+		public:
+			MetalRenderPassImages(std::shared_ptr<MetalDevice> device): m_device(std::move(device)), m_msaaTexture(nullptr), m_depthStencilTexture(nullptr), m_multisamplingCount(1) {}
+			~MetalRenderPassImages() = default;
+
+			void CreateRenderPassImages(uint32_t width, uint32_t height, uint8_t multisamplingCount, MTL::PixelFormat msaaFormat, std::optional<MTL::PixelFormat> depthStencilFormat);
+			void RecreateRenderPassImages(uint32_t width, uint32_t height, MTL::PixelFormat msaaFormat);
+
+			void Release();
+
+			[[nodiscard]] MTL::Texture* getMSAATexture() const { return m_msaaTexture; }
+			[[nodiscard]] MTL::Texture* getDepthStencilTexture() const { return m_depthStencilTexture; }
+
+		private:
+			MTL::Texture* m_msaaTexture;
+			MTL::Texture* m_depthStencilTexture;
+			MTL::PixelFormat m_depthStencilFormat;
+			uint8_t m_multisamplingCount;
+			std::shared_ptr<MetalDevice> m_device;
+
+			void createMSAATexture(uint32_t width, uint32_t height,MTL::PixelFormat format, uint8_t multisamplingCount);
+			void createDepthStencilTexture(uint32_t width, uint32_t height, MTL::PixelFormat format, uint8_t multisamplingCount);
+	};
+
 	class MetalRenderPass final : public JarRenderPass {
 		public:
-			explicit MetalRenderPass(MTL::RenderPassDescriptor* rpd) : renderPassDesc(rpd) {
+			explicit MetalRenderPass(MTL::RenderPassDescriptor* rpd, MetalRenderPassImages* renderPassImages) : renderPassDesc(rpd), renderPassImages(renderPassImages) {
 			}
 
 			~MetalRenderPass() override;
 
 			void Release() override;
+
+			void RecreateRenderPassFramebuffers(uint32_t width, uint32_t height, std::shared_ptr<JarSurface> metalSurface) override;
 
 			[[nodiscard]] MTL::RenderPassDescriptor* getRenderPassDesc() const { return renderPassDesc; }
 
@@ -139,6 +166,7 @@ namespace Graphics::Metal {
 
 		private:
 			MTL::RenderPassDescriptor* renderPassDesc;
+			MetalRenderPassImages* renderPassImages;
 	};
 
 #pragma endregion MetalRenderPass }
@@ -163,6 +191,12 @@ namespace Graphics::Metal {
 			void BindVertexBuffer(std::shared_ptr<JarBuffer> jarBuffer) override;
 
 			void BindIndexBuffer(std::shared_ptr<JarBuffer> jarBuffer) override;
+
+			void SetDepthBias(DepthBias depthBias) override;
+
+			void SetViewport(Viewport viewport) override;
+
+			void SetScissor(Scissor scissor) override;
 
 			void Draw() override;
 
@@ -222,6 +256,10 @@ namespace Graphics::Metal {
 			void Initialize();
 
 			void Release() override;
+
+			uint32_t GetMaxUsableSampleCount() override;
+
+			bool IsFormatSupported(PixelFormat format) override;
 
 			[[nodiscard]] std::optional<MTL::Device*> getDevice() const;
 
@@ -456,7 +494,7 @@ namespace Graphics::Metal {
 	class MetalPipeline final : public JarPipeline {
 		public:
 			MetalPipeline(MTL::Device* device, MTL::RenderPipelineState* pipelineState,
-			              MTL::DepthStencilState* depthStencilState, std::shared_ptr<JarRenderPass> renderPass) :
+			              std::optional<MTL::DepthStencilState*> depthStencilState, std::shared_ptr<JarRenderPass> renderPass) :
 					m_device(device), m_pipelineState(pipelineState),
 					m_depthStencilState(depthStencilState), m_renderPass(std::move(renderPass)) {};
 
@@ -468,11 +506,11 @@ namespace Graphics::Metal {
 
 			MTL::RenderPipelineState* getPSO() { return m_pipelineState; }
 
-			MTL::DepthStencilState* getDSS() { return m_depthStencilState; }
+			std::optional<MTL::DepthStencilState*> getDSS() { return m_depthStencilState; }
 
 		private:
 			MTL::RenderPipelineState* m_pipelineState;
-			MTL::DepthStencilState* m_depthStencilState;
+			std::optional<MTL::DepthStencilState*> m_depthStencilState;
 			MTL::Device* m_device;
 			std::shared_ptr<JarRenderPass> m_renderPass;
 			std::vector<MetalImageDescriptorContent> m_textureDescriptorBindings;
