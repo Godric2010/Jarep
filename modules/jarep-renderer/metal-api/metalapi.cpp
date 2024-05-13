@@ -646,7 +646,7 @@ namespace Graphics::Metal {
 			{BlendOperation::Max,             MTL::BlendOperationMax},
 	};
 
-	static std::unordered_map<CompareOperation, MTL::CompareFunction> depthCompareMap{
+	static std::unordered_map<CompareOperation, MTL::CompareFunction> compareFuncMap{
 			{CompareOperation::Never,        MTL::CompareFunctionNever},
 			{CompareOperation::Less,         MTL::CompareFunctionLess},
 			{CompareOperation::LessEqual,    MTL::CompareFunctionLessEqual},
@@ -752,7 +752,7 @@ namespace Graphics::Metal {
 		m_depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
 
 		if (depthStencilState.depthTestEnable) {
-			m_depthStencilDescriptor->setDepthCompareFunction(depthCompareMap[depthStencilState.depthCompareOp]);
+			m_depthStencilDescriptor->setDepthCompareFunction(compareFuncMap[depthStencilState.depthCompareOp]);
 			m_depthStencilDescriptor->setDepthWriteEnabled(depthStencilState.depthWriteEnable);
 		} else {
 			m_depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionAlways);
@@ -760,10 +760,12 @@ namespace Graphics::Metal {
 
 		if (depthStencilState.stencilTestEnable) {
 			m_stencilDescriptor = MTL::StencilDescriptor::alloc()->init();
-			m_stencilDescriptor->setStencilCompareFunction(depthCompareMap[depthStencilState.depthCompareOp]);
+			m_stencilDescriptor->setStencilCompareFunction(compareFuncMap[depthStencilState.stencilCompareOp]);
 			m_stencilDescriptor->setStencilFailureOperation(stencilOpMap[depthStencilState.stencilFailOp]);
 			m_stencilDescriptor->setDepthFailureOperation(stencilOpMap[depthStencilState.stencilDepthFailOp]);
 			m_stencilDescriptor->setDepthStencilPassOperation(stencilOpMap[depthStencilState.stencilPassOp]);
+			m_stencilDescriptor->setReadMask(0xFF);
+			m_stencilDescriptor->setWriteMask(0xFF);
 
 			m_depthStencilDescriptor->setFrontFaceStencil(m_stencilDescriptor);
 			m_depthStencilDescriptor->setBackFaceStencil(m_stencilDescriptor);
