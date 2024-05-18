@@ -6,8 +6,8 @@ add_library(METAL_CPP
 
 # Metal cpp headers
 target_include_directories(METAL_CPP PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/metal-cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/metal-cpp-extensions"
+        "metal-cpp"
+        "metal-cpp-extensions"
 )
 
 # Metal cpp library (linker)

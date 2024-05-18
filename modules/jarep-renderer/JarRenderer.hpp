@@ -11,15 +11,15 @@
 #include <fstream>
 #include <utility>
 #include <vector>
-#include "IRenderAPI.hpp"
-#include "JarRenderStep.hpp"
-#include "NativeWindowHandleProvider.hpp"
-#include "metal-api/metalapi.hpp"
-#include "vulkan-api/vulkanapi.hpp"
-#include "Vertex.hpp"
-#include "Mesh.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "Mesh.hpp"
+#include "Vertex.hpp"
+#include "JarRenderStep.hpp"
+#include "metal-api/metalapi.hpp"
+#include "vulkan-api/vulkanapi.hpp"
+#include "IRenderAPI.hpp"
+
 
 namespace Graphics {
 

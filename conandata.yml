@@ -2,6 +2,7 @@
 # To keep your changes, remove these comment lines, but the plugin won't be able to modify your requirements
 
 requirements:
+  - "trompeloeil/47"
   - "stb/cci.20230920"
   - "glm/cci.20230113"
   - "vulkan-loader/1.3.243.0"

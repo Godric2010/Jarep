@@ -1,43 +1,20 @@
 cmake_minimum_required(VERSION 3.25)
 
-
 set(SOURCE_FILES JarRenderer.cpp
-        NativeWindowHandleProvider.hpp
         Vertex.hpp
-        vulkan-api/sdlsurfaceadapter.cpp
-        vulkan-api/sdlsurfaceadapter.hpp
         Mesh.hpp
-        stb_impl.cpp
         JarRenderStep.cpp
         JarRenderStep.hpp
 )
 
-if(APPLE)
-    list(APPEND SOURCE_FILES metal-api/metalapi.cpp metal-api/sdlsurfaceadapter.hpp metal-api/sdlsurfaceadapter.mm)
-elseif (UNIX OR WIN32 OR WIN64)
-    list(APPEND SOURCE_FILES vulkan-api/vulkanapi.hpp vulkan-api/vulkanapi.cpp vulkan-api/sdlsurfaceadapter.hpp vulkan-api/sdlsurfaceadapter.cpp)
-endif ()
 
 
+add_subdirectory(API)
 add_library(JAREP_RENDERER JarRenderer.hpp ${SOURCE_FILES})
-
-if(APPLE)
-    add_subdirectory(metal-api/metal)
-    target_link_libraries(JAREP_RENDERER PUBLIC METAL_CPP)
-elseif (UNIX OR WIN32 OR WIN64)
-    find_package(Vulkan REQUIRED)
-    target_link_libraries(JAREP_RENDERER PUBLIC Vulkan::Vulkan)
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        add_definitions(-DENABLE_VALIDATION_LAYERS)
-    endif ()
-endif ()
+target_link_libraries(JAREP_RENDERER PUBLIC JAREP_RENDERER_API)
 
 find_package(glm)
 target_link_libraries(JAREP_RENDERER PUBLIC glm::glm)
-
-find_package(stb)
-target_link_libraries(JAREP_RENDERER PUBLIC stb::stb)
-
 
 set(PublicHeaders JarRenderer.hpp)
 set_target_properties(JAREP_RENDERER PROPERTIES PUBLIC_HEADERS "${PublicHeaders}")

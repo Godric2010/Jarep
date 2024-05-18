@@ -4,6 +4,7 @@
 
 #include "JarRenderer.hpp"
 
+
 namespace Graphics {
 	JarRenderer::JarRenderer(const std::vector<const char*>& extensionNames) {
 		extensions = extensionNames;
