@@ -13,7 +13,7 @@
 #include <vector>
 #include <optional>
 
-#include "stb_image.h"
+#include <stb_image.h>
 
 namespace Graphics {
 	class JarDevice;

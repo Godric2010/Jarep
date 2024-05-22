@@ -6,7 +6,7 @@
 #define JAREP_VERTEX_HPP
 
 #include <glm/glm.hpp>
-#include "IRenderAPI.hpp"
+#include "API/src/IRendererAPI/IRenderAPI.hpp"
 
 namespace Graphics {
 
