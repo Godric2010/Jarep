@@ -192,27 +192,6 @@ namespace Graphics::Metal {
 
 #pragma region MetalCommandQueue {
 
-	MetalCommandQueueBuilder::~MetalCommandQueueBuilder() = default;
-
-	MetalCommandQueueBuilder* MetalCommandQueueBuilder::SetCommandBufferAmount(uint32_t commandBufferAmount) {
-		m_amountOfCommandBuffers = std::make_optional(commandBufferAmount);
-		return this;
-	}
-
-	std::shared_ptr<JarCommandQueue> MetalCommandQueueBuilder::Build(std::shared_ptr<JarDevice> device) {
-		const auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
-
-		uint32_t commandBuffersCount;
-		if (m_amountOfCommandBuffers.has_value())
-			commandBuffersCount = m_amountOfCommandBuffers.value();
-		else
-			commandBuffersCount = DEFAULT_COMMAND_BUFFER_COUNT;
-
-		const auto amountOfCommandBuffers = static_cast<NS::UInteger>(commandBuffersCount);
-		auto commandQueue = metalDevice->getDevice().value()->newCommandQueue(amountOfCommandBuffers);
-		return std::make_shared<MetalCommandQueue>(commandQueue);
-	}
-
 	MetalCommandQueue::~MetalCommandQueue() = default;
 
 	JarCommandBuffer* MetalCommandQueue::getNextCommandBuffer() {

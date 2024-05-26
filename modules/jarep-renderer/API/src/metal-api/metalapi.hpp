@@ -20,6 +20,7 @@
 #include <functional>
 #include <fstream>
 #include <utility>
+#include "MetalCommandQueueBuilder.hpp"
 
 namespace Graphics::Metal {
 
@@ -215,21 +216,6 @@ namespace Graphics::Metal {
 
 #pragma region CommandQueue{
 
-	class MetalCommandQueueBuilder final : public JarCommandQueueBuilder {
-		public:
-			MetalCommandQueueBuilder() = default;
-
-			~MetalCommandQueueBuilder() override;
-
-			MetalCommandQueueBuilder* SetCommandBufferAmount(uint32_t commandBufferAmount) override;
-
-			std::shared_ptr<JarCommandQueue> Build(std::shared_ptr<JarDevice> device) override;
-
-		private:
-			std::optional<uint32_t> m_amountOfCommandBuffers;
-			const uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 3;
-	};
-
 	class MetalCommandQueue final : public JarCommandQueue {
 		public:
 			MetalCommandQueue(MTL::CommandQueue* cmdQueue) : queue(cmdQueue) {
@@ -247,7 +233,7 @@ namespace Graphics::Metal {
 
 #pragma endregion CommandQueue }
 
-	class MetalDevice final : public JarDevice {
+	class MetalDevice : public JarDevice {
 		public:
 			MetalDevice() { _device = std::nullopt; }
 

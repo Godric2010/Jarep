@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 
-set(HEADER_FILES metalapi.hpp sdlsurfaceadapter.hpp)
-set(SOURCE_FILES metalapi.cpp sdlsurfaceadapter.mm)
+set(HEADER_FILES metalapi.hpp sdlsurfaceadapter.hpp
+        MetalCommandQueueBuilder.hpp)
+set(SOURCE_FILES metalapi.cpp sdlsurfaceadapter.mm
+        MetalCommandQueueBuilder.cpp)
 
 add_library(METAL_RENDERER_API ${SOURCE_FILES} ${HEADER_FILES})
 
