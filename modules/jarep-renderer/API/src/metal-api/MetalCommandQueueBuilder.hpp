@@ -6,7 +6,8 @@
 #define JAREP_METALCOMMANDQUEUEBUILDER_HPP
 
 #include "IRenderAPI.hpp"
-#include "metalapi.hpp"
+#include "MetalCommandQueue.hpp"
+#include "MetalBackend.hpp"
 namespace Graphics::Metal {
 
 	class MetalCommandQueueBuilder final : public JarCommandQueueBuilder {

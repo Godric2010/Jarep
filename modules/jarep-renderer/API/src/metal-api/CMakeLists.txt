@@ -1,9 +1,47 @@
 cmake_minimum_required(VERSION 3.25)
 
-set(HEADER_FILES metalapi.hpp sdlsurfaceadapter.hpp
-        MetalCommandQueueBuilder.hpp)
-set(SOURCE_FILES metalapi.cpp sdlsurfaceadapter.mm
-        MetalCommandQueueBuilder.cpp)
+set(HEADER_FILES MetalBackend.hpp sdlsurfaceadapter.hpp
+        MetalCommandQueueBuilder.hpp
+        MetalCommandQueue.hpp
+        MetalCommandBuffer.hpp
+        MetalRenderPassImages.hpp
+        MetalRenderPassBuilder.hpp
+        MetalDevice.hpp
+        MetalSurface.hpp
+        MetalBuffer.hpp
+        MetalBufferBuilder.hpp
+        MetalShaderModuleBuilder.hpp
+        MetalShaderLibrary.hpp
+        MetalPipelineBuilder.hpp
+        MetalPipeline.hpp
+        MetalImageBuilder.hpp
+        MetalImage.hpp
+        MetalDescriptorContent.hpp
+        MetalDescriptor.hpp
+        MetalDescriptorLayout.hpp
+        MetalDescriptorBuilder.hpp
+        MetalDataTypeMaps.hpp)
+set(SOURCE_FILES MetalBackend.cpp sdlsurfaceadapter.mm
+        MetalCommandQueueBuilder.cpp
+        MetalCommandQueue.cpp
+        MetalCommandBuffer.cpp
+        MetalRenderPassImages.cpp
+        MetalRenderPassBuilder.cpp
+        MetalDevice.cpp
+        MetalSurface.cpp
+        MetalImage.cpp
+        MetalBuffer.cpp
+        MetalBufferBuilder.cpp
+        MetalShaderModuleBuilder.cpp
+        MetalShaderLibrary.cpp
+        MetalRenderPass.cpp
+        MetalImageBuilder.cpp
+        MetalDescriptorBuilder.cpp
+        MetalDescriptorLayout.cpp
+        MetalDescriptor.cpp
+        MetalDescriptorContent.cpp
+        MetalPipelineBuilder.cpp
+        MetalPipeline.cpp)
 
 add_library(METAL_RENDERER_API ${SOURCE_FILES} ${HEADER_FILES})
 
