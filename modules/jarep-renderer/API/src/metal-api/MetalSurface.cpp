@@ -46,7 +46,7 @@ namespace Graphics::Metal {
 		if (layer == nullptr)
 			throw std::runtime_error("Expected metal layer not to be nullptr");
 
-		layer->setDevice(metalDevice->getDevice().value());
+		layer->setDevice(metalDevice->getDevice());
 		layer->setPixelFormat(MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB);
 		layer->setDrawableSize(surfaceRect.size);
 

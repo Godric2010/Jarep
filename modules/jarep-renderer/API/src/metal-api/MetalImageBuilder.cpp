@@ -47,7 +47,7 @@ namespace Graphics::Metal {
 			textureDescriptor->setMipmapLevelCount(mipLevels);
 		}
 
-		MTL::Texture* texture = metalDevice->getDevice().value()->newTexture(textureDescriptor);
+		MTL::Texture* texture = metalDevice->getDevice()->newTexture(textureDescriptor);
 
 		MTL::Region region = MTL::Region::Make2D(0, 0, width, height);
 		NS::UInteger bytesPerRow = 4 * width;
@@ -68,7 +68,7 @@ namespace Graphics::Metal {
 		samplerDescriptor->setLodMinClamp(static_cast<float>(0));
 		samplerDescriptor->setLodMaxClamp(static_cast<float>(mipLevels + 1));
 
-		MTL::SamplerState* sampler = metalDevice->getDevice().value()->newSamplerState(samplerDescriptor);
+		MTL::SamplerState* sampler = metalDevice->getDevice()->newSamplerState(samplerDescriptor);
 		samplerDescriptor->release();
 
 

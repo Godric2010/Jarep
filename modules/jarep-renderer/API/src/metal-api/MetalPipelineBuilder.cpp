@@ -131,7 +131,7 @@ namespace Graphics::Metal{
 			MTL::RenderPipelineColorAttachmentDescriptor* colorAttachment = m_colorAttachments[i];
 			metalPipelineDesc->colorAttachments()->setObject(colorAttachment, i);
 		}
-		auto mtlDevice = metalDevice->getDevice().value();
+		auto mtlDevice = metalDevice->getDevice();
 
 		NS::Error* error = nullptr;
 		MTL::RenderPipelineState* pipelineState = mtlDevice->newRenderPipelineState(metalPipelineDesc, &error);
@@ -142,7 +142,7 @@ namespace Graphics::Metal{
 
 		std::optional<MTL::DepthStencilState*> depthStencilState = std::nullopt;
 		if (m_depthStencilDescriptor) {
-			depthStencilState = std::make_optional(metalDevice->getDevice().value()->
+			depthStencilState = std::make_optional(metalDevice->getDevice()->
 					newDepthStencilState(m_depthStencilDescriptor));
 		}
 

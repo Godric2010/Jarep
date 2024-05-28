@@ -41,7 +41,7 @@ namespace Graphics::Metal {
 		msaaDesc->setHeight(height);
 		msaaDesc->setSampleCount(multisamplingCount);
 		msaaDesc->setUsage(MTL::TextureUsageRenderTarget);
-		m_msaaTexture = m_device->getDevice().value()->newTexture(msaaDesc);
+		m_msaaTexture = m_device->getDevice()->newTexture(msaaDesc);
 
 		msaaDesc->release();
 	}
@@ -55,7 +55,7 @@ namespace Graphics::Metal {
 		depthStencilDesc->setHeight(height);
 		depthStencilDesc->setUsage(MTL::TextureUsageRenderTarget);
 		depthStencilDesc->setSampleCount(multisamplingCount);
-		m_depthStencilTexture = m_device->getDevice().value()->newTexture(depthStencilDesc);
+		m_depthStencilTexture = m_device->getDevice()->newTexture(depthStencilDesc);
 
 		depthStencilDesc->release();
 	}

@@ -9,23 +9,21 @@ namespace Graphics::Metal {
 	MetalDevice::~MetalDevice() = default;
 
 	void MetalDevice::Initialize() {
-		_device = std::make_optional(MTL::CreateSystemDefaultDevice());
+		m_device = MTL::CreateSystemDefaultDevice();
 	}
 
-	std::optional<MTL::Device*> MetalDevice::getDevice() const {
-		return _device;
+	MTL::Device* MetalDevice::getDevice() const {
+		return m_device;
 	}
 
 	void MetalDevice::Release() {
-		if (!_device.has_value()) return;
-		_device.value()->release();
+		m_device->release();
 	}
 
 	uint32_t MetalDevice::GetMaxUsableSampleCount() {
-		MTL::Device* device = _device.value();
 		std::vector<uint32_t> possibleSampleCounts = {64, 32, 16, 8, 4, 2};
 		for (const auto sampleCount: possibleSampleCounts) {
-			if (device->supportsTextureSampleCount(sampleCount))
+			if (m_device->supportsTextureSampleCount(sampleCount))
 				return sampleCount;
 		}
 		return 1;
@@ -41,7 +39,7 @@ namespace Graphics::Metal {
 		descriptor->setStorageMode(MTL::StorageModePrivate);
 		descriptor->setUsage(MTL::TextureUsageRenderTarget);
 
-		MTL::Texture* testTexture = _device.value()->newTexture(descriptor);
+		MTL::Texture* testTexture = m_device->newTexture(descriptor);
 		bool isSupported = (testTexture != nullptr);
 		if (testTexture) {
 			testTexture->release();  // Clean up

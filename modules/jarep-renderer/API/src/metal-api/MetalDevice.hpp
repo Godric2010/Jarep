@@ -13,7 +13,7 @@
 namespace Graphics::Metal {
 	class MetalDevice : public JarDevice {
 		public:
-			MetalDevice() { _device = std::nullopt; }
+			MetalDevice() = default;
 
 			~MetalDevice() override;
 
@@ -25,10 +25,10 @@ namespace Graphics::Metal {
 
 			bool IsFormatSupported(PixelFormat format) override;
 
-			[[nodiscard]] std::optional<MTL::Device*> getDevice() const;
+			[[nodiscard]] MTL::Device* getDevice() const;
 
 		private:
-			std::optional<MTL::Device*> _device;
+			MTL::Device* m_device;
 	};
 }
 #endif //JAREP_METALDEVICE_HPP

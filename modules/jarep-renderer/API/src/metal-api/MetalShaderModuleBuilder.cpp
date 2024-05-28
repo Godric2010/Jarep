@@ -27,7 +27,7 @@ namespace Graphics::Metal {
 			throw std::runtime_error("Could not build shader module! Shader type and/or code are undefined!");
 
 		NS::Error* error = nullptr;
-		const auto library = metalDevice->getDevice().value()->newLibrary(m_shaderCodeString.value(), nullptr,
+		const auto library = metalDevice->getDevice()->newLibrary(m_shaderCodeString.value(), nullptr,
 		                                                                  &error);
 		if (!library) {
 			throw std::runtime_error("Failed to load vertex shader library: " +

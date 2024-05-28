@@ -34,7 +34,7 @@ namespace Graphics::Metal{
 
 		const auto bufferOptions = bufferUsageToMetal(m_bufferUsage.value()) & memoryPropertiesToMetal(
 				m_memoryProperties.value());
-		MTL::Buffer* buffer = metalDevice->getDevice().value()->newBuffer(m_bufferSize, bufferOptions);
+		MTL::Buffer* buffer = metalDevice->getDevice()->newBuffer(m_bufferSize, bufferOptions);
 		memcpy(buffer->contents(), m_data.value(), m_bufferSize);
 		buffer->didModifyRange(NS::Range::Make(0, buffer->length()));
 

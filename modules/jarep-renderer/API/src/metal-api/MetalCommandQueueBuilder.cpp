@@ -15,7 +15,7 @@ namespace Graphics::Metal {
 		const auto metalDevice = reinterpret_cast<std::shared_ptr<MetalDevice>&>(device);
 
 		uint32_t commandBuffersCount = m_amountOfCommandBuffers.value_or(DEFAULT_COMMAND_BUFFER_COUNT);
-		MTL::Device* mtlDevice = metalDevice->getDevice().value();
+		MTL::Device* mtlDevice = metalDevice->getDevice();
 		MTL::CommandQueue* commandQueue = mtlDevice->newCommandQueue(static_cast<NS::UInteger>(commandBuffersCount));
 		return std::make_shared<MetalCommandQueue>(commandQueue);
 	}
