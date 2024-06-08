@@ -5,7 +5,6 @@
 #if defined(__linux__) or defined(_WIN32)
 
 #include "vulkanapi.hpp"
-#include "Vertex.hpp"
 
 namespace Graphics::Vulkan {
 
@@ -29,9 +28,12 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanBackend{
 
-	VulkanBackend::VulkanBackend(const std::vector<const char*>& extensions) {
-		extensionNames = extensions;
+    extern "C" Graphics::Backend* CreateVulkanBackend(const char* const* extensions, size_t count) {
+		return new Graphics::Vulkan::VulkanBackend(extensions, count);
+	}
 
+	VulkanBackend::VulkanBackend(const char* const* extensions, size_t count) {
+		extensionNames = std::vector<const char*>(extensions, extensions + count);
 		bool enable_debug_mode = false;
 #ifdef ENABLE_VALIDATION_LAYERS
 		enable_debug_mode = true;
@@ -1894,7 +1896,7 @@ namespace Graphics::Vulkan {
 
 		createColorResources(imageExtent, m_colorFormat);
 
-		if (depthFormat.has_value()){
+		if (depthFormat.has_value()) {
 			m_depthFormat = depthFormat.value();
 			createDepthResources(imageExtent, m_depthFormat);
 		}
@@ -1926,7 +1928,7 @@ namespace Graphics::Vulkan {
 		Release();
 
 		createColorResources(swapchainExtent, m_colorFormat);
-		if(m_depthFormat != VK_FORMAT_UNDEFINED) {
+		if (m_depthFormat != VK_FORMAT_UNDEFINED) {
 			createDepthResources(swapchainExtent, m_depthFormat);
 		}
 

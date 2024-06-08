@@ -9,7 +9,7 @@
 #if defined (__linux__) || defined (_WIN32)
 #include <vulkan/vulkan_core.h>
 #include <stdexcept>
-#include "../NativeWindowHandleProvider.hpp"
+#include "NativeWindowHandleProvider.hpp"
 
 #if defined (__linux__)
 #define VK_USE_PLATFORM_XLIB_KHR

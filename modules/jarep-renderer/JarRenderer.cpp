@@ -7,16 +7,7 @@
 
 namespace Graphics {
 	JarRenderer::JarRenderer(const std::vector<const char*>& extensionNames) {
-		extensions = extensionNames;
-#if defined(__APPLE__) && defined(__MACH__)
-		backend = std::make_shared<Metal::MetalBackend>(Metal::MetalBackend());
-		shaderFileType = ".metal";
-		std::cout << "Using metal renderer!" << std::endl;
-#else
-		backend = std::make_shared<Vulkan::VulkanBackend>(Vulkan::VulkanBackend(extensionNames));
-		shaderFileType = ".spv";
-		std::cout << "Using vulkan renderer!" << std::endl;
-#endif
+		backend = Graphics::CreateBackend(extensionNames);
 	}
 
 	void JarRenderer::Initialize(NativeWindowHandleProvider* nativeWindowHandle) {

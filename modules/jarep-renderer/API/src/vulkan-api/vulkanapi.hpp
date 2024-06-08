@@ -6,7 +6,7 @@
 #define JAREP_VULKANAPI_HPP
 #if defined(__linux__) or defined(_WIN32)
 
-#include "API/IRenderAPI.hpp"
+#include "IRenderAPI.hpp"
 #include <optional>
 #include <utility>
 #include <vulkan/vulkan.hpp>
@@ -32,6 +32,16 @@
 #include <vulkan/vulkan_win32.h>
 #endif
 
+
+#if defined(_WIN32) || defined(__CYGWIN__)
+#ifdef BUILDING_DLL
+#define DLL_PUBLIC __declspec(dllexport)
+#else
+#define DLL_PUBLIC __declspec(dllimport)
+#endif
+#else
+#define DLL_PUBLIC __attribute__((visibility("default")))
+#endif
 
 namespace Graphics::Vulkan {
 	class VulkanDevice;
@@ -68,9 +78,10 @@ namespace Graphics::Vulkan {
 
 #pragma region VulkanBackend{
 
-	class VulkanBackend final : public Backend {
+	class DLL_PUBLIC VulkanBackend final : public Backend {
 		public:
-			explicit VulkanBackend(const std::vector<const char*>& extensions);
+
+			explicit VulkanBackend(const char* const* extensions, size_t count);
 
 			~VulkanBackend() override;
 
@@ -128,6 +139,8 @@ namespace Graphics::Vulkan {
 				return VK_FALSE;
 			}
 	};
+
+	extern "C" Graphics::Backend* CreateVulkanBackend(const char* const* extensions, size_t count);
 
 #pragma endregion VulkanBackend }
 

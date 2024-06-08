@@ -45,6 +45,10 @@ namespace Graphics::Metal {
 
 			JarDescriptorBuilder* InitDescriptorBuilder() override;
 	};
+
+	extern "C" Backend* CreateMetalBackend() {
+		return new MetalBackend();
+	}
 }
 #endif
 #endif //JAREP_METALBACKEND_HPP

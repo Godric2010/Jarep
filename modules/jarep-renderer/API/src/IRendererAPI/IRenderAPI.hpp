@@ -15,6 +15,12 @@
 
 #include <stb_image.h>
 
+#ifdef __APPLE__
+#define USE_METAL
+#else
+#define USE_VULKAN
+#endif
+
 namespace Graphics {
 	class JarDevice;
 
@@ -37,6 +43,8 @@ namespace Graphics {
 	class JarDescriptor;
 
 	class JarDescriptorLayout;
+
+	class Backend;
 
 	enum class PixelFormat;
 
@@ -599,6 +607,21 @@ namespace Graphics {
 		Metal,
 	};
 
+	#ifdef USE_METAL
+	extern "C" Graphics::Backend* CreateMetalBackend();
+	#elif defined(USE_VULKAN)
+	extern "C" Graphics::Backend* CreateVulkanBackend(const char* const* extensions, size_t count);
+	#endif
+
+	inline std::shared_ptr<Backend> CreateBackend(const std::vector<const char*>& extensions) {
+		#ifdef USE_VULKAN
+		return std::shared_ptr<Backend>(CreateVulkanBackend(extensions.data(), extensions.size()));
+		#elif defined(USE_METAL)
+		return std::shared_ptr<Backend>(CreateMetalBackend());
+		#else
+		return nullptr;
+		#endif
+	}
 
 	class Backend {
 		public:
