@@ -62,5 +62,9 @@ namespace Graphics::Metal {
 	JarDescriptorBuilder* MetalBackend::InitDescriptorBuilder() {
 		return new MetalDescriptorBuilder();
 	}
+
+	extern "C" Backend* CreateMetalBackend() {
+		return new MetalBackend();
+	}
 }
 #endif
