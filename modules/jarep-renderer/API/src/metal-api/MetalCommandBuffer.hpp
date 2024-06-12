@@ -10,6 +10,7 @@
 #include "MetalBuffer.hpp"
 #include "MetalPipeline.hpp"
 #include "MetalDescriptor.hpp"
+#include "MetalRenderTarget.hpp"
 #include <Metal/Metal.hpp>
 
 namespace Graphics::Metal {
@@ -26,6 +27,8 @@ namespace Graphics::Metal {
 			StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) override;
 
 			void EndRecording() override;
+
+			void BindRenderTarget(std::shared_ptr<JarRenderTarget> renderTarget) override;
 
 			void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t frameIndex) override;
 

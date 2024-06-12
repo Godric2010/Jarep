@@ -20,6 +20,8 @@ set(HEADER_FILES MetalBackend.hpp sdlsurfaceadapter.hpp
         MetalDescriptor.hpp
         MetalDescriptorLayout.hpp
         MetalDescriptorBuilder.hpp
+        MetalRenderTargetBuilder.hpp
+        MetalRenderTarget.hpp
         MetalDataTypeMaps.hpp)
 set(SOURCE_FILES MetalBackend.cpp sdlsurfaceadapter.mm
         MetalCommandQueueBuilder.cpp
@@ -41,7 +43,9 @@ set(SOURCE_FILES MetalBackend.cpp sdlsurfaceadapter.mm
         MetalDescriptor.cpp
         MetalDescriptorContent.cpp
         MetalPipelineBuilder.cpp
-        MetalPipeline.cpp)
+        MetalPipeline.cpp
+        MetalRenderTargetBuilder.cpp
+        MetalRenderTarget.cpp)
 
 add_library(METAL_RENDERER_API ${SOURCE_FILES} ${HEADER_FILES})
 

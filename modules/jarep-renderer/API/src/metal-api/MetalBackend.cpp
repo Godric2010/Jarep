@@ -63,6 +63,10 @@ namespace Graphics::Metal {
 		return new MetalDescriptorBuilder();
 	}
 
+	JarRenderTargetBuilder* MetalBackend::InitRenderTargetBuilder() {
+		return new MetalRenderTargetBuilder();
+	}
+
 	extern "C" Backend* CreateMetalBackend() {
 		return new MetalBackend();
 	}

@@ -44,6 +44,8 @@ namespace Graphics {
 
 	class JarDescriptorLayout;
 
+	class JarRenderTarget;
+
 	class Backend;
 
 	enum class PixelFormat;
@@ -144,13 +146,6 @@ namespace Graphics {
 
 #pragma endregion JarRenderPass }
 
-	class JarFramebuffer {
-		public:
-			virtual ~JarFramebuffer() = default;
-
-			virtual void Release() = 0;
-	};
-
 	struct JarExtent {
 		public:
 			float Width;
@@ -170,6 +165,34 @@ namespace Graphics {
 			virtual JarExtent GetSurfaceExtent() = 0;
 	};
 
+	#pragma region RenderTarget{
+
+	enum class RenderTargetType {
+		ScreenSurface,
+		Texture,
+	};
+
+	class JarRenderTargetBuilder {
+		public:
+			virtual ~JarRenderTargetBuilder() = default;
+
+			virtual JarRenderTargetBuilder* SetRenderTargetType(RenderTargetType renderTargetType) = 0;
+
+			virtual JarRenderTargetBuilder* SetResolution(uint32_t width, uint32_t height) = 0;
+
+			virtual std::shared_ptr<JarRenderTarget> Build(std::shared_ptr<JarDevice> device) = 0;
+	};
+
+	class JarRenderTarget {
+		public:
+			virtual ~JarRenderTarget() = default;
+
+			virtual void Release() = 0;
+
+			virtual std::shared_ptr<JarImage> GetImage() = 0;
+	};
+
+#pragma endregion RenderTarget }
 
 #pragma region Buffer{
 
@@ -550,6 +573,8 @@ namespace Graphics {
 
 			virtual void EndRecording() = 0;
 
+			virtual void BindRenderTarget(std::shared_ptr<JarRenderTarget> renderTarget) = 0;
+
 			virtual void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t imageIndex) = 0;
 
 			virtual void BindDescriptors(std::vector<std::shared_ptr<JarDescriptor>> descriptors) = 0;
@@ -646,6 +671,8 @@ namespace Graphics {
 			virtual JarPipelineBuilder* InitPipelineBuilder() = 0;
 
 			virtual JarDescriptorBuilder* InitDescriptorBuilder() = 0;
+
+			virtual JarRenderTargetBuilder* InitRenderTargetBuilder() = 0;
 	};
 
 #pragma endregion Backend }
