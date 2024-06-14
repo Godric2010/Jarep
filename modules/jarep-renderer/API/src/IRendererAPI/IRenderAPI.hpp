@@ -178,18 +178,16 @@ namespace Graphics {
 
 			virtual JarRenderTargetBuilder* SetRenderTargetType(RenderTargetType renderTargetType) = 0;
 
+			virtual JarRenderTargetBuilder* SetImageFormat(PixelFormat pixelFormat) = 0;
+
 			virtual JarRenderTargetBuilder* SetResolution(uint32_t width, uint32_t height) = 0;
 
-			virtual std::shared_ptr<JarRenderTarget> Build(std::shared_ptr<JarDevice> device) = 0;
+			virtual std::shared_ptr<JarRenderTarget> Build() = 0;
 	};
 
 	class JarRenderTarget {
 		public:
 			virtual ~JarRenderTarget() = default;
-
-			virtual void Release() = 0;
-
-			virtual std::shared_ptr<JarImage> GetImage() = 0;
 	};
 
 #pragma endregion RenderTarget }
@@ -573,7 +571,7 @@ namespace Graphics {
 
 			virtual void EndRecording() = 0;
 
-			virtual void BindRenderTarget(std::shared_ptr<JarRenderTarget> renderTarget) = 0;
+//			virtual void BindRenderTarget(std::shared_ptr<JarRenderTarget> renderTarget) = 0;
 
 			virtual void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t imageIndex) = 0;
 

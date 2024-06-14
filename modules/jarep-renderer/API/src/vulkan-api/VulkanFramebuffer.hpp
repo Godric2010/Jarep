@@ -13,14 +13,14 @@
 namespace Graphics::Vulkan {
 	class VulkanDevice;
 
-	class VulkanFramebuffer final : public JarFramebuffer {
+	class VulkanFramebuffer final {
 		public:
 			explicit VulkanFramebuffer(const VkExtent2D framebufferExtent) {
 				m_framebuffer = nullptr;
 				m_framebufferExtent = framebufferExtent;
 			}
 
-			~VulkanFramebuffer() override;
+			~VulkanFramebuffer();
 
 			void CreateFramebuffer(std::shared_ptr<VulkanDevice> device, VkRenderPass renderPass,
 			                       VkImageView swapchainImageView, VkImageView depthImageView,
@@ -33,7 +33,7 @@ namespace Graphics::Vulkan {
 
 			[[nodiscard]] VkExtent2D getFramebufferExtent() const { return m_framebufferExtent; }
 
-			void Release() override;
+			void Release();
 
 		private:
 			VkFramebufferCreateInfo m_framebufferCreateInfo{};

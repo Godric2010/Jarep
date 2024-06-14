@@ -44,6 +44,7 @@
 #include "VulkanImageBuilder.hpp"
 #include "VulkanGraphicsPipelineBuilder.hpp"
 #include "VulkanDescriptorBuilder.hpp"
+#include "VulkanRenderTargetBuilder.hpp"
 
 #include <iostream>
 
@@ -80,6 +81,8 @@ namespace Graphics::Vulkan {
 			JarPipelineBuilder* InitPipelineBuilder() override;
 
 			JarDescriptorBuilder* InitDescriptorBuilder() override;
+
+			JarRenderTargetBuilder* InitRenderTargetBuilder() override;
 
 			// Staging Buffer CommandPool management
 			void onRegisterNewBuffer();
