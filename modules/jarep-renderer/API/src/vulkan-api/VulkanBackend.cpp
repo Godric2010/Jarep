@@ -63,7 +63,7 @@ namespace Graphics::Vulkan {
 	}
 
 	JarRenderPassBuilder* VulkanBackend::InitRenderPassBuilder() {
-		return new VulkanRenderPassBuilder();
+		return new VulkanRenderPassBuilder([this]() { return this->getStagingCommandQueue(); });
 	}
 
 	JarCommandQueueBuilder* VulkanBackend::InitCommandQueueBuilder() {

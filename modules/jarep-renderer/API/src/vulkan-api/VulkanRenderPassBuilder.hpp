@@ -9,15 +9,19 @@
 #include "VulkanDevice.hpp"
 #include "VulkanRenderPass.hpp"
 #include "VulkanRenderPassFramebuffers.hpp"
+#include "VulkanCommandQueue.hpp"
 #include "VulkanDataTypeMaps.hpp"
 #include <vulkan/vulkan.hpp>
 #include <memory>
 #include <optional>
+#include <functional>
 
 namespace Graphics::Vulkan {
 	class VulkanRenderPassBuilder final : public JarRenderPassBuilder {
 		public :
-			VulkanRenderPassBuilder() = default;
+			VulkanRenderPassBuilder(
+					std::function<std::shared_ptr<VulkanCommandQueue>()> createCmdQueueCb) : createCmdQueueCallback(
+					createCmdQueueCb) {};
 
 			~VulkanRenderPassBuilder() override;
 
@@ -37,6 +41,7 @@ namespace Graphics::Vulkan {
 			std::optional<VkAttachmentReference> m_depthStencilAttachmentRef;
 			std::optional<VkSampleCountFlagBits> m_multisamplingCount;
 			std::optional<VkFormat> m_depthFormat;
+			std::function<std::shared_ptr<VulkanCommandQueue>()> createCmdQueueCallback;
 	};
 }
 

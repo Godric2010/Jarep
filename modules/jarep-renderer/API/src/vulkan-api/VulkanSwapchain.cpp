@@ -3,6 +3,7 @@
 //
 
 #include "VulkanSwapchain.hpp"
+
 namespace Graphics::Vulkan {
 	void VulkanSwapchain::Initialize(VkExtent2D extent, SwapChainSupportDetails swapchainSupport) {
 		m_swapchainSupport = std::move(swapchainSupport);
@@ -177,10 +178,21 @@ namespace Graphics::Vulkan {
 	void VulkanSwapchain::createImageViews() {
 		m_swapchainImageViews.resize(m_swapchainImages.size());
 		for (size_t i = 0; i < m_swapchainImages.size(); i++) {
+			VkImageViewCreateInfo viewInfo{};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = m_swapchainImages[i];
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = m_swapchainImageFormat;
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
 
-			VulkanImageBuilder::createImageView(m_device, m_swapchainImages[i], m_swapchainImageFormat,
-			                                    VK_IMAGE_ASPECT_COLOR_BIT,
-			                                    &m_swapchainImageViews[i], 1);
+			if (vkCreateImageView(m_device->getLogicalDevice(), &viewInfo, nullptr, &m_swapchainImageViews[i]) !=
+			    VK_SUCCESS) {
+				throw std::runtime_error("Failed to create texture image view!");
+			}
 		}
 	}
 }

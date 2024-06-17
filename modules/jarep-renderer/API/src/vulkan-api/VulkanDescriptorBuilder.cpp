@@ -81,8 +81,8 @@ namespace Graphics::Vulkan {
 
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = vulkanImage->getImageView();
-		imageInfo.sampler = vulkanImage->getSampler();
+		imageInfo.imageView = vulkanImage->GetImageBuffer().GetImageView();
+		imageInfo.sampler = vulkanImage->GetSampler();
 
 		VkWriteDescriptorSet descriptorWriteSampler{};
 		descriptorWriteSampler.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

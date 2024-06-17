@@ -6,45 +6,37 @@
 #define JAREP_VULKANIMAGE_HPP
 
 #include "IRenderAPI.hpp"
+#include <utility>
 #include <vulkan/vulkan.hpp>
 
+#include "VulkanImageBuffer.hpp"
 #include "VulkanBackend.hpp"
 
 namespace Graphics::Vulkan {
 	class VulkanDevice;
 
+	class VulkanImageBuffer;
+
 	class VulkanImage final : public JarImage {
 		public:
-			VulkanImage(std::shared_ptr<VulkanDevice> device, VkImage image, VkDeviceMemory imageMemory,
-			            VkImageView imageView, VkFormat format, VkExtent2D extent, VkSampler sampler, uint32_t imageId)
-					: m_device(device), m_image(image), m_imageMemory(imageMemory), m_imageView(imageView),
-					  m_format(format), m_extent(extent), m_sampler(sampler), m_imageId(imageId) {};
+			VulkanImage(std::shared_ptr<VulkanDevice> device, std::unique_ptr<VulkanImageBuffer> imageBuffer,
+			            VkSampler sampler, uint32_t imageId) : m_device(std::move(device)),
+			                                                   m_imageBuffer(std::move(imageBuffer)),
+			                                                   m_sampler(sampler), m_imageId(imageId) {};
 
 			~VulkanImage() override;
 
 			void Release() override;
 
-			[[nodiscard]] VkImage getImage() const { return m_image; }
+			[[nodiscard]] const VulkanImageBuffer& GetImageBuffer() const { return *m_imageBuffer; }
 
-			[[nodiscard]] VkDeviceMemory getImageMemory() const { return m_imageMemory; }
+			[[nodiscard]] VkSampler GetSampler() const { return m_sampler; }
 
-			[[nodiscard]] VkImageView getImageView() const { return m_imageView; }
-
-			[[nodiscard]] VkFormat getFormat() const { return m_format; }
-
-			[[nodiscard]] VkExtent2D getExtent() const { return m_extent; }
-
-			[[nodiscard]] VkSampler getSampler() const { return m_sampler; }
-
-			[[nodiscard]] uint32_t getImageId() const { return m_imageId; }
+			[[nodiscard]] uint32_t GetImageId() const { return m_imageId; }
 
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
-			VkImage m_image;
-			VkDeviceMemory m_imageMemory;
-			VkImageView m_imageView;
-			VkFormat m_format;
-			VkExtent2D m_extent;
+			std::unique_ptr<VulkanImageBuffer> m_imageBuffer;
 			VkSampler m_sampler;
 			uint32_t m_imageId;
 	};

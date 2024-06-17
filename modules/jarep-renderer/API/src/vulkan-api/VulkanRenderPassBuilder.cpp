@@ -3,8 +3,8 @@
 //
 
 #include "VulkanRenderPassBuilder.hpp"
-namespace Graphics::Vulkan {
-;
+
+namespace Graphics::Vulkan { ;
 
 	VulkanRenderPassBuilder::~VulkanRenderPassBuilder() = default;
 
@@ -59,6 +59,7 @@ namespace Graphics::Vulkan {
 
 	std::shared_ptr<JarRenderPass>
 	VulkanRenderPassBuilder::Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) {
+
 
 		if (!m_colorAttachment.has_value())
 			throw std::runtime_error("Could not create render pass without color attachment set!");
@@ -129,8 +130,9 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("failed to create render pass!");
 		}
 
-		auto vulkanRenderPassFramebuffers = std::make_unique<VulkanRenderPassFramebuffers>();
-		vulkanRenderPassFramebuffers->CreateRenderPassFramebuffers(vulkanDevice, vulkanSurface, renderPass,
+		auto vulkanRenderPassFramebuffers = std::make_unique<VulkanRenderPassFramebuffers>(vulkanDevice,
+		                                                                                   createCmdQueueCallback);
+		vulkanRenderPassFramebuffers->CreateRenderPassFramebuffers(vulkanSurface, renderPass,
 		                                                           msaaSamples, m_depthFormat);
 
 		auto vulkanRenderPass = std::make_shared<VulkanRenderPass>(vulkanDevice, renderPass,

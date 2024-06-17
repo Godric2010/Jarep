@@ -8,8 +8,11 @@
 #include "VulkanDevice.hpp"
 #include "VulkanSurface.hpp"
 #include "VulkanFramebuffer.hpp"
+#include "VulkanCommandQueue.hpp"
+#include "VulkanImageBuffer.hpp"
 #include <vulkan/vulkan.hpp>
 #include <memory>
+#include <functional>
 #include <vector>
 #include <optional>
 
@@ -20,20 +23,25 @@ namespace Graphics::Vulkan {
 
 	class VulkanDevice;
 
+	class VulkanImageBuffer;
+
+	class VulkanCommandQueue;
+
 	class VulkanRenderPassFramebuffers {
 		public:
-			VulkanRenderPassFramebuffers();
+			VulkanRenderPassFramebuffers(std::shared_ptr<VulkanDevice> device,
+			                             std::function<std::shared_ptr<VulkanCommandQueue>()> createCmdQueueCb);
 
 			~VulkanRenderPassFramebuffers() = default;
 
 			void
-			CreateRenderPassFramebuffers(std::shared_ptr<VulkanDevice> device, std::shared_ptr<VulkanSurface> surface,
+			CreateRenderPassFramebuffers(const std::shared_ptr<VulkanSurface>& surface,
 			                             VkRenderPass renderPass, VkSampleCountFlagBits multisamplingCount,
 			                             std::optional<VkFormat> depthFormat);
 
 			std::shared_ptr<VulkanFramebuffer> GetFramebuffer(uint32_t index);
 
-			void RecreateFramebuffers(VkExtent2D swapchainExtent, std::shared_ptr<VulkanSurface> surface);
+			void RecreateFramebuffers(VkExtent2D swapchainExtent, const std::shared_ptr<VulkanSurface>& surface);
 
 			void Release();
 
@@ -43,23 +51,15 @@ namespace Graphics::Vulkan {
 
 			VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-			VkFormat m_depthFormat;
-			VkImage m_depthImage;
-			VkDeviceMemory m_depthImageMemory;
-			VkImageView m_depthImageView;
+			std::function<std::shared_ptr<VulkanCommandQueue>()> m_createCmdQueueCallback;
+			std::optional<std::unique_ptr<VulkanImageBuffer>> m_depthImageBuffer;
 
 			VkFormat m_colorFormat;
-			VkImage m_colorImage;
-			VkDeviceMemory m_colorImageMemory;
-			VkImageView m_colorImageView;
+			std::unique_ptr<VulkanImageBuffer> m_colorImageBuffer;
 
 			void createDepthResources(VkExtent2D swapchainExtent, VkFormat depthFormat);
 
 			void createColorResources(VkExtent2D swapchainExtent, VkFormat colorFormat);
-
-			void destroyDepthResources();
-
-			void destroyColorResources();
 	};
 }
 

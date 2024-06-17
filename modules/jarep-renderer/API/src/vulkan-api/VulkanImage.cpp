@@ -9,8 +9,6 @@ namespace Graphics::Vulkan {
 
 	void VulkanImage::Release() {
 		vkDestroySampler(m_device->getLogicalDevice(), m_sampler, nullptr);
-		vkDestroyImageView(m_device->getLogicalDevice(), m_imageView, nullptr);
-		vkDestroyImage(m_device->getLogicalDevice(), m_image, nullptr);
-		vkFreeMemory(m_device->getLogicalDevice(), m_imageMemory, nullptr);
+		m_imageBuffer->Release();
 	}
 }
