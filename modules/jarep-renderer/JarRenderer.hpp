@@ -60,9 +60,11 @@ namespace Graphics {
 
 			~JarRenderer() = default;
 
-			void Initialize(NativeWindowHandleProvider* nativeWindowHandle);
+			void Initialize(NativeWindowHandleProvider* nativeWindowHandle, uint32_t resolutionX, uint32_t resolutionY);
 
-			void Resize(uint32_t width, uint32_t height);
+			void ResizeSurface(uint32_t width, uint32_t height);
+
+			void ChangeResolution(uint32_t resX, uint32_t resY);
 
 			void AddMesh(Mesh& mesh);
 
@@ -77,6 +79,7 @@ namespace Graphics {
 			std::string shaderFileType;
 			std::shared_ptr<Backend> backend;
 			std::shared_ptr<JarSurface> surface;
+			std::shared_ptr<JarRenderTarget> renderTarget;
 			std::shared_ptr<JarDevice> device;
 			std::shared_ptr<JarCommandQueue> queue;
 			std::vector<std::shared_ptr<Internal::JarRenderStep>> renderSteps;

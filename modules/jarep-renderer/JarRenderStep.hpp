@@ -35,28 +35,35 @@ namespace Graphics {
 		class JarRenderStep {
 			public:
 				JarRenderStep(std::unique_ptr<JarRenderStepDescriptor> desc, std::shared_ptr<Backend> backend,
-				              std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface,
+				              std::shared_ptr<JarDevice> device, std::shared_ptr<JarRenderTarget> renderTarget,
+				              std::shared_ptr<JarSurface> surface,
 				              std::vector<std::shared_ptr<JarDescriptor>> descriptors);
 
 				~JarRenderStep() = default;
 
 				void Release();
 
-				[[nodiscard]] std::shared_ptr<JarPipeline> getPipeline() const { return pipeline; }
+				[[nodiscard]] std::shared_ptr<JarPipeline> GetPipeline() const { return m_pipeline; }
 
-				[[nodiscard]] std::shared_ptr<JarRenderPass> getRenderPass() const { return renderPass; }
+				[[nodiscard]] std::shared_ptr<JarRenderPass> GetRenderPass() const { return m_renderPass; }
 
-				[[nodiscard]] std::vector<std::shared_ptr<JarDescriptor>> getDescriptors() const { return descriptors; }
+				[[nodiscard]] std::vector<std::shared_ptr<JarDescriptor>>
+				GetDescriptors() const { return m_descriptors; }
+
+				[[nodiscard]] std::shared_ptr<JarFramebuffer> GetFramebuffer() const { return m_framebuffer; }
 
 			private:
-				ShaderStage shaderStage;
-				std::shared_ptr<JarPipeline> pipeline;
-				std::shared_ptr<JarRenderPass> renderPass;
-				std::vector<std::shared_ptr<JarDescriptor>> descriptors;
+				ShaderStage m_shaderStage;
+				std::shared_ptr<JarPipeline> m_pipeline;
+				std::shared_ptr<JarRenderPass> m_renderPass;
+				std::shared_ptr<JarFramebuffer> m_framebuffer;
+				std::vector<std::shared_ptr<JarDescriptor>> m_descriptors;
 
 				std::unique_ptr<JarRenderStepDescriptor> renderStepDescriptor;
 
 				void BuildShaderModules(std::shared_ptr<Backend> backend, std::shared_ptr<JarDevice> device);
+
+				void BuildFramebuffer(std::shared_ptr<JarDevice> device, std::shared_ptr<JarRenderTarget> renderTarget);
 
 				void BuildRenderPass(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarSurface> surface,
 				                     std::shared_ptr<JarDevice> device);

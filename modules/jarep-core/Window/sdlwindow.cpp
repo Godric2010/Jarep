@@ -62,7 +62,7 @@ namespace Core::Window {
 
 		const auto nativeWindowHandleProvider = getNativeWindowHandle(windowWidth, windowHeight);
 		if (!nativeWindowHandleProvider.has_value()) throw std::exception();
-		renderer->Initialize(nativeWindowHandleProvider.value());
+		renderer->Initialize(nativeWindowHandleProvider.value(), 800, 600);
 		if (window == nullptr) {
 			return;
 		}
@@ -103,7 +103,7 @@ namespace Core::Window {
 			    std::chrono::steady_clock::now() - m_lastResizeTime > std::chrono::milliseconds(100)) {
 				m_currentWidth = m_pendingResize->first;
 				m_currentHeight = m_pendingResize->second;
-				renderer->Resize(m_currentWidth, m_currentHeight);
+				renderer->ResizeSurface(m_currentWidth, m_currentHeight);
 
 				m_pendingResize = std::nullopt;
 				m_resizeOccurred = true;

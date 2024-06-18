@@ -18,13 +18,13 @@ namespace Graphics::Vulkan {
 
 			~VulkanRenderTarget() override = default;
 
-			inline const uint32_t GetImageWidth() const { return m_imageWidth; }
+			[[nodiscard]] inline uint32_t GetImageWidth() const { return m_imageWidth; }
 
-			inline const uint32_t GetImageHeight() const { return m_imageHeight; }
+			[[nodiscard]] inline uint32_t GetImageHeight() const { return m_imageHeight; }
 
-			inline const VkFormat GetImageFormat() const { return m_imageFormat; }
+			[[nodiscard]] inline VkFormat GetImageFormat() const { return m_imageFormat; }
 
-			inline const RenderTargetType GetRenderTargetType() const { return m_renderTargetType; }
+			[[nodiscard]] inline RenderTargetType GetRenderTargetType() const { return m_renderTargetType; }
 
 		private:
 			uint32_t m_imageWidth;

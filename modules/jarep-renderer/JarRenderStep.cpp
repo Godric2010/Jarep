@@ -8,22 +8,34 @@ namespace Graphics {
 
 	namespace Internal {
 		JarRenderStep::JarRenderStep(std::unique_ptr<JarRenderStepDescriptor> desc, std::shared_ptr<Backend> backend,
-		                             std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface,
+		                             std::shared_ptr<JarDevice> device, std::shared_ptr<JarRenderTarget> renderTarget,
+		                             std::shared_ptr<JarSurface> surface,
 		                             std::vector<std::shared_ptr<JarDescriptor>> descriptors)
-				: renderStepDescriptor(std::move(desc)), descriptors(descriptors) {
+				: renderStepDescriptor(std::move(desc)), m_descriptors(descriptors) {
+			BuildFramebuffer(device, renderTarget);
 			BuildShaderModules(backend, device);
 			BuildRenderPass(backend, surface, device);
 			BuildPipeline(backend, device, descriptors);
 		}
 
 		void JarRenderStep::Release() {
-			for (auto descriptor: descriptors) {
+			for (const auto& descriptor: m_descriptors) {
 				descriptor->Release();
 			}
-			pipeline->Release();
-			shaderStage.vertexShaderModule->Release();
-			shaderStage.fragmentShaderModule->Release();
+			m_pipeline->Release();
+			m_shaderStage.vertexShaderModule->Release();
+			m_shaderStage.fragmentShaderModule->Release();
 		}
+
+
+#pragma region FramebufferCreation{
+
+		void JarRenderStep::BuildFramebuffer(std::shared_ptr<JarDevice> device,
+		                                     std::shared_ptr<JarRenderTarget> renderTarget) {
+
+		}
+
+#pragma endregion FramebufferCreation };
 
 #pragma region ShaderCreation{
 
@@ -40,7 +52,7 @@ namespace Graphics {
 			stage.fragmentShaderModule = fragmentShaderModule;
 			stage.mainFunctionName = "main";
 
-			shaderStage = stage;
+			m_shaderStage = stage;
 
 		}
 
@@ -145,7 +157,7 @@ namespace Graphics {
 
 				rpBuilder->AddDepthStencilAttachment(depthStencilAttachment);
 			}
-			renderPass = rpBuilder->Build(device, surface);
+			m_renderPass = rpBuilder->Build(device, surface);
 			delete rpBuilder;
 		}
 
@@ -199,14 +211,14 @@ namespace Graphics {
 				pipelineBuilder->SetDepthStencilState(depthStencilState);
 
 			pipelineBuilder->
-					SetShaderStage(shaderStage)->
-					SetRenderPass(renderPass)->
+					SetShaderStage(m_shaderStage)->
+					SetRenderPass(m_renderPass)->
 					SetVertexInput(vertexInput)->
 					SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
 					SetMultisamplingCount(multisamplingCount)->
 					BindDescriptorLayouts(descriptorLayouts)->
 					SetColorBlendAttachments(colorBlendAttachment);
-			pipeline = pipelineBuilder->Build(device);
+			m_pipeline = pipelineBuilder->Build(device);
 			delete pipelineBuilder;
 
 		}

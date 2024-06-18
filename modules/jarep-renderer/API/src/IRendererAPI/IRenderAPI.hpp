@@ -146,6 +146,18 @@ namespace Graphics {
 
 #pragma endregion JarRenderPass }
 
+#pragma region JarFramebuffer{
+
+	class JarFramebuffer {
+		public:
+			virtual ~JarFramebuffer() = default;
+
+			virtual void Release() = 0;
+	};
+
+#pragma endregion JarFramebuffer }
+
+
 	struct JarExtent {
 		public:
 			float Width;

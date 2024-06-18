@@ -34,7 +34,7 @@ namespace Graphics::Vulkan {
 
 
 		auto mipLevels = 1;
-		if (m_enableMipMapping) { mipLevels = (std::floor(std::log2(std::max(texWidth, texHeight)))) + 1; }
+		if (m_enableMipMapping) { mipLevels = std::floor(std::log2(std::max(texWidth, texHeight))) + 1; }
 		auto imageExtent = VkExtent2D{static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight)};
 
 		std::unique_ptr<VulkanImageBuffer> imageBuffer = std::make_unique<VulkanImageBuffer>(vulkanDevice,

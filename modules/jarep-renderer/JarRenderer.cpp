@@ -10,9 +10,16 @@ namespace Graphics {
 		backend = Graphics::CreateBackend(extensionNames);
 	}
 
-	void JarRenderer::Initialize(NativeWindowHandleProvider* nativeWindowHandle) {
+	void JarRenderer::Initialize(NativeWindowHandleProvider* nativeWindowHandle, uint32_t resolutionX,
+	                             uint32_t resolutionY) {
 		surface = backend->CreateSurface(nativeWindowHandle);
 		device = backend->CreateDevice(surface);
+
+		renderTarget = backend->InitRenderTargetBuilder()
+				->SetRenderTargetType(RenderTargetType::Texture)
+				->SetImageFormat(PixelFormat::BGRA8Unorm)
+				->SetResolution(resolutionX, resolutionY)
+				->Build();
 
 		const auto commandQueueBuilder = backend->InitCommandQueueBuilder();
 		queue = commandQueueBuilder->Build(device);
@@ -47,16 +54,20 @@ namespace Graphics {
 
 	}
 
-	void JarRenderer::Resize(uint32_t width, uint32_t height) {
+	void JarRenderer::ResizeSurface(uint32_t width, uint32_t height) {
 		surface->RecreateSurface(width, height);
 		for (const auto& renderStep: renderSteps) {
-			renderStep->getRenderPass()->RecreateRenderPassFramebuffers(width, height, surface);
+			renderStep->GetRenderPass()->RecreateRenderPassFramebuffers(width, height, surface);
 		}
+	}
+
+	void JarRenderer::ChangeResolution(uint32_t resX, uint32_t resY) {
+		std::runtime_error("Not implemented");
 	}
 
 	void JarRenderer::AddRenderStep(std::unique_ptr<JarRenderStepDescriptor> renderStepBuilder) {
 		auto renderStep = std::make_shared<Internal::JarRenderStep>(std::move(renderStepBuilder), backend, device,
-		                                                            surface, descriptors);
+		                                                            renderTarget, surface, descriptors);
 		renderSteps.push_back(renderStep);
 	}
 
@@ -106,14 +117,14 @@ namespace Graphics {
 		const auto commandBuffer = queue->getNextCommandBuffer();
 
 		for (auto& renderStep: renderSteps) {
-			if (!commandBuffer->StartRecording(surface, renderStep->getRenderPass()))
+			if (!commandBuffer->StartRecording(surface, renderStep->GetRenderPass()))
 				return;
 
 			commandBuffer->SetViewport(viewport);
 			commandBuffer->SetScissor(scissor);
 			commandBuffer->SetDepthBias(depthBias);
-			commandBuffer->BindPipeline(renderStep->getPipeline(), frameCounter);
-			commandBuffer->BindDescriptors(renderStep->getDescriptors());
+			commandBuffer->BindPipeline(renderStep->GetPipeline(), frameCounter);
+			commandBuffer->BindDescriptors(renderStep->GetDescriptors());
 
 
 			for (auto& mesh: meshes) {
