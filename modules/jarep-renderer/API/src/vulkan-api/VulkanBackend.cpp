@@ -92,6 +92,10 @@ namespace Graphics::Vulkan {
 		return new VulkanRenderTargetBuilder();
 	}
 
+	JarFramebufferBuilder* VulkanBackend::InitFramebufferBuilder() {
+		return new VulkanFramebufferBuilder();
+	}
+
 	std::shared_ptr<VulkanCommandQueue> VulkanBackend::getStagingCommandQueue() {
 		if (m_stagingCommandQueue == nullptr) {
 			auto jarQueue = VulkanCommandQueueBuilder().SetCommandBufferAmount(2)->Build(m_device);

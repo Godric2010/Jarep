@@ -18,7 +18,7 @@ namespace Graphics::Vulkan {
 	}
 
 	VulkanRenderTargetBuilder* VulkanRenderTargetBuilder::SetImageFormat(Graphics::PixelFormat pixelFormat) {
-		m_format = std::make_optional(pixelFormatMap[pixelFormat]);
+		m_format = std::make_optional(pixelFormat);
 		return this;
 	}
 

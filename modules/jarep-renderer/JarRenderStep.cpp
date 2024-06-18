@@ -12,9 +12,10 @@ namespace Graphics {
 		                             std::shared_ptr<JarSurface> surface,
 		                             std::vector<std::shared_ptr<JarDescriptor>> descriptors)
 				: renderStepDescriptor(std::move(desc)), m_descriptors(descriptors) {
-			BuildFramebuffer(device, renderTarget);
+
 			BuildShaderModules(backend, device);
 			BuildRenderPass(backend, surface, device);
+			BuildFramebuffer(backend, device, renderTarget);
 			BuildPipeline(backend, device, descriptors);
 		}
 
@@ -30,8 +31,13 @@ namespace Graphics {
 
 #pragma region FramebufferCreation{
 
-		void JarRenderStep::BuildFramebuffer(std::shared_ptr<JarDevice> device,
-		                                     std::shared_ptr<JarRenderTarget> renderTarget) {
+		void JarRenderStep::BuildFramebuffer(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device,
+		                                     const std::shared_ptr<JarRenderTarget>& renderTarget) {
+			m_framebuffer = backend->InitFramebufferBuilder()
+					->SetRenderPass(m_renderPass)
+					->SetFramebufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
+					->SetImageFormat(renderTarget->GetPixelFormat())
+					->Build(std::move(device));
 
 		}
 

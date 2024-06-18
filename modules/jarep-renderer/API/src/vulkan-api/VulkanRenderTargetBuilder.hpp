@@ -31,7 +31,7 @@ namespace Graphics::Vulkan {
 		private:
 			std::optional<uint32_t> m_width;
 			std::optional<uint32_t> m_height;
-			std::optional<VkFormat> m_format;
+			std::optional<PixelFormat> m_format;
 			std::optional<RenderTargetType> m_type;
 	};
 }

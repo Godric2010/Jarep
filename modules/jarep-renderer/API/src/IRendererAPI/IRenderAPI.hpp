@@ -46,6 +46,8 @@ namespace Graphics {
 
 	class JarRenderTarget;
 
+	class JarFramebuffer;
+
 	class Backend;
 
 	enum class PixelFormat;
@@ -148,6 +150,19 @@ namespace Graphics {
 
 #pragma region JarFramebuffer{
 
+	class JarFramebufferBuilder {
+		public:
+			virtual ~JarFramebufferBuilder() = default;
+
+			virtual JarFramebufferBuilder* SetFramebufferExtent(uint32_t width, uint32_t height) = 0;
+
+			virtual JarFramebufferBuilder* SetRenderPass(std::shared_ptr<JarRenderPass> renderPass) = 0;
+
+			virtual JarFramebufferBuilder* SetImageFormat(PixelFormat pixelFormat) = 0;
+
+			virtual std::shared_ptr<JarFramebuffer> Build(std::shared_ptr<JarDevice> device) = 0;
+	};
+
 	class JarFramebuffer {
 		public:
 			virtual ~JarFramebuffer() = default;
@@ -200,6 +215,12 @@ namespace Graphics {
 	class JarRenderTarget {
 		public:
 			virtual ~JarRenderTarget() = default;
+
+			virtual const uint32_t  GetResolutionWidth() = 0;
+
+			virtual const uint32_t GetResolutionHeight() = 0;
+
+			virtual const PixelFormat GetPixelFormat() = 0;
 	};
 
 #pragma endregion RenderTarget }
@@ -683,6 +704,8 @@ namespace Graphics {
 			virtual JarDescriptorBuilder* InitDescriptorBuilder() = 0;
 
 			virtual JarRenderTargetBuilder* InitRenderTargetBuilder() = 0;
+
+			virtual JarFramebufferBuilder* InitFramebufferBuilder() = 0;
 	};
 
 #pragma endregion Backend }

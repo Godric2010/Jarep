@@ -63,7 +63,8 @@ namespace Graphics {
 
 				void BuildShaderModules(std::shared_ptr<Backend> backend, std::shared_ptr<JarDevice> device);
 
-				void BuildFramebuffer(std::shared_ptr<JarDevice> device, std::shared_ptr<JarRenderTarget> renderTarget);
+				void BuildFramebuffer(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device,
+				                      const std::shared_ptr<JarRenderTarget>& renderTarget);
 
 				void BuildRenderPass(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarSurface> surface,
 				                     std::shared_ptr<JarDevice> device);
