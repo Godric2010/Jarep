@@ -22,10 +22,6 @@ namespace Graphics::Metal{
 		encoder->endEncoding();
 	}
 
-	void MetalCommandBuffer::BindRenderTarget(std::shared_ptr<JarRenderTarget> renderTarget) {
-
-	}
-
 	void MetalCommandBuffer::BindPipeline(std::shared_ptr<Graphics::JarPipeline> pipeline, uint32_t frameIndex) {
 		auto metalPipeline = reinterpret_cast<MetalPipeline*>(pipeline.get());
 		encoder->setRenderPipelineState(metalPipeline->getPSO());

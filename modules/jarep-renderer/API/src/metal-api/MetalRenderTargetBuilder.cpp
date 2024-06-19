@@ -20,9 +20,17 @@ namespace Graphics::Metal {
 		return this;
 	}
 
-	std::shared_ptr<JarRenderTarget> MetalRenderTargetBuilder::Build(std::shared_ptr<JarDevice> device) {
-		if(!m_renderTargetType.has_value() || !m_width.has_value() || !m_height.has_value())
-			throw std::runtime_error("MetalRenderTargetBuilder: Build() called without setting all required parameters");
-		return std::make_shared<MetalRenderTarget>(m_renderTargetType.value(), m_width.value(), m_height.value());
+	MetalRenderTargetBuilder* MetalRenderTargetBuilder::SetImageFormat(PixelFormat format) {
+		m_pixelFormat = std::make_optional(format);
+		return this;
+	}
+
+	std::shared_ptr<JarRenderTarget> MetalRenderTargetBuilder::Build() {
+		if (!m_renderTargetType.has_value() || !m_width.has_value() || !m_height.has_value() ||
+		    !m_pixelFormat.has_value())
+			throw std::runtime_error(
+					"MetalRenderTargetBuilder: Build() called without setting all required parameters");
+		return std::make_shared<MetalRenderTarget>(m_renderTargetType.value(), m_width.value(), m_height.value(),
+		                                           m_pixelFormat.value());
 	}
 }

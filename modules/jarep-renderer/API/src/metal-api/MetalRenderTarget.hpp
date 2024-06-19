@@ -11,19 +11,23 @@ namespace Graphics::Metal {
 	class MetalRenderTarget final : public JarRenderTarget {
 
 		public:
-			MetalRenderTarget(RenderTargetType type, uint32_t width, uint32_t height) : m_type(type), m_width(width), m_height(height) {
+			MetalRenderTarget(RenderTargetType type, uint32_t width, uint32_t height, PixelFormat format) : m_type(
+					type), m_width(width), m_height(height), m_pixelFormat(format) {
 			}
 
 			~MetalRenderTarget() override;
 
-			void Release() override;
+			inline const uint32_t GetResolutionWidth() override { return m_width; }
 
-			std::shared_ptr<JarImage> GetImage() override;
+			inline const uint32_t GetResolutionHeight() override { return m_height; }
+
+			inline const PixelFormat GetPixelFormat() override { return m_pixelFormat; }
 
 		private:
 			RenderTargetType m_type;
 			uint32_t m_width;
 			uint32_t m_height;
+			PixelFormat m_pixelFormat;
 	};
 }
 

@@ -17,6 +17,7 @@
 #include "MetalDescriptorBuilder.hpp"
 #include "MetalPipelineBuilder.hpp"
 #include "MetalRenderTargetBuilder.hpp"
+#include "MetalFramebufferBuilder.hpp"
 
 namespace Graphics::Metal {
 
@@ -47,6 +48,8 @@ namespace Graphics::Metal {
 			JarDescriptorBuilder* InitDescriptorBuilder() override;
 
 			JarRenderTargetBuilder* InitRenderTargetBuilder() override;
+
+			JarFramebufferBuilder* InitFramebufferBuilder() override;
 	};
 
 	extern "C" Backend* CreateMetalBackend();

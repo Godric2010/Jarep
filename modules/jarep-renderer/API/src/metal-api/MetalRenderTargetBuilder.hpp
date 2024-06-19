@@ -24,12 +24,15 @@ namespace Graphics::Metal {
 
 			MetalRenderTargetBuilder* SetResolution(uint32_t width, uint32_t height) override;
 
-			std::shared_ptr<JarRenderTarget> Build(std::shared_ptr<JarDevice> device) override;
+			MetalRenderTargetBuilder* SetImageFormat(PixelFormat format) override;
 
-			private:
-				std::optional<RenderTargetType> m_renderTargetType;
-				std::optional<uint32_t> m_width;
-				std::optional<uint32_t> m_height;
+			std::shared_ptr<JarRenderTarget> Build() override;
+
+		private:
+			std::optional<RenderTargetType> m_renderTargetType;
+			std::optional<uint32_t> m_width;
+			std::optional<uint32_t> m_height;
+			std::optional<PixelFormat> m_pixelFormat;
 	};
 }
 

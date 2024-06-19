@@ -6,10 +6,5 @@
 namespace Graphics::Metal{
 	MetalRenderTarget::~MetalRenderTarget() = default;
 
-	void MetalRenderTarget::Release() {
-	}
 
-	std::shared_ptr<JarImage> MetalRenderTarget::GetImage() {
-		return nullptr;
-	}
 }

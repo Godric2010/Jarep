@@ -45,7 +45,8 @@ set(SOURCE_FILES MetalBackend.cpp sdlsurfaceadapter.mm
         MetalPipelineBuilder.cpp
         MetalPipeline.cpp
         MetalRenderTargetBuilder.cpp
-        MetalRenderTarget.cpp)
+        MetalRenderTarget.cpp
+        MetalFramebufferBuilder.cpp)
 
 add_library(METAL_RENDERER_API ${SOURCE_FILES} ${HEADER_FILES})
 

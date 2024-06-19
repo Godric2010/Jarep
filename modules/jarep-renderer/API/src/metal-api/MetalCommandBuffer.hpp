@@ -28,8 +28,6 @@ namespace Graphics::Metal {
 
 			void EndRecording() override;
 
-			void BindRenderTarget(std::shared_ptr<JarRenderTarget> renderTarget) override;
-
 			void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t frameIndex) override;
 
 			void BindDescriptors(std::vector<std::shared_ptr<JarDescriptor>> descriptors) override;
