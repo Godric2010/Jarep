@@ -38,6 +38,10 @@ namespace Graphics {
 
 	class JarImage;
 
+	class JarImageBufferBuilder;
+
+	class JarImageBuffer;
+
 	class JarSurface;
 
 	class JarDescriptor;
@@ -68,6 +72,88 @@ namespace Graphics {
 		Depth24Stencil8,
 		Depth32FloatStencil8,
 		Depth16Unorm,
+	};
+	enum class ImageTiling {
+		Optimal,
+		Linear,
+	};
+
+	class ImageUsage {
+		public:
+			enum Usage {
+				TransferSrc = 0x1,
+				TransferDst = 0x2,
+				Sampled = 0x4,
+				Storage = 0x8,
+				ColorAttachment = 0x10,
+				DepthStencilAttachment = 0x20,
+				TransientAttachment = 0x40,
+				InputAttachment = 0x80,
+			};
+			using BitType = uint32_t;
+			BitType flags;
+
+			ImageUsage() : flags(0) {}
+
+			ImageUsage(BitType flag) : flags(flag) {}
+
+			ImageUsage(std::initializer_list<Usage> flags) : flags(0) {
+				for (auto flag: flags) {
+					this->flags |= flag;
+				}
+			}
+
+			ImageUsage operator|(ImageUsage rhs) const {
+				return {static_cast<BitType>(this->flags | rhs.flags)};
+			}
+
+			ImageUsage operator&(ImageUsage rhs) const {
+				return {static_cast<BitType>(this->flags & rhs.flags)};
+			}
+
+			ImageUsage& operator|=(ImageUsage rhs) {
+				this->flags |= rhs.flags;
+				return *this;
+			}
+
+			operator BitType() const { return flags; }
+
+	};
+
+	class ImageAspect {
+		public:
+			enum Aspect {
+				Color = 0x1,
+				Depth = 0x2,
+				Stencil = 0x4,
+			};
+			using BitType = uint32_t;
+			BitType flags;
+
+			ImageAspect() : flags(0) {}
+
+			ImageAspect(BitType flag) : flags(flag) {}
+
+			ImageAspect(std::initializer_list<Aspect> flags) : flags(0) {
+				for (auto flag: flags) {
+					this->flags |= flag;
+				}
+			}
+
+			ImageAspect operator|(ImageAspect rhs) const {
+				return {static_cast<BitType>(this->flags | rhs.flags)};
+			}
+
+			ImageAspect operator&(ImageAspect rhs) const {
+				return {static_cast<BitType>(this->flags & rhs.flags)};
+			}
+
+			ImageAspect& operator|=(ImageAspect rhs) {
+				this->flags |= rhs.flags;
+				return *this;
+			}
+
+			operator BitType() const { return flags; }
 	};
 
 #pragma region JarRenderPass{
@@ -216,7 +302,7 @@ namespace Graphics {
 		public:
 			virtual ~JarRenderTarget() = default;
 
-			virtual const uint32_t  GetResolutionWidth() = 0;
+			virtual const uint32_t GetResolutionWidth() = 0;
 
 			virtual const uint32_t GetResolutionHeight() = 0;
 
@@ -299,6 +385,44 @@ namespace Graphics {
 	};
 
 #pragma endregion Buffer }
+
+#pragma region ImageBuffer{
+
+	class JarImageBufferBuilder {
+
+		public:
+			virtual ~JarImageBufferBuilder() = 0;
+
+			virtual JarImageBufferBuilder* SetImageBufferExtent(uint32_t width, uint32_t height) = 0;
+
+			virtual JarImageBufferBuilder* SetImageFormat(PixelFormat format) = 0;
+
+			virtual JarImageBufferBuilder* SetMipLevels(uint32_t mipLevels) = 0;
+
+			virtual JarImageBufferBuilder* SetSampleCount(uint16_t sampleCount) = 0;
+
+			virtual JarImageBufferBuilder* SetMemoryProperties(MemoryProperties memoryProperties) = 0;
+
+			virtual JarImageBufferBuilder* SetImageTiling(ImageTiling imageTiling) = 0;
+
+			virtual JarImageBufferBuilder* SetImageUsage(ImageUsage imageUsage) = 0;
+
+			virtual JarImageBufferBuilder* SetImageAspect(ImageAspect imageAspect) = 0;
+
+			virtual std::unique_ptr<JarImageBuffer>
+			Build(std::shared_ptr<Backend> backend, std::shared_ptr<JarDevice> device) = 0;
+	};
+
+	class JarImageBuffer {
+		public:
+			virtual ~JarImageBuffer() = default;
+
+			virtual void Release() = 0;
+
+			virtual void UploadData(const void* data, size_t bufferSize) = 0;
+	};
+
+#pragma endregion ImageBuffer }
 
 #pragma region JarImage{
 

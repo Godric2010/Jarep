@@ -26,6 +26,7 @@ set(HEADER_FILES sdlsurfaceadapter.hpp
         VulkanRenderTargetBuilder.hpp
         VulkanRenderTarget.hpp
         VulkanImageBuffer.hpp
+        VulkanImageBufferBuilder.hpp
         VulkanFramebufferBuilder.hpp
 )
 set(SOURCE_FILES VulkanBackend.cpp sdlsurfaceadapter.cpp
@@ -52,8 +53,8 @@ set(SOURCE_FILES VulkanBackend.cpp sdlsurfaceadapter.cpp
         VulkanRenderPassBuilder.cpp
         VulkanRenderTargetBuilder.cpp
         VulkanImageBuffer.cpp
+        VulkanImageBufferBuilder.cpp
         VulkanFramebufferBuilder.cpp
-
 )
 
 add_library(VULKAN_RENDERER_API STATIC ${SOURCE_FILES} ${HEADER_FILES})

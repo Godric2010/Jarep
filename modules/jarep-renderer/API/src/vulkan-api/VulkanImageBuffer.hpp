@@ -16,7 +16,7 @@ namespace Graphics::Vulkan {
 
 	class VulkanCommandQueue;
 
-	class VulkanImageBuffer {
+	class VulkanImageBuffer final  : public JarImageBuffer{
 
 		public:
 			VulkanImageBuffer(std::shared_ptr<VulkanDevice> device,
@@ -26,11 +26,11 @@ namespace Graphics::Vulkan {
 			                  VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
 			                  VkImageAspectFlags aspectFlags);
 
-			~VulkanImageBuffer() = default;
+			~VulkanImageBuffer() override = default;
 
-			void UploadData(void* data, VkDeviceSize deviceSize);
+			void UploadData(const void* data, size_t bufferSize) override;
 
-			void Release();
+			void Release() override;
 
 			[[nodiscard]] const VkImage& GetImage() const { return m_image; }
 

@@ -109,8 +109,12 @@ namespace Graphics::Vulkan {
 			{StencilOpState::Replace,           VK_STENCIL_OP_REPLACE},
 	};
 
+	static std::unordered_map<ImageTiling, VkImageTiling> imageTilingMap = {
+			{ImageTiling::Linear,  VK_IMAGE_TILING_LINEAR},
+			{ImageTiling::Optimal, VK_IMAGE_TILING_OPTIMAL},
+	};
 
-	inline 	VkSampleCountFlagBits convertToVkSampleCountFlagBits(uint8_t sampleCount) {
+	inline VkSampleCountFlagBits convertToVkSampleCountFlagBits(uint8_t sampleCount) {
 		switch (sampleCount) {
 			case 2:
 				return VK_SAMPLE_COUNT_2_BIT;
@@ -128,6 +132,38 @@ namespace Graphics::Vulkan {
 				return VK_SAMPLE_COUNT_1_BIT;
 		}
 	}
+
+	inline VkImageUsageFlags convertToVkImageUsageFlags(ImageUsage usage) {
+		VkImageUsageFlags flags = 0;
+		if (usage.flags & ImageUsage::TransferSrc) flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		if (usage.flags & ImageUsage::TransferDst) flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		if (usage.flags & ImageUsage::Sampled) flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+		if (usage.flags & ImageUsage::Storage) flags |= VK_IMAGE_USAGE_STORAGE_BIT;
+		if (usage.flags & ImageUsage::ColorAttachment) flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		if (usage.flags & ImageUsage::DepthStencilAttachment) flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		if (usage.flags & ImageUsage::TransientAttachment) flags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+		if (usage.flags & ImageUsage::InputAttachment) flags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+		return flags;
+	}
+
+	inline VkMemoryPropertyFlags convertToVkMemoryPropertyFlags(MemoryProperties memProps) {
+		VkMemoryPropertyFlags vkFlags = 0;
+		if (memProps.flags & MemoryProperties::DeviceLocal) vkFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		if (memProps.flags & MemoryProperties::HostVisible) vkFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		if (memProps.flags & MemoryProperties::HostCoherent) vkFlags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		if (memProps.flags & MemoryProperties::HostCached) vkFlags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+		if (memProps.flags & MemoryProperties::LazilyAllocation) vkFlags |= VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+		return vkFlags;
+	}
+
+	inline VkImageAspectFlags convertToVkImageAspectFlags(ImageAspect aspect) {
+		VkImageAspectFlags flags = 0;
+		if (aspect.flags & ImageAspect::Color) flags |= VK_IMAGE_ASPECT_COLOR_BIT;
+		if (aspect.flags & ImageAspect::Depth) flags |= VK_IMAGE_ASPECT_DEPTH_BIT;
+		if (aspect.flags & ImageAspect::Stencil) flags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		return flags;
+	}
 }
+
 
 #endif //JAREP_VULKANDATATYPEMAPS_HPP

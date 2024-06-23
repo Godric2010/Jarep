@@ -23,7 +23,7 @@ namespace Graphics::Vulkan {
 		createImageView(aspectFlags);
 	}
 
-	void VulkanImageBuffer::UploadData(void* data, VkDeviceSize deviceSize) {
+	void VulkanImageBuffer::UploadData(const void* data, size_t deviceSize) {
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -33,7 +33,7 @@ namespace Graphics::Vulkan {
 
 		void* mappedData;
 		vkMapMemory(m_device->getLogicalDevice(), stagingBufferMemory, 0, deviceSize, 0, &mappedData);
-		memcpy(mappedData, data, static_cast<size_t>(deviceSize));
+		memcpy(mappedData, data, deviceSize);
 		vkUnmapMemory(m_device->getLogicalDevice(), stagingBufferMemory);
 
 		transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
