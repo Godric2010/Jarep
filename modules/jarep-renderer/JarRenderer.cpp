@@ -60,9 +60,9 @@ namespace Graphics {
 
 	void JarRenderer::ResizeSurface(uint32_t width, uint32_t height) {
 		surface->RecreateSurface(width, height);
-		for (const auto& renderStep: renderSteps) {
-			renderStep->GetRenderPass()->RecreateRenderPassFramebuffers(width, height, surface);
-		}
+//		for (const auto& renderStep: renderSteps) {
+//			renderStep->GetRenderPass()->RecreateRenderPassFramebuffers(width, height, surface);
+//		}
 	}
 
 	void JarRenderer::ChangeResolution(uint32_t resX, uint32_t resY) {

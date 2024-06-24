@@ -20,7 +20,7 @@ namespace Graphics::Vulkan {
 		VkExtent2D imageExtent = surface->getSwapchain()->getSwapchainImageExtent();
 
 		for (const auto& m_swapchainImageView: surface->getSwapchain()->getSwapchainImageViews()) {
-			auto framebuffer = std::make_shared<VulkanFramebuffer>(imageExtent);
+			auto framebuffer = std::make_shared<VulkanFramebuffer_OLD>(imageExtent);
 			std::vector<VkImageView> attachments = std::vector<VkImageView>();
 			for (auto imageAttachment: imageAttachments) {
 				auto vulkanImageBuffer = reinterpret_cast<std::shared_ptr<VulkanImageBuffer>&>(imageAttachment);
@@ -34,7 +34,7 @@ namespace Graphics::Vulkan {
 		}
 	}
 
-	std::shared_ptr<VulkanFramebuffer> VulkanRenderPassFramebuffers::GetFramebuffer(uint32_t index) {
+	std::shared_ptr<VulkanFramebuffer_OLD> VulkanRenderPassFramebuffers::GetFramebuffer(uint32_t index) {
 		return m_framebuffers[index];
 	}
 

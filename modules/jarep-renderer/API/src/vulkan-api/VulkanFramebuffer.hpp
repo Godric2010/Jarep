@@ -1,5 +1,5 @@
 //
-// Created by sebastian on 09.06.24.
+// Created by sebastian on 24.06.24.
 //
 
 #ifndef JAREP_VULKANFRAMEBUFFER_HPP
@@ -7,43 +7,31 @@
 
 #include "IRenderAPI.hpp"
 #include "VulkanDevice.hpp"
+#include "VulkanImageBuffer.hpp"
 #include <vulkan/vulkan.hpp>
-#include <memory>
 
 namespace Graphics::Vulkan {
-	class VulkanDevice;
 
-	class VulkanFramebuffer final {
+	class VulkanFramebuffer final : public JarFramebuffer {
+
 		public:
-			explicit VulkanFramebuffer(const VkExtent2D framebufferExtent) {
-				m_framebuffer = nullptr;
-				m_framebufferExtent = framebufferExtent;
-			}
+		VulkanFramebuffer(std::shared_ptr<VulkanDevice> device, std::shared_ptr<VulkanImageBuffer> targetBuffer, VkFramebuffer framebuffer, VkExtent2D framebufferExtent);
 
-			~VulkanFramebuffer();
+		~VulkanFramebuffer() override = default;
 
-			void CreateFramebuffer(std::shared_ptr<VulkanDevice> device, VkRenderPass renderPass,
-			                       std::vector<VkImageView> vulkanImageAttachments);
+		void Release() override;
 
-			void RecreateFramebuffer(uint32_t width, uint32_t height, VkImageView swapchainImageView,
-			                         VkImageView depthImageView, VkImageView colorImageView);
+		inline VkFramebuffer GetFramebuffer() { return m_framebuffer; }
 
-			[[nodiscard]] VkFramebuffer getFramebuffer() const { return m_framebuffer; }
-
-			[[nodiscard]] VkExtent2D getFramebufferExtent() const { return m_framebufferExtent; }
-
-			void Release();
+		inline VkExtent2D GetFramebufferExtent() { return m_framebufferExtent; }
 
 		private:
-			VkFramebufferCreateInfo m_framebufferCreateInfo{};
-			VkFramebuffer m_framebuffer;
-			VkExtent2D m_framebufferExtent{};
-			VkRenderPass m_renderPass;
-			std::shared_ptr<VulkanDevice> m_device;
-
-			void buildFramebuffer(std::vector<VkImageView> attachments);
+		std::shared_ptr<VulkanDevice> m_device;
+		std::shared_ptr<VulkanImageBuffer> m_targetImageBuffer;
+		VkFramebuffer m_framebuffer;
+		VkExtent2D m_framebufferExtent;
 	};
-}
 
+}// namespace Graphics::Vulkan
 
-#endif //JAREP_VULKANFRAMEBUFFER_HPP
+#endif//JAREP_VULKANFRAMEBUFFER_HPP

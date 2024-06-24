@@ -5,21 +5,21 @@
 #ifndef JAREP_VULKANRENDERPASSFRAMEBUFFERS_HPP
 #define JAREP_VULKANRENDERPASSFRAMEBUFFERS_HPP
 
-#include "VulkanDevice.hpp"
-#include "VulkanSurface.hpp"
-#include "VulkanFramebuffer.hpp"
 #include "VulkanCommandQueue.hpp"
+#include "VulkanDevice.hpp"
+#include "VulkanFramebuffer_OLD.hpp"
 #include "VulkanImageBuffer.hpp"
-#include <vulkan/vulkan.hpp>
-#include <memory>
+#include "VulkanSurface.hpp"
 #include <functional>
-#include <vector>
+#include <memory>
 #include <optional>
+#include <vector>
+#include <vulkan/vulkan.hpp>
 
 namespace Graphics::Vulkan {
 	class VulkanSurface;
 
-	class VulkanFramebuffer;
+	class VulkanFramebuffer_OLD;
 
 	class VulkanDevice;
 
@@ -39,7 +39,7 @@ namespace Graphics::Vulkan {
 			                             VkRenderPass renderPass,
 			                             std::vector<std::shared_ptr<JarImageBuffer>> imageAttachments);
 
-			std::shared_ptr<VulkanFramebuffer> GetFramebuffer(uint32_t index);
+			std::shared_ptr<VulkanFramebuffer_OLD> GetFramebuffer(uint32_t index);
 
 			void RecreateFramebuffers(VkExtent2D swapchainExtent, const std::shared_ptr<VulkanSurface>& surface);
 
@@ -47,7 +47,7 @@ namespace Graphics::Vulkan {
 
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
-			std::vector<std::shared_ptr<VulkanFramebuffer>> m_framebuffers;
+			std::vector<std::shared_ptr<VulkanFramebuffer_OLD>> m_framebuffers;
 
 			VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 

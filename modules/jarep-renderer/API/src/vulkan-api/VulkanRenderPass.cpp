@@ -18,7 +18,7 @@ namespace Graphics::Vulkan {
 		m_framebuffers->RecreateFramebuffers({width, height}, vulkanSurface);
 	}
 
-	std::shared_ptr<VulkanFramebuffer> VulkanRenderPass::AcquireNextFramebuffer(uint32_t frameIndex) {
+	std::shared_ptr<VulkanFramebuffer_OLD> VulkanRenderPass::AcquireNextFramebuffer(uint32_t frameIndex) {
 		return m_framebuffers->GetFramebuffer(frameIndex);
 	};
 }

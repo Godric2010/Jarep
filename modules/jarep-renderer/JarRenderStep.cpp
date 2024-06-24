@@ -13,11 +13,11 @@ namespace Graphics {
 		                             std::vector<std::shared_ptr<JarDescriptor>> descriptors,
 		                             std::shared_ptr<JarImageBuffer> multisamplingImageAttachment,
 		                             std::shared_ptr<JarImageBuffer> depthImageAttachment)
-				: renderStepDescriptor(std::move(desc)), m_descriptors(descriptors), m_renderTarget(renderTarget) {
+		    : renderStepDescriptor(std::move(desc)), m_descriptors(descriptors), m_renderTarget(renderTarget) {
 
 			BuildShaderModules(backend, device);
 			BuildRenderPass(backend, surface, device, multisamplingImageAttachment, depthImageAttachment);
-			BuildFramebuffer(backend, device, renderTarget);
+			BuildFramebuffer(backend, device, renderTarget, multisamplingImageAttachment, depthImageAttachment);
 			BuildPipeline(backend, device, descriptors);
 		}
 
@@ -33,14 +33,32 @@ namespace Graphics {
 
 #pragma region FramebufferCreation{
 
-		void JarRenderStep::BuildFramebuffer(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device,
-		                                     const std::shared_ptr<JarRenderTarget>& renderTarget) {
-			m_framebuffer = backend->InitFramebufferBuilder()
-					->SetRenderPass(m_renderPass)
-					->SetFramebufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
-					->SetImageFormat(renderTarget->GetPixelFormat())
-					->Build(std::move(device));
+		void JarRenderStep::BuildFramebuffer(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device, const std::shared_ptr<JarRenderTarget>& renderTarget, std::shared_ptr<JarImageBuffer> multisamplingImageAttachment, std::shared_ptr<JarImageBuffer> depthImageAttachment) {
 
+			std::shared_ptr<JarImageBuffer> targetImageBuffer = backend->InitImageBufferBuilder()
+			                                                            ->SetImageBufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
+			                                                            ->SetImageFormat(renderTarget->GetPixelFormat())
+			                                                            ->SetSampleCount(renderTarget->GetMultisamplingCount())
+			                                                            ->SetMipLevels(1)
+			                                                            ->SetImageUsage(ImageUsage::ColorAttachment)
+			                                                            ->SetImageTiling(ImageTiling::Optimal)
+			                                                            ->SetImageAspect(ImageAspect::Color)
+			                                                            ->SetMemoryProperties(MemoryProperties::DeviceLocal)
+			                                                            ->Build(backend, device);
+
+			std::vector<std::shared_ptr<JarImageBuffer>> imageBuffers = std::vector<std::shared_ptr<JarImageBuffer>>();
+			imageBuffers.push_back(multisamplingImageAttachment);
+			if (renderStepDescriptor->m_depthTestEnabled) {
+				imageBuffers.push_back(depthImageAttachment);
+			}
+			imageBuffers.push_back(targetImageBuffer);
+
+			m_framebuffer = backend->InitFramebufferBuilder()
+			                        ->SetRenderPass(m_renderPass)
+			                        ->SetFramebufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
+			                        ->SetImageFormat(renderTarget->GetPixelFormat())
+			                        ->SetImageBuffers(imageBuffers)
+			                        ->Build(std::move(device));
 		}
 
 #pragma endregion FramebufferCreation };
@@ -61,7 +79,6 @@ namespace Graphics {
 			stage.mainFunctionName = "main";
 
 			m_shaderStage = stage;
-
 		}
 
 		std::shared_ptr<JarShaderModule>
@@ -223,21 +240,13 @@ namespace Graphics {
 			if (depthTestEnabled)
 				pipelineBuilder->SetDepthStencilState(depthStencilState);
 
-			pipelineBuilder->
-					SetShaderStage(m_shaderStage)->
-					SetRenderPass(m_renderPass)->
-					SetVertexInput(vertexInput)->
-					SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->
-					SetMultisamplingCount(multisamplingCount)->
-					BindDescriptorLayouts(descriptorLayouts)->
-					SetColorBlendAttachments(colorBlendAttachment);
+			pipelineBuilder->SetShaderStage(m_shaderStage)->SetRenderPass(m_renderPass)->SetVertexInput(vertexInput)->SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->SetMultisamplingCount(multisamplingCount)->BindDescriptorLayouts(descriptorLayouts)->SetColorBlendAttachments(colorBlendAttachment);
 			m_pipeline = pipelineBuilder->Build(device);
 			delete pipelineBuilder;
-
 		}
 
 #pragma endregion PipelineCreation };
 
-	}
+	}// namespace Internal
 
-} // Graphics
+}// namespace Graphics

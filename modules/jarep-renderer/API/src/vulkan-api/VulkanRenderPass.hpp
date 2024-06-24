@@ -7,14 +7,14 @@
 
 #include "IRenderAPI.hpp"
 #include "VulkanDevice.hpp"
+#include "VulkanFramebuffer_OLD.hpp"
 #include "VulkanRenderPassFramebuffers.hpp"
-#include "VulkanFramebuffer.hpp"
 #include "VulkanSurface.hpp"
-#include <vulkan/vulkan.hpp>
 #include <memory>
+#include <vulkan/vulkan.hpp>
 
 namespace Graphics::Vulkan {
-	class VulkanFramebuffer;
+	class VulkanFramebuffer_OLD;
 
 	class VulkanRenderPassFramebuffers;
 
@@ -40,7 +40,7 @@ namespace Graphics::Vulkan {
 			void RecreateRenderPassFramebuffers(uint32_t width, uint32_t height,
 			                                    std::shared_ptr<JarSurface> surface) override;
 
-			std::shared_ptr<VulkanFramebuffer> AcquireNextFramebuffer(uint32_t frameIndex);
+			std::shared_ptr<VulkanFramebuffer_OLD> AcquireNextFramebuffer(uint32_t frameIndex);
 
 		private:
 			std::shared_ptr<VulkanDevice> m_device;
