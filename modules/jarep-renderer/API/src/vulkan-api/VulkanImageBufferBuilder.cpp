@@ -5,6 +5,9 @@
 #include "VulkanImageBufferBuilder.hpp"
 
 namespace Graphics::Vulkan {
+
+	VulkanImageBufferBuilder::~VulkanImageBufferBuilder() = default;
+
 	VulkanImageBufferBuilder* VulkanImageBufferBuilder::SetImageFormat(PixelFormat pixelFormat) {
 		m_pixelFormat = std::make_optional(pixelFormatMap[pixelFormat]);
 		return this;
@@ -47,7 +50,7 @@ namespace Graphics::Vulkan {
 	}
 
 
-	std::unique_ptr<JarImageBuffer> VulkanImageBufferBuilder::Build(std::shared_ptr<Backend> backend,
+	std::shared_ptr<JarImageBuffer> VulkanImageBufferBuilder::Build(std::shared_ptr<Backend> backend,
 	                                                                std::shared_ptr<JarDevice> device) {
 		if (!m_imageExtent.has_value() || !m_pixelFormat.has_value() || !m_mipLevels.has_value() ||
 		    !m_numSamples.has_value() || !m_tiling.has_value() || !m_usage.has_value() || !m_aspectFlags.has_value() ||
@@ -57,7 +60,7 @@ namespace Graphics::Vulkan {
 		auto vulkanDevice = reinterpret_cast<std::shared_ptr<VulkanDevice>&>(device);
 		auto vulkanBackend = reinterpret_cast<std::shared_ptr<VulkanBackend>&>(backend);
 
-		return std::make_unique<VulkanImageBuffer>(vulkanDevice,
+		return std::make_shared<VulkanImageBuffer>(vulkanDevice,
 		                                           [vulkanBackend]() { return vulkanBackend->getStagingCommandQueue(); },
 		                                           m_imageExtent.value(), m_pixelFormat.value(), m_mipLevels.value(),
 		                                           m_numSamples.value(), m_tiling.value(), m_usage.value(),

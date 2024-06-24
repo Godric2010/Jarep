@@ -26,6 +26,8 @@ namespace Graphics::Vulkan {
 
 			VulkanRenderTargetBuilder* SetResolution(uint32_t width, uint32_t height) override;
 
+			VulkanRenderTargetBuilder* SetMultisamplingCount(uint16_t multisamplingCount) override;
+
 			std::shared_ptr<JarRenderTarget> Build() override;
 
 		private:
@@ -33,6 +35,7 @@ namespace Graphics::Vulkan {
 			std::optional<uint32_t> m_height;
 			std::optional<PixelFormat> m_format;
 			std::optional<RenderTargetType> m_type;
+			std::optional<uint16_t> m_multisamplingCount;
 	};
 }
 

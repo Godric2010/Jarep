@@ -32,7 +32,8 @@ namespace Graphics::Vulkan {
 			VulkanRenderPassBuilder* SetMultisamplingCount(uint8_t multisamplingCount) override;
 
 			std::shared_ptr<JarRenderPass>
-			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) override;
+			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface,
+			      std::vector<std::shared_ptr<JarImageBuffer>> imageAttachments) override;
 
 		private:
 			std::optional<VkAttachmentDescription> m_colorAttachment;

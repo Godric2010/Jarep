@@ -19,10 +19,14 @@ namespace Graphics {
 				->SetRenderTargetType(RenderTargetType::Texture)
 				->SetImageFormat(PixelFormat::BGRA8Unorm)
 				->SetResolution(resolutionX, resolutionY)
+				->SetMultisamplingCount(1)
 				->Build();
 
 		const auto commandQueueBuilder = backend->InitCommandQueueBuilder();
 		queue = commandQueueBuilder->Build(device);
+
+		CreateDepthResources(PixelFormat::Depth32Float);
+		CreateMultisamplingResources(PixelFormat::BGRA8Unorm);
 
 		Internal::JarModelViewProjection mvp{};
 //		mvp.model = glm::rotate(glm::mat4(1.0f), glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -67,7 +71,8 @@ namespace Graphics {
 
 	void JarRenderer::AddRenderStep(std::unique_ptr<JarRenderStepDescriptor> renderStepBuilder) {
 		auto renderStep = std::make_shared<Internal::JarRenderStep>(std::move(renderStepBuilder), backend, device,
-		                                                            renderTarget, surface, descriptors);
+		                                                            renderTarget, surface, descriptors,
+		                                                            m_multisamplingBuffer, m_depthBuffer.value());
 		renderSteps.push_back(renderStep);
 	}
 
@@ -112,7 +117,7 @@ namespace Graphics {
 		depthBias.DepthBiasConstantFactor = 0.0f;
 		depthBias.DepthBiasSlopeFactor = 0.0f;
 
-		prepareModelViewProjectionForFrame();
+		PrepareModelViewProjectionForFrame();
 
 		const auto commandBuffer = queue->getNextCommandBuffer();
 
@@ -123,7 +128,7 @@ namespace Graphics {
 			commandBuffer->SetViewport(viewport);
 			commandBuffer->SetScissor(scissor);
 			commandBuffer->SetDepthBias(depthBias);
-			commandBuffer->BindPipeline(renderStep->GetPipeline(), frameCounter);
+			commandBuffer->BindPipeline(renderStep->GetPipeline(), m_frameCounter);
 			commandBuffer->BindDescriptors(renderStep->GetDescriptors());
 
 
@@ -136,7 +141,7 @@ namespace Graphics {
 			commandBuffer->EndRecording();
 		}
 		commandBuffer->Present(surface, device);
-		frameCounter = (frameCounter + 1) % surface->GetSwapchainImageAmount();
+		m_frameCounter = (m_frameCounter + 1) % surface->GetSwapchainImageAmount();
 	}
 
 	void JarRenderer::Shutdown() {
@@ -166,7 +171,35 @@ namespace Graphics {
 		std::cout << "Shutdown renderer" << std::endl;
 	}
 
-	void JarRenderer::prepareModelViewProjectionForFrame() {
+	void JarRenderer::CreateDepthResources(PixelFormat depthFormat) {
+		auto depthImageBuffer = backend->InitImageBufferBuilder()
+				->SetImageBufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
+				->SetImageFormat(depthFormat)
+				->SetMipLevels(1)
+				->SetSampleCount(renderTarget->GetMultisamplingCount())
+				->SetImageTiling(ImageTiling::Optimal)
+				->SetImageUsage(ImageUsage::DepthStencilAttachment)
+				->SetMemoryProperties(MemoryProperties::DeviceLocal)
+				->SetImageAspect(ImageAspect::Depth)
+				->Build(backend, device);
+
+		m_depthBuffer = std::make_optional(std::move(depthImageBuffer));
+	}
+
+	void JarRenderer::CreateMultisamplingResources(PixelFormat multisamplingFormat) {
+		m_multisamplingBuffer = backend->InitImageBufferBuilder()
+				->SetImageBufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
+				->SetImageFormat(multisamplingFormat)
+				->SetMipLevels(1)
+				->SetSampleCount(renderTarget->GetMultisamplingCount())
+				->SetImageTiling(ImageTiling::Optimal)
+				->SetImageUsage(ImageUsage::TransientAttachment | ImageUsage::ColorAttachment)
+				->SetMemoryProperties(MemoryProperties::DeviceLocal)
+				->SetImageAspect(ImageAspect::Color)
+				->Build(backend, device);
+	}
+
+	void JarRenderer::PrepareModelViewProjectionForFrame() {
 		static auto startTime = std::chrono::high_resolution_clock::now();
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
@@ -179,6 +212,6 @@ namespace Graphics {
 		mvp.projection = glm::perspectiveRH_NO(glm::radians(45.0f), surfaceExtent.Width / surfaceExtent.Height, 0.1f,
 		                                       100.0f);
 
-		uniformBuffers[frameCounter]->Update(&mvp, sizeof(Internal::JarModelViewProjection));
+		uniformBuffers[m_frameCounter]->Update(&mvp, sizeof(Internal::JarModelViewProjection));
 	}
 }

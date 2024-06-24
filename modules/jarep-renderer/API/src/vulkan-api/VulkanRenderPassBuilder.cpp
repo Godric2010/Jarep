@@ -58,7 +58,8 @@ namespace Graphics::Vulkan { ;
 	}
 
 	std::shared_ptr<JarRenderPass>
-	VulkanRenderPassBuilder::Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) {
+	VulkanRenderPassBuilder::Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface,
+	                               std::vector<std::shared_ptr<JarImageBuffer>> imageAttachments) {
 
 
 		if (!m_colorAttachment.has_value())
@@ -132,8 +133,7 @@ namespace Graphics::Vulkan { ;
 
 		auto vulkanRenderPassFramebuffers = std::make_unique<VulkanRenderPassFramebuffers>(vulkanDevice,
 		                                                                                   createCmdQueueCallback);
-		vulkanRenderPassFramebuffers->CreateRenderPassFramebuffers(vulkanSurface, renderPass,
-		                                                           msaaSamples, m_depthFormat);
+		vulkanRenderPassFramebuffers->CreateRenderPassFramebuffers(vulkanSurface, renderPass, imageAttachments);
 
 		auto vulkanRenderPass = std::make_shared<VulkanRenderPass>(vulkanDevice, renderPass,
 		                                                           vulkanRenderPassFramebuffers);

@@ -62,7 +62,7 @@ namespace Core::Window {
 
 		const auto nativeWindowHandleProvider = getNativeWindowHandle(windowWidth, windowHeight);
 		if (!nativeWindowHandleProvider.has_value()) throw std::exception();
-		renderer->Initialize(nativeWindowHandleProvider.value(), 800, 600);
+		renderer->Initialize(nativeWindowHandleProvider.value(), windowWidth, windowHeight);
 		if (window == nullptr) {
 			return;
 		}
@@ -244,12 +244,12 @@ namespace Core::Window {
 	std::vector<const char*> SdlWindow::getVulkanWindowExtensionsCStr() const {
 		unsigned int extensionCount = 0;
 		if (!SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, nullptr)) {
-			throw std::runtime_error("Could not get the number of vulkan extensions");
+			throw std::runtime_error("Could not get the number of vulkan m_extensions");
 		}
 
 		std::vector<const char*> sdlExtensions(extensionCount);
 		if (!SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, sdlExtensions.data())) {
-			throw std::runtime_error("Could not get the vulkan instance extensions.");
+			throw std::runtime_error("Could not get the vulkan instance m_extensions.");
 		}
 		return sdlExtensions;
 	}

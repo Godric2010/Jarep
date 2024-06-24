@@ -24,7 +24,8 @@ namespace Graphics {
 	namespace Internal {
 		class JarMesh {
 			public:
-				JarMesh(const Mesh& mesh, std::shared_ptr<JarBuffer> vertexBuffer, std::shared_ptr<JarBuffer> indexBuffer)
+				JarMesh(const Mesh& mesh, std::shared_ptr<JarBuffer> vertexBuffer,
+				        std::shared_ptr<JarBuffer> indexBuffer)
 						: mesh(mesh), vertexBuffer(std::move(vertexBuffer)), indexBuffer(std::move(indexBuffer)) {}
 
 				~JarMesh() = default;
@@ -46,7 +47,7 @@ namespace Graphics {
 				std::shared_ptr<JarBuffer> indexBuffer;
 		};
 
-		class JarModelViewProjection{
+		class JarModelViewProjection {
 			public:
 				glm::mat4 model;
 				glm::mat4 view;
@@ -75,7 +76,7 @@ namespace Graphics {
 			void Shutdown();
 
 		private:
-			std::vector<const char*> extensions;
+			std::vector<const char*> m_extensions;
 			std::string shaderFileType;
 			std::shared_ptr<Backend> backend;
 			std::shared_ptr<JarSurface> surface;
@@ -89,37 +90,18 @@ namespace Graphics {
 			std::vector<std::shared_ptr<JarImage>> images;
 			std::vector<std::shared_ptr<JarDescriptor>> descriptors;
 
+			std::optional<std::shared_ptr<JarImageBuffer>> m_depthBuffer;
+			std::shared_ptr<JarImageBuffer> m_multisamplingBuffer;
+
 			std::vector<Internal::JarMesh> meshes;
 
-			int frameCounter = 0;
+			int m_frameCounter = 0;
 
+			void CreateDepthResources(PixelFormat depthFormat);
 
-			[[nodiscard]] std::shared_ptr<JarShaderModule> createShaderModule(
-					ShaderType shaderType, const std::string& shaderName) const;
+			void CreateMultisamplingResources(PixelFormat multisamplingFormat);
 
-			void prepareModelViewProjectionForFrame();
-
-			static std::string readFile(const std::string& filename) {
-				std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-				if (!std::filesystem::exists(filename)) {
-					throw std::runtime_error("File does not exist: " + filename);
-				}
-
-				if (!file.is_open()) {
-					throw std::runtime_error("Failed to open file: " + filename);
-				}
-
-				auto fileSize = (size_t) file.tellg();
-				std::vector<char> buffer(fileSize);
-
-				file.seekg(0);
-				file.read(buffer.data(), fileSize);
-
-				file.close();
-				std::string bufferString(buffer.begin(), buffer.end());
-				return bufferString;
-			}
+			void PrepareModelViewProjectionForFrame();
 	};
 }
 #endif //JAREP_JARRENDERER_HPP

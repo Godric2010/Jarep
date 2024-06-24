@@ -218,7 +218,8 @@ namespace Graphics {
 			virtual JarRenderPassBuilder* SetMultisamplingCount(uint8_t multisamplingCount) = 0;
 
 			virtual std::shared_ptr<JarRenderPass>
-			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) = 0;
+			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface,
+			      std::vector<std::shared_ptr<JarImageBuffer>> renderPassAttachments) = 0;
 	};
 
 
@@ -295,6 +296,8 @@ namespace Graphics {
 
 			virtual JarRenderTargetBuilder* SetResolution(uint32_t width, uint32_t height) = 0;
 
+			virtual JarRenderTargetBuilder* SetMultisamplingCount(uint16_t multisamplingCount) = 0;
+
 			virtual std::shared_ptr<JarRenderTarget> Build() = 0;
 	};
 
@@ -307,6 +310,8 @@ namespace Graphics {
 			virtual const uint32_t GetResolutionHeight() = 0;
 
 			virtual const PixelFormat GetPixelFormat() = 0;
+
+			virtual const uint16_t GetMultisamplingCount() = 0;
 	};
 
 #pragma endregion RenderTarget }
@@ -391,7 +396,7 @@ namespace Graphics {
 	class JarImageBufferBuilder {
 
 		public:
-			virtual ~JarImageBufferBuilder() = 0;
+			virtual ~JarImageBufferBuilder() = default;
 
 			virtual JarImageBufferBuilder* SetImageBufferExtent(uint32_t width, uint32_t height) = 0;
 
@@ -409,7 +414,7 @@ namespace Graphics {
 
 			virtual JarImageBufferBuilder* SetImageAspect(ImageAspect imageAspect) = 0;
 
-			virtual std::unique_ptr<JarImageBuffer>
+			virtual std::shared_ptr<JarImageBuffer>
 			Build(std::shared_ptr<Backend> backend, std::shared_ptr<JarDevice> device) = 0;
 	};
 
@@ -830,6 +835,8 @@ namespace Graphics {
 			virtual JarRenderTargetBuilder* InitRenderTargetBuilder() = 0;
 
 			virtual JarFramebufferBuilder* InitFramebufferBuilder() = 0;
+
+			virtual JarImageBufferBuilder* InitImageBufferBuilder() = 0;
 	};
 
 #pragma endregion Backend }

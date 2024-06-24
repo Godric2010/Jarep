@@ -50,16 +50,16 @@ namespace Graphics::Vulkan {
 			VkExtent2D m_imageExtent;
 			uint32_t m_mipLevels;
 			std::shared_ptr<VulkanDevice> m_device;
-			std::function<std::shared_ptr<VulkanCommandQueue>()> createCmdQueueCallback;
+			std::function<std::shared_ptr<VulkanCommandQueue>()> m_createCmdQueueCallback;
 
-			void createImage(VkSampleCountFlagBits numSamples, VkImageTiling tiling,
+			void CreateImage(VkSampleCountFlagBits numSamples, VkImageTiling tiling,
 			                 VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
 
-			void createImageView(VkImageAspectFlags aspectFlags);
+			void CreateImageView(VkImageAspectFlags aspectFlags);
 
-			void transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout);
+			void TransitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout);
 
-			void copyBufferToImage(VkBuffer stagingBuffer);
+			void CopyBufferToImage(VkBuffer stagingBuffer);
 	};
 }
 

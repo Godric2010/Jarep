@@ -3,6 +3,7 @@
 //
 
 #include "VulkanFramebuffer.hpp"
+
 namespace Graphics::Vulkan {
 	VulkanFramebuffer::~VulkanFramebuffer() = default;
 
@@ -11,19 +12,11 @@ namespace Graphics::Vulkan {
 	}
 
 	void VulkanFramebuffer::CreateFramebuffer(std::shared_ptr<VulkanDevice> device, VkRenderPass renderPass,
-	                                          VkImageView swapchainImageView, VkImageView depthImageView,
-	                                          VkImageView colorImageView) {
+	                                          std::vector<VkImageView> vulkanImageAttachments) {
 
 		m_device = device;
-
-		std::vector<VkImageView> attachments = std::vector<VkImageView>();
-		attachments.push_back(colorImageView);
-		if (depthImageView != nullptr)
-			attachments.push_back(depthImageView);
-		attachments.push_back(swapchainImageView);
 		m_renderPass = renderPass;
-
-		buildFramebuffer(attachments);
+		buildFramebuffer(std::move(vulkanImageAttachments));
 	}
 
 	void VulkanFramebuffer::RecreateFramebuffer(uint32_t width, uint32_t height, VkImageView swapchainImageView,

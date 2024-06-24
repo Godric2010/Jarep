@@ -17,7 +17,7 @@ namespace Graphics::Vulkan {
 		public:
 			VulkanImageBufferBuilder() = default;
 
-			~VulkanImageBufferBuilder() override = default;
+			~VulkanImageBufferBuilder() override;
 
 			VulkanImageBufferBuilder* SetImageBufferExtent(uint32_t width, uint32_t height) override;
 
@@ -35,7 +35,7 @@ namespace Graphics::Vulkan {
 
 			VulkanImageBufferBuilder* SetMemoryProperties(MemoryProperties memoryProperties) override;
 
-			std::unique_ptr<JarImageBuffer>
+			std::shared_ptr<JarImageBuffer>
 			Build(std::shared_ptr<Backend> backend, std::shared_ptr<JarDevice> device) override;
 
 		private:
@@ -47,7 +47,6 @@ namespace Graphics::Vulkan {
 			std::optional<VkImageUsageFlags> m_usage;
 			std::optional<VkMemoryPropertyFlags> m_properties;
 			std::optional<VkImageAspectFlags> m_aspectFlags;
-
 	};
 }
 

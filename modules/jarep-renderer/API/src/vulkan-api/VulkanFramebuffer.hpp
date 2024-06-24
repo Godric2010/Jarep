@@ -23,8 +23,7 @@ namespace Graphics::Vulkan {
 			~VulkanFramebuffer();
 
 			void CreateFramebuffer(std::shared_ptr<VulkanDevice> device, VkRenderPass renderPass,
-			                       VkImageView swapchainImageView, VkImageView depthImageView,
-			                       VkImageView colorImageView);
+			                       std::vector<VkImageView> vulkanImageAttachments);
 
 			void RecreateFramebuffer(uint32_t width, uint32_t height, VkImageView swapchainImageView,
 			                         VkImageView depthImageView, VkImageView colorImageView);

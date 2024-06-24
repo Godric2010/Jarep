@@ -10,11 +10,13 @@ namespace Graphics {
 		JarRenderStep::JarRenderStep(std::unique_ptr<JarRenderStepDescriptor> desc, std::shared_ptr<Backend> backend,
 		                             std::shared_ptr<JarDevice> device, std::shared_ptr<JarRenderTarget> renderTarget,
 		                             std::shared_ptr<JarSurface> surface,
-		                             std::vector<std::shared_ptr<JarDescriptor>> descriptors)
-				: renderStepDescriptor(std::move(desc)), m_descriptors(descriptors) {
+		                             std::vector<std::shared_ptr<JarDescriptor>> descriptors,
+		                             std::shared_ptr<JarImageBuffer> multisamplingImageAttachment,
+		                             std::shared_ptr<JarImageBuffer> depthImageAttachment)
+				: renderStepDescriptor(std::move(desc)), m_descriptors(descriptors), m_renderTarget(renderTarget) {
 
 			BuildShaderModules(backend, device);
-			BuildRenderPass(backend, surface, device);
+			BuildRenderPass(backend, surface, device, multisamplingImageAttachment, depthImageAttachment);
 			BuildFramebuffer(backend, device, renderTarget);
 			BuildPipeline(backend, device, descriptors);
 		}
@@ -76,7 +78,7 @@ namespace Graphics {
 
 			const auto shaderDir = "shaders/";
 			const std::string shaderFilePath = shaderDir + shaderName + shaderFileType;
-			const std::string shaderCodeString = readFile(shaderFilePath);
+			const std::string shaderCodeString = ReadFile(shaderFilePath);
 
 			const auto shaderModuleBuilder = backend->InitShaderModuleBuilder();
 			shaderModuleBuilder->SetShader(shaderCodeString);
@@ -86,7 +88,7 @@ namespace Graphics {
 			return shaderModule;
 		}
 
-		std::string JarRenderStep::readFile(const std::string& filename) {
+		std::string JarRenderStep::ReadFile(const std::string& filename) {
 			std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
 			if (!std::filesystem::exists(filename)) {
@@ -114,18 +116,22 @@ namespace Graphics {
 
 		void
 		JarRenderStep::BuildRenderPass(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarSurface> surface,
-		                               std::shared_ptr<JarDevice> device) {
+		                               std::shared_ptr<JarDevice> device,
+		                               std::shared_ptr<JarImageBuffer> multisamplingImageAttachment,
+		                               std::shared_ptr<JarImageBuffer> depthImageAttachment) {
 			ColorAttachment colorAttachment;
 			colorAttachment.loadOp = LoadOp::Clear;
 			colorAttachment.storeOp = StoreOp::Store;
 			colorAttachment.clearColor = ClearColor(0, 0, 0, 0);
 			colorAttachment.imageFormat = PixelFormat::BGRA8Unorm;
 
+			std::vector<std::shared_ptr<JarImageBuffer>> imageAttachments = std::vector<std::shared_ptr<JarImageBuffer>>();
 			JarRenderPassBuilder* rpBuilder = backend->InitRenderPassBuilder();
 			rpBuilder->AddColorAttachment(colorAttachment);
+			imageAttachments.push_back(multisamplingImageAttachment);
 
 			uint32_t maxMultisamplingCount = device->GetMaxUsableSampleCount();
-			uint32_t multisamplingCount = renderStepDescriptor->m_multisamplingCount;
+			uint32_t multisamplingCount = m_renderTarget->GetMultisamplingCount();
 			if (multisamplingCount > maxMultisamplingCount) {
 				multisamplingCount = maxMultisamplingCount;
 			}
@@ -162,8 +168,9 @@ namespace Graphics {
 				}
 
 				rpBuilder->AddDepthStencilAttachment(depthStencilAttachment);
+				imageAttachments.push_back(depthImageAttachment);
 			}
-			m_renderPass = rpBuilder->Build(device, surface);
+			m_renderPass = rpBuilder->Build(device, surface, imageAttachments);
 			delete rpBuilder;
 		}
 
@@ -207,7 +214,7 @@ namespace Graphics {
 			depthStencilState.stencilCompareOp = CompareOperation::AllTime;
 
 			uint32_t maxMultisamplingCount = device->GetMaxUsableSampleCount();
-			uint32_t multisamplingCount = renderStepDescriptor->m_multisamplingCount;
+			uint32_t multisamplingCount = m_renderTarget->GetMultisamplingCount();
 			if (multisamplingCount > maxMultisamplingCount) {
 				multisamplingCount = maxMultisamplingCount;
 			}

@@ -26,9 +26,6 @@ namespace Graphics {
 			std::string m_fragmentShaderName;
 			bool m_depthTestEnabled;
 			bool m_stencilTestEnabled;
-			uint8_t m_multisamplingCount;
-
-
 	};
 
 	namespace Internal {
@@ -37,7 +34,9 @@ namespace Graphics {
 				JarRenderStep(std::unique_ptr<JarRenderStepDescriptor> desc, std::shared_ptr<Backend> backend,
 				              std::shared_ptr<JarDevice> device, std::shared_ptr<JarRenderTarget> renderTarget,
 				              std::shared_ptr<JarSurface> surface,
-				              std::vector<std::shared_ptr<JarDescriptor>> descriptors);
+				              std::vector<std::shared_ptr<JarDescriptor>> descriptors,
+				              std::shared_ptr<JarImageBuffer> multisamplingImageAttachment,
+				              std::shared_ptr<JarImageBuffer> depthImageAttachment);
 
 				~JarRenderStep() = default;
 
@@ -60,6 +59,7 @@ namespace Graphics {
 				std::vector<std::shared_ptr<JarDescriptor>> m_descriptors;
 
 				std::unique_ptr<JarRenderStepDescriptor> renderStepDescriptor;
+				std::shared_ptr<JarRenderTarget> m_renderTarget;
 
 				void BuildShaderModules(std::shared_ptr<Backend> backend, std::shared_ptr<JarDevice> device);
 
@@ -67,7 +67,9 @@ namespace Graphics {
 				                      const std::shared_ptr<JarRenderTarget>& renderTarget);
 
 				void BuildRenderPass(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarSurface> surface,
-				                     std::shared_ptr<JarDevice> device);
+				                     std::shared_ptr<JarDevice> device,
+				                     std::shared_ptr<JarImageBuffer> multisamplingImageAttachment,
+				                     std::shared_ptr<JarImageBuffer> depthImageAttachment);
 
 				void BuildPipeline(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device,
 				                   std::vector<std::shared_ptr<JarDescriptor>> descriptors);
@@ -76,7 +78,7 @@ namespace Graphics {
 				GetShaderModule(const std::string& shaderName, ShaderType type, std::shared_ptr<Backend> backend,
 				                std::shared_ptr<JarDevice> device);
 
-				static std::string readFile(const std::string& filename);
+				static std::string ReadFile(const std::string& filename);
 
 
 		};

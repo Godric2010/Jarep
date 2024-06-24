@@ -14,13 +14,13 @@ namespace Graphics::Vulkan {
 	                                     VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
 	                                     VkImageAspectFlags aspectFlags) : m_device(
 			std::move(device)), m_imageExtent(imageExtent), m_imageFormat(pixelFormat), m_mipLevels(mipLevels),
-	                                                                       createCmdQueueCallback(createCmdQueueCb) {
+	                                                                       m_createCmdQueueCallback(createCmdQueueCb) {
 		m_image = VK_NULL_HANDLE;
 		m_imageMemory = VK_NULL_HANDLE;
 		m_imageView = VK_NULL_HANDLE;
 
-		createImage(numSamples, tiling, usage, properties);
-		createImageView(aspectFlags);
+		CreateImage(numSamples, tiling, usage, properties);
+		CreateImageView(aspectFlags);
 	}
 
 	void VulkanImageBuffer::UploadData(const void* data, size_t deviceSize) {
@@ -36,9 +36,9 @@ namespace Graphics::Vulkan {
 		memcpy(mappedData, data, deviceSize);
 		vkUnmapMemory(m_device->getLogicalDevice(), stagingBufferMemory);
 
-		transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		copyBufferToImage(stagingBuffer);
-		transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		CopyBufferToImage(stagingBuffer);
+		TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		vkDestroyBuffer(m_device->getLogicalDevice(), stagingBuffer, nullptr);
 		vkFreeMemory(m_device->getLogicalDevice(), stagingBufferMemory, nullptr);
@@ -51,7 +51,7 @@ namespace Graphics::Vulkan {
 		vkFreeMemory(m_device->getLogicalDevice(), m_imageMemory, nullptr);
 	}
 
-	void VulkanImageBuffer::createImage(VkSampleCountFlagBits numSamples, VkImageTiling tiling,
+	void VulkanImageBuffer::CreateImage(VkSampleCountFlagBits numSamples, VkImageTiling tiling,
 	                                    VkImageUsageFlags usage, VkMemoryPropertyFlags properties) {
 
 		VkImageCreateInfo imageInfo{};
@@ -90,7 +90,7 @@ namespace Graphics::Vulkan {
 	}
 
 
-	void VulkanImageBuffer::createImageView(VkImageAspectFlags aspectFlags) {
+	void VulkanImageBuffer::CreateImageView(VkImageAspectFlags aspectFlags) {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_image;
@@ -107,8 +107,8 @@ namespace Graphics::Vulkan {
 		}
 	}
 
-	void VulkanImageBuffer::copyBufferToImage(VkBuffer stagingBuffer) {
-		auto commandQueue = createCmdQueueCallback();
+	void VulkanImageBuffer::CopyBufferToImage(VkBuffer stagingBuffer) {
+		auto commandQueue = m_createCmdQueueCallback();
 		VkCommandBuffer commandBuffer = VulkanCommandBuffer::StartSingleTimeRecording(m_device, commandQueue);
 
 		VkBufferImageCopy region{};
@@ -127,8 +127,8 @@ namespace Graphics::Vulkan {
 	}
 
 	void
-	VulkanImageBuffer::transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout) {
-		auto commandQueue = createCmdQueueCallback();
+	VulkanImageBuffer::TransitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout) {
+		auto commandQueue = m_createCmdQueueCallback();
 		VkCommandBuffer commandBuffer = VulkanCommandBuffer::StartSingleTimeRecording(m_device, commandQueue);
 
 		VkImageMemoryBarrier barrier{};

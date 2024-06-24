@@ -13,15 +13,14 @@ namespace Core {
 
 		auto windowOpts = window->GetAvailableDisplayOpts();
 		for (const auto& opt: windowOpts) {
-//			printf("%s", opt.as_string());
+			printf("%s", opt.as_string());
 		}
 
 		auto renderStepDescriptor = std::make_unique<Graphics::JarRenderStepDescriptor>();
 		renderStepDescriptor->m_vertexShaderName = std::string("triangle_vert");
 		renderStepDescriptor->m_fragmentShaderName = "triangle_frag";
 		renderStepDescriptor->m_depthTestEnabled = true;
-		renderStepDescriptor->m_stencilTestEnabled = true;
-		renderStepDescriptor->m_multisamplingCount = 64;
+		renderStepDescriptor->m_stencilTestEnabled = false;
 		window->getRenderer()->AddRenderStep(std::move(renderStepDescriptor));
 	}
 
