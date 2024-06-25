@@ -217,8 +217,7 @@ namespace Graphics {
 		virtual JarRenderPassBuilder* SetMultisamplingCount(uint8_t multisamplingCount) = 0;
 
 		virtual std::shared_ptr<JarRenderPass>
-		Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface,
-		      std::vector<std::shared_ptr<JarImageBuffer>> renderPassAttachments) = 0;
+		Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) = 0;
 	};
 
 
@@ -228,8 +227,6 @@ namespace Graphics {
 
 		virtual void Release() = 0;
 
-		virtual void
-		RecreateRenderPassFramebuffers(uint32_t width, uint32_t height, std::shared_ptr<JarSurface> surface) = 0;
 	};
 
 #pragma endregion JarRenderPass }

@@ -18,9 +18,7 @@ set(HEADER_FILES sdlsurfaceadapter.hpp
         VulkanDescriptorBuilder.hpp
         VulkanShaderModule.hpp
         VulkanShaderModuleBuilder.hpp
-        VulkanFramebuffer_OLD.hpp
         VulkanRenderPass.hpp
-        VulkanRenderPassFramebuffers.hpp
         VulkanRenderPassBuilder.hpp
         VulkanDataTypeMaps.hpp
         VulkanRenderTargetBuilder.hpp
@@ -48,9 +46,7 @@ set(SOURCE_FILES VulkanBackend.cpp sdlsurfaceadapter.cpp
         VulkanDescriptorBuilder.cpp
         VulkanShaderModule.cpp
         VulkanShaderModuleBuilder.cpp
-        VulkanFramebuffer_OLD.cpp
         VulkanRenderPass.cpp
-        VulkanRenderPassFramebuffers.cpp
         VulkanRenderPassBuilder.cpp
         VulkanRenderTargetBuilder.cpp
         VulkanImageBuffer.cpp

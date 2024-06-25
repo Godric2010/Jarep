@@ -6,45 +6,40 @@
 #define JAREP_VULKANRENDERPASSBUILDER_HPP
 
 #include "IRenderAPI.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanRenderPass.hpp"
-#include "VulkanRenderPassFramebuffers.hpp"
 #include "VulkanCommandQueue.hpp"
 #include "VulkanDataTypeMaps.hpp"
-#include <vulkan/vulkan.hpp>
+#include "VulkanDevice.hpp"
+#include "VulkanRenderPass.hpp"
+#include <functional>
 #include <memory>
 #include <optional>
-#include <functional>
+#include <vulkan/vulkan.hpp>
 
 namespace Graphics::Vulkan {
 	class VulkanRenderPassBuilder final : public JarRenderPassBuilder {
-		public :
-			VulkanRenderPassBuilder(
-					std::function<std::shared_ptr<VulkanCommandQueue>()> createCmdQueueCb) : createCmdQueueCallback(
-					createCmdQueueCb) {};
+		public:
+		VulkanRenderPassBuilder() = default;
 
-			~VulkanRenderPassBuilder() override;
+		~VulkanRenderPassBuilder() override;
 
-			VulkanRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) override;
+		VulkanRenderPassBuilder* AddColorAttachment(ColorAttachment colorAttachment) override;
 
-			VulkanRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) override;
+		VulkanRenderPassBuilder* AddDepthStencilAttachment(DepthAttachment depthStencilAttachment) override;
 
-			VulkanRenderPassBuilder* SetMultisamplingCount(uint8_t multisamplingCount) override;
+		VulkanRenderPassBuilder* SetMultisamplingCount(uint8_t multisamplingCount) override;
 
-			std::shared_ptr<JarRenderPass>
-			Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface,
-			      std::vector<std::shared_ptr<JarImageBuffer>> imageAttachments) override;
+		std::shared_ptr<JarRenderPass>
+		Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) override;
 
 		private:
-			std::optional<VkAttachmentDescription> m_colorAttachment;
-			std::optional<VkAttachmentReference> m_colorAttachmentRef;
-			std::optional<VkAttachmentDescription> m_depthStencilAttachment;
-			std::optional<VkAttachmentReference> m_depthStencilAttachmentRef;
-			std::optional<VkSampleCountFlagBits> m_multisamplingCount;
-			std::optional<VkFormat> m_depthFormat;
-			std::function<std::shared_ptr<VulkanCommandQueue>()> createCmdQueueCallback;
+		std::optional<VkAttachmentDescription> m_colorAttachment;
+		std::optional<VkAttachmentReference> m_colorAttachmentRef;
+		std::optional<VkAttachmentDescription> m_depthStencilAttachment;
+		std::optional<VkAttachmentReference> m_depthStencilAttachmentRef;
+		std::optional<VkSampleCountFlagBits> m_multisamplingCount;
+		std::optional<VkFormat> m_depthFormat;
 	};
-}
+}// namespace Graphics::Vulkan
 
 
-#endif //JAREP_VULKANRENDERPASSBUILDER_HPP
+#endif//JAREP_VULKANRENDERPASSBUILDER_HPP

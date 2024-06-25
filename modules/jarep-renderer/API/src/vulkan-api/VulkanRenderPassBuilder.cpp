@@ -58,8 +58,7 @@ namespace Graphics::Vulkan { ;
 	}
 
 	std::shared_ptr<JarRenderPass>
-	VulkanRenderPassBuilder::Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface,
-	                               std::vector<std::shared_ptr<JarImageBuffer>> imageAttachments) {
+	VulkanRenderPassBuilder::Build(std::shared_ptr<JarDevice> device, std::shared_ptr<JarSurface> surface) {
 
 
 		if (!m_colorAttachment.has_value())
@@ -131,12 +130,7 @@ namespace Graphics::Vulkan { ;
 			throw std::runtime_error("failed to create render pass!");
 		}
 
-		auto vulkanRenderPassFramebuffers = std::make_unique<VulkanRenderPassFramebuffers>(vulkanDevice,
-		                                                                                   createCmdQueueCallback);
-		vulkanRenderPassFramebuffers->CreateRenderPassFramebuffers(vulkanSurface, renderPass, imageAttachments);
-
-		auto vulkanRenderPass = std::make_shared<VulkanRenderPass>(vulkanDevice, renderPass,
-		                                                           vulkanRenderPassFramebuffers);
+		auto vulkanRenderPass = std::make_shared<VulkanRenderPass>(vulkanDevice, renderPass);
 		return vulkanRenderPass;
 	}
 }

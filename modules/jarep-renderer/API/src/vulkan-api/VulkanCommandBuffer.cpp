@@ -59,7 +59,7 @@ namespace Graphics::Vulkan {
 
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = vkRenderPass->getRenderPass();
+		renderPassInfo.renderPass = vkRenderPass->GetRenderPass();
 		renderPassInfo.framebuffer = vulkanFramebuffer->GetFramebuffer();
 		renderPassInfo.renderArea.offset = {0, 0};
 		renderPassInfo.renderArea.extent = vulkanFramebuffer->GetFramebufferExtent();

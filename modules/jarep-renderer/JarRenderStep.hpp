@@ -65,10 +65,7 @@ namespace Graphics {
 
 			    void BuildFramebuffer(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device, const std::shared_ptr<JarRenderTarget>& renderTarget, std::shared_ptr<JarImageBuffer> multisamplingImageAttachment, std::shared_ptr<JarImageBuffer> depthImageAttachment);
 
-				void BuildRenderPass(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarSurface> surface,
-				                     std::shared_ptr<JarDevice> device,
-				                     std::shared_ptr<JarImageBuffer> multisamplingImageAttachment,
-				                     std::shared_ptr<JarImageBuffer> depthImageAttachment);
+			    void BuildRenderPass(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarSurface> surface, std::shared_ptr<JarDevice> device);
 
 				void BuildPipeline(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device,
 				                   std::vector<std::shared_ptr<JarDescriptor>> descriptors);

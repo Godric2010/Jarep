@@ -212,7 +212,7 @@ namespace Graphics::Vulkan {
 		pipelineInfo.pColorBlendState = &m_colorBlend.value();
 		pipelineInfo.pDynamicState = &dynamicState;
 		pipelineInfo.layout = m_pipelineLayout;
-		pipelineInfo.renderPass = m_renderPass->getRenderPass();
+		pipelineInfo.renderPass = m_renderPass->GetRenderPass();
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 		pipelineInfo.basePipelineIndex = -1;

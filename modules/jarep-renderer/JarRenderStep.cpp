@@ -16,7 +16,7 @@ namespace Graphics {
 		    : renderStepDescriptor(std::move(desc)), m_descriptors(descriptors), m_renderTarget(renderTarget) {
 
 			BuildShaderModules(backend, device);
-			BuildRenderPass(backend, surface, device, multisamplingImageAttachment, depthImageAttachment);
+			BuildRenderPass(backend, surface, device);
 			BuildFramebuffer(backend, device, renderTarget, multisamplingImageAttachment, depthImageAttachment);
 			BuildPipeline(backend, device, descriptors);
 		}
@@ -132,20 +132,15 @@ namespace Graphics {
 #pragma region RenderPassCreation{
 
 		void
-		JarRenderStep::BuildRenderPass(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarSurface> surface,
-		                               std::shared_ptr<JarDevice> device,
-		                               std::shared_ptr<JarImageBuffer> multisamplingImageAttachment,
-		                               std::shared_ptr<JarImageBuffer> depthImageAttachment) {
+		JarRenderStep::BuildRenderPass(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarSurface> surface, std::shared_ptr<JarDevice> device) {
 			ColorAttachment colorAttachment;
 			colorAttachment.loadOp = LoadOp::Clear;
 			colorAttachment.storeOp = StoreOp::Store;
 			colorAttachment.clearColor = ClearColor(0, 0, 0, 0);
 			colorAttachment.imageFormat = PixelFormat::BGRA8Unorm;
 
-			std::vector<std::shared_ptr<JarImageBuffer>> imageAttachments = std::vector<std::shared_ptr<JarImageBuffer>>();
 			JarRenderPassBuilder* rpBuilder = backend->InitRenderPassBuilder();
 			rpBuilder->AddColorAttachment(colorAttachment);
-			imageAttachments.push_back(multisamplingImageAttachment);
 
 			uint32_t maxMultisamplingCount = device->GetMaxUsableSampleCount();
 			uint32_t multisamplingCount = m_renderTarget->GetMultisamplingCount();
@@ -185,9 +180,8 @@ namespace Graphics {
 				}
 
 				rpBuilder->AddDepthStencilAttachment(depthStencilAttachment);
-				imageAttachments.push_back(depthImageAttachment);
 			}
-			m_renderPass = rpBuilder->Build(device, surface, imageAttachments);
+			m_renderPass = rpBuilder->Build(device, surface);
 			delete rpBuilder;
 		}
 

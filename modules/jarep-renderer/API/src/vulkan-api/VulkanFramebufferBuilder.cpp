@@ -41,7 +41,7 @@ namespace Graphics::Vulkan {
 
 		VkFramebufferCreateInfo framebufferCreateInfo = {};
 		framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferCreateInfo.renderPass = m_renderPass.value()->getRenderPass();
+		framebufferCreateInfo.renderPass = m_renderPass.value()->GetRenderPass();
 		framebufferCreateInfo.attachmentCount = m_imageViews.size();
 		framebufferCreateInfo.pAttachments = m_imageViews.data();
 		framebufferCreateInfo.width = m_framebufferExtent.value().width;
