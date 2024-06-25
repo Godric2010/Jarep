@@ -17,21 +17,21 @@ namespace Graphics::Vulkan {
 	void VulkanRenderPassFramebuffers::CreateRenderPassFramebuffers(const std::shared_ptr<VulkanSurface>& surface,
 	                                                                VkRenderPass renderPass,
 	                                                                std::vector<std::shared_ptr<JarImageBuffer>> imageAttachments) {
-		VkExtent2D imageExtent = surface->getSwapchain()->getSwapchainImageExtent();
-
-		for (const auto& m_swapchainImageView: surface->getSwapchain()->getSwapchainImageViews()) {
-			auto framebuffer = std::make_shared<VulkanFramebuffer_OLD>(imageExtent);
-			std::vector<VkImageView> attachments = std::vector<VkImageView>();
-			for (auto imageAttachment: imageAttachments) {
-				auto vulkanImageBuffer = reinterpret_cast<std::shared_ptr<VulkanImageBuffer>&>(imageAttachment);
-				attachments.push_back(vulkanImageBuffer->GetImageView());
-			}
-			attachments.push_back(m_swapchainImageView);
-
-
-			framebuffer->CreateFramebuffer(m_device, renderPass, attachments);
-			m_framebuffers.push_back(framebuffer);
-		}
+//		VkExtent2D imageExtent = surface->getSwapchain()->getSwapchainImageExtent();
+//
+//		for (const auto& m_swapchainImageView: surface->getSwapchain()->getSwapchainImageViews()) {
+//			auto framebuffer = std::make_shared<VulkanFramebuffer_OLD>(imageExtent);
+//			std::vector<VkImageView> attachments = std::vector<VkImageView>();
+//			for (auto imageAttachment: imageAttachments) {
+//				auto vulkanImageBuffer = reinterpret_cast<std::shared_ptr<VulkanImageBuffer>&>(imageAttachment);
+//				attachments.push_back(vulkanImageBuffer->GetImageView());
+//			}
+//			attachments.push_back(m_swapchainImageView);
+//
+//
+//			framebuffer->CreateFramebuffer(m_device, renderPass, attachments);
+//			m_framebuffers.push_back(framebuffer);
+//		}
 	}
 
 	std::shared_ptr<VulkanFramebuffer_OLD> VulkanRenderPassFramebuffers::GetFramebuffer(uint32_t index) {

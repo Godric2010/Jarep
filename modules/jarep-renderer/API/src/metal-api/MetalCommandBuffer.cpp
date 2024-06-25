@@ -8,9 +8,9 @@ namespace Graphics::Metal{
 	MetalCommandBuffer::~MetalCommandBuffer() = default;
 
 	bool
-	MetalCommandBuffer::StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) {
+	MetalCommandBuffer::StartRecording(std::shared_ptr<JarFramebuffer> framebuffer, std::shared_ptr<JarRenderPass> renderPass) {
 		metalRenderPass = reinterpret_cast<std::shared_ptr<MetalRenderPass>&>(renderPass);
-		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
+		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(framebuffer);
 
 		auto renderPassDesc = metalRenderPass->getRenderPassDesc();
 		renderPassDesc->colorAttachments()->object(0)->setTexture(metalSurface->acquireNewDrawTexture());

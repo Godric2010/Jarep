@@ -729,11 +729,9 @@ namespace Graphics {
 		virtual void SetScissor(Scissor scissor) = 0;
 
 		virtual bool
-		StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) = 0;
+		StartRecording(std::shared_ptr<JarFramebuffer> framebuffer, std::shared_ptr<JarRenderPass> renderPass) = 0;
 
 		virtual void EndRecording() = 0;
-
-		//			virtual void BindRenderTarget(std::shared_ptr<JarRenderTarget> renderTarget) = 0;
 
 		virtual void BindPipeline(std::shared_ptr<JarPipeline> pipeline, uint32_t imageIndex) = 0;
 
@@ -746,6 +744,8 @@ namespace Graphics {
 		virtual void Draw() = 0;
 
 		virtual void DrawIndexed(size_t indexAmount) = 0;
+
+		virtual void BlitFramebuffersToSurface(std::shared_ptr<JarSurface> surface, std::vector<std::shared_ptr<JarFramebuffer>> framebuffers) = 0;
 
 		virtual void Present(std::shared_ptr<JarSurface>& surface, std::shared_ptr<JarDevice> device) = 0;
 	};

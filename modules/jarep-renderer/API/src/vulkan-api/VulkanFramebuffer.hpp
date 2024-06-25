@@ -8,9 +8,13 @@
 #include "IRenderAPI.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanImageBuffer.hpp"
+#include <memory>
 #include <vulkan/vulkan.hpp>
 
 namespace Graphics::Vulkan {
+
+	class VulkanDevice;
+	class VulkanImageBuffer;
 
 	class VulkanFramebuffer final : public JarFramebuffer {
 
@@ -24,6 +28,8 @@ namespace Graphics::Vulkan {
 		inline VkFramebuffer GetFramebuffer() { return m_framebuffer; }
 
 		inline VkExtent2D GetFramebufferExtent() { return m_framebufferExtent; }
+
+		VkImage GetSrcImage() ;
 
 		private:
 		std::shared_ptr<VulkanDevice> m_device;

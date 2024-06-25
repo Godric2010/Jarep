@@ -24,7 +24,7 @@ namespace Graphics::Metal {
 			~MetalCommandBuffer() override;
 
 			bool
-			StartRecording(std::shared_ptr<JarSurface> surface, std::shared_ptr<JarRenderPass> renderPass) override;
+			StartRecording(std::shared_ptr<JarFramebuffer> framebuffer, std::shared_ptr<JarRenderPass> renderPass) override;
 
 			void EndRecording() override;
 

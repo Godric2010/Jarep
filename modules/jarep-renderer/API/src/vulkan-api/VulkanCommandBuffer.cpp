@@ -37,18 +37,10 @@ namespace Graphics::Vulkan {
 		vkCmdSetScissor(m_commandBuffer, 0, 1, &vkScissor);
 	}
 
-	bool VulkanCommandBuffer::StartRecording(std::shared_ptr<JarSurface> surface,
+	bool VulkanCommandBuffer::StartRecording(std::shared_ptr<JarFramebuffer> framebuffer,
 	                                         std::shared_ptr<JarRenderPass> renderPass) {
 		auto vkRenderPass = reinterpret_cast<std::shared_ptr<VulkanRenderPass>&>(renderPass);
-		auto vkSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
-
-		auto currentFrameIndex = vkSurface->getSwapchain()->
-				AcquireNewImage(m_imageAvailableSemaphore, m_frameInFlightFence);
-
-		if (!currentFrameIndex.has_value()) {
-			return false;
-		}
-		auto vkFramebuffer = vkRenderPass->AcquireNextFramebuffer(currentFrameIndex.value());
+		auto vulkanFramebuffer = reinterpret_cast<std::shared_ptr<VulkanFramebuffer>&>(framebuffer);
 
 		vkResetCommandBuffer(m_commandBuffer, 0);
 
@@ -61,8 +53,6 @@ namespace Graphics::Vulkan {
 			throw std::runtime_error("failed to begin recording command buffer");
 		}
 
-		const VkExtent2D surfaceExtent = vkSurface->getSurfaceExtent();
-
 		std::vector<VkClearValue> clearValues(2);
 		clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
 		clearValues[1].depthStencil = {1.0f, 0};
@@ -70,9 +60,9 @@ namespace Graphics::Vulkan {
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = vkRenderPass->getRenderPass();
-		renderPassInfo.framebuffer = vkFramebuffer->getFramebuffer();
+		renderPassInfo.framebuffer = vulkanFramebuffer->GetFramebuffer();
 		renderPassInfo.renderArea.offset = {0, 0};
-		renderPassInfo.renderArea.extent = surfaceExtent;
+		renderPassInfo.renderArea.extent = vulkanFramebuffer->GetFramebufferExtent();
 		renderPassInfo.clearValueCount = clearValues.size();
 		renderPassInfo.pClearValues = clearValues.data();
 
@@ -121,7 +111,6 @@ namespace Graphics::Vulkan {
 		vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 		                        m_pipeline.value()->getPipelineLayout(), 0,
 		                        static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
-
 	}
 
 	void VulkanCommandBuffer::BindVertexBuffer(std::shared_ptr<JarBuffer> buffer) {
@@ -143,6 +132,103 @@ namespace Graphics::Vulkan {
 		vkDestroyFence(device, m_frameInFlightFence, nullptr);
 	}
 
+	void VulkanCommandBuffer::BlitFramebuffersToSurface(std::shared_ptr<JarSurface> surface, std::vector<std::shared_ptr<JarFramebuffer>> framebuffers) {
+
+		auto vulkanSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
+
+		auto currentFrameIndex = vulkanSurface->getSwapchain()->AcquireNewImage(m_imageAvailableSemaphore, m_frameInFlightFence);
+		if (!currentFrameIndex.has_value()) {
+			throw std::runtime_error("Failed to acquire swapchain image!");
+		}
+
+		VkImage swapchainImage = vulkanSurface->getSwapchain()->GetSwapchainImage(currentFrameIndex.value());
+		vkResetCommandBuffer(m_commandBuffer, 0);
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = 0;
+		beginInfo.pInheritanceInfo = nullptr;
+
+		if (vkBeginCommandBuffer(m_commandBuffer, &beginInfo) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to begin recording blit command buffer");
+		}
+
+		TransitionImageLayout(swapchainImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		for (auto framebuffer: framebuffers) {
+
+			auto vulkanFramebuffer = reinterpret_cast<std::shared_ptr<VulkanFramebuffer>&>(framebuffer);
+			VkImage srcImage = vulkanFramebuffer->GetSrcImage();
+
+			TransitionImageLayout(srcImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+			VkImageBlit blitInfo{};
+			blitInfo.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blitInfo.srcSubresource.mipLevel = 0;
+			blitInfo.srcSubresource.baseArrayLayer = 0;
+			blitInfo.srcSubresource.layerCount = 1;
+			blitInfo.srcOffsets[0] = {0, 0, 0};
+			blitInfo.srcOffsets[1] = {static_cast<int32_t>(vulkanFramebuffer->GetFramebufferExtent().width), static_cast<int32_t>(vulkanFramebuffer->GetFramebufferExtent().height), 1};
+
+			blitInfo.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blitInfo.dstSubresource.mipLevel = 0;
+			blitInfo.dstSubresource.baseArrayLayer = 0;
+			blitInfo.dstSubresource.layerCount = 1;
+			blitInfo.dstOffsets[0] = {0, 0, 0};
+			blitInfo.dstOffsets[1] = {static_cast<int32_t>(vulkanSurface->getSurfaceExtent().width), static_cast<int32_t>(vulkanSurface->getSurfaceExtent().height), 1};
+
+			vkCmdBlitImage(m_commandBuffer, srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blitInfo, VK_FILTER_LINEAR);
+
+			TransitionImageLayout(srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		}
+		TransitionImageLayout(swapchainImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+		if (vkEndCommandBuffer(m_commandBuffer) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to record command buffer");
+		}
+	}
+
+	void VulkanCommandBuffer::TransitionImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout) {
+		VkImageMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.oldLayout = oldLayout;
+		barrier.newLayout = newLayout;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.image = image;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		VkPipelineStageFlags sourceStage;
+		VkPipelineStageFlags destinationStage;
+
+		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		} else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		} else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		} else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			destinationStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		} else {
+			throw std::invalid_argument("unsupported layout transition!");
+		}
+
+		vkCmdPipelineBarrier(m_commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+	}
 
 	VkCommandBuffer VulkanCommandBuffer::StartSingleTimeRecording(std::shared_ptr<VulkanDevice>& device,
 	                                                              std::shared_ptr<VulkanCommandQueue> commandQueue) {
@@ -183,6 +269,5 @@ namespace Graphics::Vulkan {
 		vkQueueWaitIdle(graphicsQueue);
 
 		vkFreeCommandBuffers(vulkanDevice->getLogicalDevice(), commandQueue->getCommandPool(), 1, &commandBuffer);
-
 	}
-}
+}// namespace Graphics::Vulkan

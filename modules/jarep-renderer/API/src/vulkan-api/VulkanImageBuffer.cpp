@@ -12,8 +12,7 @@ namespace Graphics::Vulkan {
 	                                     VkFormat pixelFormat,
 	                                     uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkImageTiling tiling,
 	                                     VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-	                                     VkImageAspectFlags aspectFlags) : m_device(
-			std::move(device)), m_imageExtent(imageExtent), m_imageFormat(pixelFormat), m_mipLevels(mipLevels),
+	                                     VkImageAspectFlags aspectFlags) : m_device(std::move(device)), m_imageExtent(imageExtent), m_imageFormat(pixelFormat), m_mipLevels(mipLevels),
 	                                                                       m_createCmdQueueCallback(createCmdQueueCb) {
 		m_image = VK_NULL_HANDLE;
 		m_imageMemory = VK_NULL_HANDLE;
@@ -42,7 +41,6 @@ namespace Graphics::Vulkan {
 
 		vkDestroyBuffer(m_device->getLogicalDevice(), stagingBuffer, nullptr);
 		vkFreeMemory(m_device->getLogicalDevice(), stagingBufferMemory, nullptr);
-
 	}
 
 	void VulkanImageBuffer::Release() {
@@ -164,4 +162,6 @@ namespace Graphics::Vulkan {
 		vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationFlags, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 		VulkanCommandBuffer::EndSingleTimeRecording(m_device, commandBuffer, commandQueue);
 	}
-}
+
+	VkImage VulkanImageBuffer::GetImage() { return m_image; }
+}// namespace Graphics::Vulkan

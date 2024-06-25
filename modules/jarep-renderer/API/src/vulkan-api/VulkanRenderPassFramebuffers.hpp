@@ -23,8 +23,6 @@ namespace Graphics::Vulkan {
 
 	class VulkanDevice;
 
-	class VulkanImageBuffer;
-
 	class VulkanCommandQueue;
 
 	class VulkanRenderPassFramebuffers {

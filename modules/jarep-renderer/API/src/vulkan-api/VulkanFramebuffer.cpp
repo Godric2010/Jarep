@@ -3,6 +3,7 @@
 //
 
 #include "VulkanFramebuffer.hpp"
+#include "VulkanDevice.hpp"
 
 namespace Graphics::Vulkan {
 
@@ -17,5 +18,9 @@ namespace Graphics::Vulkan {
 
 		vkDestroyFramebuffer(m_device->getLogicalDevice(), m_framebuffer, nullptr);
 		m_targetImageBuffer->Release();
+	}
+
+	VkImage VulkanFramebuffer::GetSrcImage() {
+		return m_targetImageBuffer->GetImage();
 	}
 }// namespace Graphics::Vulkan
