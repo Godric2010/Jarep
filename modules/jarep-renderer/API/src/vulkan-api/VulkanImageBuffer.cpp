@@ -26,27 +26,27 @@ namespace Graphics::Vulkan {
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
-		VulkanBufferBuilder::createBuffer(m_device, deviceSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VulkanBufferBuilder::CreateBuffer(m_device, deviceSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		                                  stagingBuffer, stagingBufferMemory);
 
 		void* mappedData;
-		vkMapMemory(m_device->getLogicalDevice(), stagingBufferMemory, 0, deviceSize, 0, &mappedData);
+		vkMapMemory(m_device->GetLogicalDevice(), stagingBufferMemory, 0, deviceSize, 0, &mappedData);
 		memcpy(mappedData, data, deviceSize);
-		vkUnmapMemory(m_device->getLogicalDevice(), stagingBufferMemory);
+		vkUnmapMemory(m_device->GetLogicalDevice(), stagingBufferMemory);
 
 		TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		CopyBufferToImage(stagingBuffer);
 		TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		vkDestroyBuffer(m_device->getLogicalDevice(), stagingBuffer, nullptr);
-		vkFreeMemory(m_device->getLogicalDevice(), stagingBufferMemory, nullptr);
+		vkDestroyBuffer(m_device->GetLogicalDevice(), stagingBuffer, nullptr);
+		vkFreeMemory(m_device->GetLogicalDevice(), stagingBufferMemory, nullptr);
 	}
 
 	void VulkanImageBuffer::Release() {
-		vkDestroyImageView(m_device->getLogicalDevice(), m_imageView, nullptr);
-		vkDestroyImage(m_device->getLogicalDevice(), m_image, nullptr);
-		vkFreeMemory(m_device->getLogicalDevice(), m_imageMemory, nullptr);
+		vkDestroyImageView(m_device->GetLogicalDevice(), m_imageView, nullptr);
+		vkDestroyImage(m_device->GetLogicalDevice(), m_image, nullptr);
+		vkFreeMemory(m_device->GetLogicalDevice(), m_imageMemory, nullptr);
 	}
 
 	void VulkanImageBuffer::CreateImage(VkSampleCountFlagBits numSamples, VkImageTiling tiling,
@@ -68,23 +68,23 @@ namespace Graphics::Vulkan {
 		imageInfo.samples = numSamples;
 		imageInfo.flags = 0;
 
-		if (vkCreateImage(m_device->getLogicalDevice(), &imageInfo, nullptr, &m_image) != VK_SUCCESS) {
+		if (vkCreateImage(m_device->GetLogicalDevice(), &imageInfo, nullptr, &m_image) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create image!");
 		}
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(m_device->getLogicalDevice(), m_image, &memRequirements);
+		vkGetImageMemoryRequirements(m_device->GetLogicalDevice(), m_image, &memRequirements);
 		VkMemoryAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = VulkanBufferBuilder::findMemoryType(m_device->getPhysicalDevice(),
+		allocInfo.memoryTypeIndex = VulkanBufferBuilder::FindMemoryType(m_device->GetPhysicalDevice(),
 		                                                                memRequirements.memoryTypeBits,
 		                                                                properties);
-		if (vkAllocateMemory(m_device->getLogicalDevice(), &allocInfo, nullptr, &m_imageMemory) !=
+		if (vkAllocateMemory(m_device->GetLogicalDevice(), &allocInfo, nullptr, &m_imageMemory) !=
 		    VK_SUCCESS) {
 			throw std::runtime_error("Failed to allocate image memory!");
 		}
-		vkBindImageMemory(m_device->getLogicalDevice(), m_image, m_imageMemory, 0);
+		vkBindImageMemory(m_device->GetLogicalDevice(), m_image, m_imageMemory, 0);
 	}
 
 
@@ -100,7 +100,7 @@ namespace Graphics::Vulkan {
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		if (vkCreateImageView(m_device->getLogicalDevice(), &viewInfo, nullptr, &m_imageView) != VK_SUCCESS) {
+		if (vkCreateImageView(m_device->GetLogicalDevice(), &viewInfo, nullptr, &m_imageView) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create texture image view!");
 		}
 	}

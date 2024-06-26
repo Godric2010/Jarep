@@ -39,11 +39,11 @@ namespace Graphics::Vulkan {
 			std::shared_ptr<JarBuffer> Build(std::shared_ptr<JarDevice> device) override;
 
 			static void
-			createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size, VkBufferUsageFlags usage,
+		    CreateBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size, VkBufferUsageFlags usage,
 			             VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 
 			static uint32_t
-			findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+		    FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 		private:
 
@@ -56,7 +56,7 @@ namespace Graphics::Vulkan {
 			std::optional<const void*> m_data;
 			static inline uint32_t nextBufferId = 0;
 
-			void copyBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer srcBuffer, VkBuffer dstBuffer,
+			void CopyBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer srcBuffer, VkBuffer dstBuffer,
 			                VkDeviceSize size);
 
 			std::shared_ptr<JarBuffer> BuildUniformBuffer(std::shared_ptr<VulkanDevice> vulkanDevice);

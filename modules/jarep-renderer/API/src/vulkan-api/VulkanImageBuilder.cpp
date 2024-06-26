@@ -54,14 +54,14 @@ namespace Graphics::Vulkan {
 //
 //		VkBuffer stagingBuffer;
 //		VkDeviceMemory stagingBufferMemory;
-//		VulkanBufferBuilder::createBuffer(vulkanDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+//		VulkanBufferBuilder::CreateBuffer(vulkanDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 //		                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 //		                                  stagingBuffer, stagingBufferMemory);
 //
 //		void* data;
-//		vkMapMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
+//		vkMapMemory(vulkanDevice->GetLogicalDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
 //		memcpy(data, pixels, static_cast<size_t>(imageSize));
-//		vkUnmapMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory);
+//		vkUnmapMemory(vulkanDevice->GetLogicalDevice(), stagingBufferMemory);
 //
 //		stbi_image_free(pixels);
 //
@@ -85,8 +85,8 @@ namespace Graphics::Vulkan {
 //		//VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 //		//		mipLevels);
 //
-//		vkDestroyBuffer(vulkanDevice->getLogicalDevice(), stagingBuffer, nullptr);
-//		vkFreeMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, nullptr);
+//		vkDestroyBuffer(vulkanDevice->GetLogicalDevice(), stagingBuffer, nullptr);
+//		vkFreeMemory(vulkanDevice->GetLogicalDevice(), stagingBufferMemory, nullptr);
 
 		generateMipMaps(vulkanDevice, imageBuffer->GetImage(), imageBuffer->GetFormat(), imageExtent.width,
 		                imageExtent.height, mipLevels);
@@ -106,7 +106,7 @@ namespace Graphics::Vulkan {
 	                                         uint32_t mipLevels) {
 
 		VkFormatProperties formatProperties;
-		vkGetPhysicalDeviceFormatProperties(vulkanDevice->getPhysicalDevice(), imageFormat, &formatProperties);
+		vkGetPhysicalDeviceFormatProperties(vulkanDevice->GetPhysicalDevice(), imageFormat, &formatProperties);
 		if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
 			throw std::runtime_error("Texture image format does not support linear blitting!");
 		}
@@ -182,7 +182,7 @@ namespace Graphics::Vulkan {
 	                                       uint32_t mipLevels) {
 
 		VkPhysicalDeviceProperties properties{};
-		vkGetPhysicalDeviceProperties(vulkanDevice->getPhysicalDevice(), &properties);
+		vkGetPhysicalDeviceProperties(vulkanDevice->GetPhysicalDevice(), &properties);
 
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -202,7 +202,7 @@ namespace Graphics::Vulkan {
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = static_cast<float>(mipLevels);
 
-		if (vkCreateSampler(vulkanDevice->getLogicalDevice(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
+		if (vkCreateSampler(vulkanDevice->GetLogicalDevice(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create texture sampler!");
 		}
 	}

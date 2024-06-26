@@ -57,26 +57,26 @@ namespace Graphics::Vulkan {
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
-		createBuffer(vulkanDevice, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		CreateBuffer(vulkanDevice, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
 		             stagingBufferMemory);
 
 		void* stagingData;
 		void* data = const_cast<void*>(m_data.value());
-		vkMapMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, 0, size, 0, &stagingData);
+		vkMapMemory(vulkanDevice->GetLogicalDevice(), stagingBufferMemory, 0, size, 0, &stagingData);
 		memcpy(stagingData, data, size);
-		vkUnmapMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory);
+		vkUnmapMemory(vulkanDevice->GetLogicalDevice(), stagingBufferMemory);
 
 
 		VkBuffer buffer;
 		VkDeviceMemory bufferMemory;
-		createBuffer(vulkanDevice, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | m_bufferUsageFlags.value(),
+		CreateBuffer(vulkanDevice, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | m_bufferUsageFlags.value(),
 		             m_memoryPropertiesFlags.value(), buffer, bufferMemory);
 
-		copyBuffer(vulkanDevice, stagingBuffer, buffer, size);
+		CopyBuffer(vulkanDevice, stagingBuffer, buffer, size);
 
-		vkDestroyBuffer(vulkanDevice->getLogicalDevice(), stagingBuffer, nullptr);
-		vkFreeMemory(vulkanDevice->getLogicalDevice(), stagingBufferMemory, nullptr);
+		vkDestroyBuffer(vulkanDevice->GetLogicalDevice(), stagingBuffer, nullptr);
+		vkFreeMemory(vulkanDevice->GetLogicalDevice(), stagingBufferMemory, nullptr);
 
 		auto releasedCallback = [this]() { m_onDestroyBuffer(); };
 		return std::make_shared<VulkanBuffer>(vulkanDevice, nextBufferId++, buffer, m_bufferSize.value(), bufferMemory,
@@ -84,7 +84,7 @@ namespace Graphics::Vulkan {
 		                                      releasedCallback);
 	}
 
-	void VulkanBufferBuilder::createBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size,
+	void VulkanBufferBuilder::CreateBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkDeviceSize size,
 	                                       VkBufferUsageFlags usage,
 	                                       VkMemoryPropertyFlags properties, VkBuffer& buffer,
 	                                       VkDeviceMemory& bufferMemory) {
@@ -94,29 +94,29 @@ namespace Graphics::Vulkan {
 		bufferInfo.usage = usage;
 		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		if (vkCreateBuffer(vulkanDevice->getLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+		if (vkCreateBuffer(vulkanDevice->GetLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create vertex buffer!");
 		}
 
 		VkMemoryRequirements memoryRequirements;
-		vkGetBufferMemoryRequirements(vulkanDevice->getLogicalDevice(), buffer, &memoryRequirements);
+		vkGetBufferMemoryRequirements(vulkanDevice->GetLogicalDevice(), buffer, &memoryRequirements);
 
 		VkMemoryAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memoryRequirements.size;
-		allocInfo.memoryTypeIndex = findMemoryType(vulkanDevice->getPhysicalDevice(), memoryRequirements.memoryTypeBits,
+		allocInfo.memoryTypeIndex = FindMemoryType(vulkanDevice->GetPhysicalDevice(), memoryRequirements.memoryTypeBits,
 		                                           properties);
 
 
-		if (vkAllocateMemory(vulkanDevice->getLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+		if (vkAllocateMemory(vulkanDevice->GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to allocate vertex buffer memory!");
 		}
 
-		vkBindBufferMemory(vulkanDevice->getLogicalDevice(), buffer, bufferMemory, 0);
+		vkBindBufferMemory(vulkanDevice->GetLogicalDevice(), buffer, bufferMemory, 0);
 	}
 
 	void
-	VulkanBufferBuilder::copyBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer srcBuffer, VkBuffer dstBuffer,
+	VulkanBufferBuilder::CopyBuffer(std::shared_ptr<VulkanDevice>& vulkanDevice, VkBuffer srcBuffer, VkBuffer dstBuffer,
 	                                VkDeviceSize size) {
 
 		auto vulkanCommandPool = m_createCommandQueue();
@@ -130,7 +130,7 @@ namespace Graphics::Vulkan {
 
 	}
 
-	uint32_t VulkanBufferBuilder::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
+	uint32_t VulkanBufferBuilder::FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
 	                                             VkMemoryPropertyFlags properties) {
 		VkPhysicalDeviceMemoryProperties memoryProperties;
 		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
@@ -149,10 +149,10 @@ namespace Graphics::Vulkan {
 		VkDeviceMemory bufferMemory;
 
 
-		createBuffer(vulkanDevice, m_bufferSize.value(), m_bufferUsageFlags.value(), m_memoryPropertiesFlags.value(),
+		CreateBuffer(vulkanDevice, m_bufferSize.value(), m_bufferUsageFlags.value(), m_memoryPropertiesFlags.value(),
 		             buffer, bufferMemory);
 		void* data;
-		vkMapMemory(vulkanDevice->getLogicalDevice(), bufferMemory, 0, m_bufferSize.value(), 0, &data);
+		vkMapMemory(vulkanDevice->GetLogicalDevice(), bufferMemory, 0, m_bufferSize.value(), 0, &data);
 
 		auto releasedCallback = []() {};
 		return std::make_shared<VulkanBuffer>(vulkanDevice, nextBufferId++, buffer, m_bufferSize.value(), bufferMemory,

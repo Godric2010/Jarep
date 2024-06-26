@@ -8,6 +8,6 @@ namespace Graphics::Vulkan {
 	VulkanRenderPass::~VulkanRenderPass() = default;
 
 	void VulkanRenderPass::Release() {
-		vkDestroyRenderPass(m_device->getLogicalDevice(), m_renderPass, nullptr);
+		vkDestroyRenderPass(m_device->GetLogicalDevice(), m_renderPass, nullptr);
 	}
 }

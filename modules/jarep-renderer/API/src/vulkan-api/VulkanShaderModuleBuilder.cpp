@@ -30,7 +30,7 @@ namespace Graphics::Vulkan {
 		createInfo.pCode = reinterpret_cast<const uint32_t*>(m_shaderCodeStr.value().data());
 
 		VkShaderModule shaderModule;
-		if (vkCreateShaderModule(vulkanDevice->getLogicalDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+		if (vkCreateShaderModule(vulkanDevice->GetLogicalDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create shader module!");
 		}
 

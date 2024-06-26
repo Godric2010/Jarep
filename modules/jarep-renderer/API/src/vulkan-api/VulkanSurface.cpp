@@ -14,12 +14,12 @@ namespace Graphics::Vulkan {
 
 	void VulkanSurface::RecreateSurface(uint32_t width, uint32_t height) {
 
-		vkDeviceWaitIdle(m_device->getLogicalDevice());
+		vkDeviceWaitIdle(m_device->GetLogicalDevice());
 
 		m_surfaceExtent.width = width;
 		m_surfaceExtent.height = height;
 
-		auto swapchainSupport = QuerySwapchainSupport(m_device->getPhysicalDevice());
+		auto swapchainSupport = QuerySwapchainSupport(m_device->GetPhysicalDevice());
 
 		m_swapchain->RecreateSwapchain(width, height, swapchainSupport);
 	}
@@ -43,7 +43,7 @@ namespace Graphics::Vulkan {
 	void VulkanSurface::FinalizeSurface(std::shared_ptr<VulkanDevice> device) {
 		m_device = device;
 
-		auto swapchainSupport = QuerySwapchainSupport(m_device->getPhysicalDevice());
+		auto swapchainSupport = QuerySwapchainSupport(m_device->GetPhysicalDevice());
 
 		m_swapchain = std::make_unique<VulkanSwapchain>(m_device, m_surface);
 		m_swapchain->Initialize(m_surfaceExtent, swapchainSupport);

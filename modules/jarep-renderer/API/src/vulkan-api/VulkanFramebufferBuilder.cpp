@@ -49,7 +49,7 @@ namespace Graphics::Vulkan {
 		framebufferCreateInfo.layers = 1;
 
 		VkFramebuffer framebuffer;
-		if (vkCreateFramebuffer(vulkanDevice->getLogicalDevice(), &framebufferCreateInfo, nullptr, &framebuffer) !=
+		if (vkCreateFramebuffer(vulkanDevice->GetLogicalDevice(), &framebufferCreateInfo, nullptr, &framebuffer) !=
 		    VK_SUCCESS) {
 			throw std::runtime_error("Failed to create framebuffer");
 		}

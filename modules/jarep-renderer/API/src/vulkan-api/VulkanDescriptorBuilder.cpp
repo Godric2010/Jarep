@@ -54,7 +54,7 @@ namespace Graphics::Vulkan {
 			descriptorWrite.pBufferInfo = &bufferInfo;
 			descriptorWrite.pImageInfo = nullptr;
 			descriptorWrite.pTexelBufferView = nullptr;
-			vkUpdateDescriptorSets(vulkanDevice->getLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
+			vkUpdateDescriptorSets(vulkanDevice->GetLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
 		}
 
 		auto vulkanDescriptor = std::make_shared<VulkanDescriptor>(vulkanDevice, descriptorPool, descriptorLayout,
@@ -96,7 +96,7 @@ namespace Graphics::Vulkan {
 		descriptorWriteSampler.pTexelBufferView = nullptr;
 
 
-		vkUpdateDescriptorSets(vulkanDevice->getLogicalDevice(), 1, &descriptorWriteSampler, 0, nullptr);
+		vkUpdateDescriptorSets(vulkanDevice->GetLogicalDevice(), 1, &descriptorWriteSampler, 0, nullptr);
 
 		auto vulkanDescriptor = std::make_shared<VulkanDescriptor>(vulkanDevice, descriptorPool, descriptorLayout,
 		                                                           descriptorSets);
@@ -120,7 +120,7 @@ namespace Graphics::Vulkan {
 		layoutCreateInfo.pBindings = &layoutBinding;
 
 		VkDescriptorSetLayout descriptorSetLayout;
-		if (vkCreateDescriptorSetLayout(vulkanDevice->getLogicalDevice(), &layoutCreateInfo, nullptr,
+		if (vkCreateDescriptorSetLayout(vulkanDevice->GetLogicalDevice(), &layoutCreateInfo, nullptr,
 		                                &descriptorSetLayout) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create renderStepDescriptor set layout!");
 		}
@@ -143,7 +143,7 @@ namespace Graphics::Vulkan {
 		poolCreateInfo.maxSets = descriptorSetCount;
 
 		VkDescriptorPool descriptorPool;
-		if (vkCreateDescriptorPool(vulkanDevice->getLogicalDevice(), &poolCreateInfo, nullptr, &descriptorPool) !=
+		if (vkCreateDescriptorPool(vulkanDevice->GetLogicalDevice(), &poolCreateInfo, nullptr, &descriptorPool) !=
 		    VK_SUCCESS) {
 			throw std::runtime_error("Failed to create renderStepDescriptor pool!");
 		}
@@ -163,7 +163,7 @@ namespace Graphics::Vulkan {
 		allocateInfo.pSetLayouts = layouts.data();
 
 		std::vector<VkDescriptorSet> descriptorSets(descriptorSetCount);
-		if (vkAllocateDescriptorSets(vulkanDevice->getLogicalDevice(), &allocateInfo, descriptorSets.data()) !=
+		if (vkAllocateDescriptorSets(vulkanDevice->GetLogicalDevice(), &allocateInfo, descriptorSets.data()) !=
 		    VK_SUCCESS) {
 			throw std::runtime_error("Failed to create renderStepDescriptor sets!");
 		}

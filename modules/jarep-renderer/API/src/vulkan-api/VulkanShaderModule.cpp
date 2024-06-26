@@ -8,6 +8,6 @@ namespace Graphics::Vulkan {
 	VulkanShaderModule::~VulkanShaderModule() = default;
 
 	void VulkanShaderModule::Release() {
-		vkDestroyShaderModule(m_device->getLogicalDevice(), m_shaderModule, nullptr);
+		vkDestroyShaderModule(m_device->GetLogicalDevice(), m_shaderModule, nullptr);
 	}
 }

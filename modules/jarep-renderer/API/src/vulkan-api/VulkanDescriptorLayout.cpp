@@ -8,6 +8,6 @@ namespace Graphics::Vulkan {
 	VulkanDescriptorLayout::~VulkanDescriptorLayout() = default;
 
 	void VulkanDescriptorLayout::Release() {
-		vkDestroyDescriptorSetLayout(m_device->getLogicalDevice(), m_descriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_device->GetLogicalDevice(), m_descriptorSetLayout, nullptr);
 	}
 }

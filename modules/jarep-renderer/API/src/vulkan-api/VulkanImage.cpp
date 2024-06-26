@@ -8,7 +8,7 @@ namespace Graphics::Vulkan {
 	VulkanImage::~VulkanImage() = default;
 
 	void VulkanImage::Release() {
-		vkDestroySampler(m_device->getLogicalDevice(), m_sampler, nullptr);
+		vkDestroySampler(m_device->GetLogicalDevice(), m_sampler, nullptr);
 		m_imageBuffer->Release();
 	}
 }

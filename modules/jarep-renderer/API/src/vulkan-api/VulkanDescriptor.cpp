@@ -8,7 +8,7 @@ namespace Graphics::Vulkan {
 	VulkanDescriptor::~VulkanDescriptor() = default;
 
 	void VulkanDescriptor::Release() {
-		vkDestroyDescriptorPool(m_device->getLogicalDevice(), m_descriptorPool, nullptr);
+		vkDestroyDescriptorPool(m_device->GetLogicalDevice(), m_descriptorPool, nullptr);
 		m_descriptorSetLayout->Release();
 	}
 

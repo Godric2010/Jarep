@@ -171,7 +171,7 @@ namespace Graphics::Vulkan {
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 		pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
-		if (vkCreatePipelineLayout(vulkanDevice->getLogicalDevice(), &pipelineLayoutCreateInfo, nullptr,
+		if (vkCreatePipelineLayout(vulkanDevice->GetLogicalDevice(), &pipelineLayoutCreateInfo, nullptr,
 		                           &m_pipelineLayout) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create pipeline layout");
 		}
@@ -217,7 +217,7 @@ namespace Graphics::Vulkan {
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 		pipelineInfo.basePipelineIndex = -1;
 
-		auto result = vkCreateGraphicsPipelines(vulkanDevice->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo,
+		auto result = vkCreateGraphicsPipelines(vulkanDevice->GetLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo,
 		                                        nullptr,
 		                                        &m_pipeline);
 		if (result != VK_SUCCESS) {

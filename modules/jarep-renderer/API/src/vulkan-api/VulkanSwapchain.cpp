@@ -9,8 +9,11 @@ namespace Graphics::Vulkan {
 		m_swapchainSupport = std::move(swapchainSupport);
 		m_imageExtent = extent;
 
-		vkGetDeviceQueue(m_device->getLogicalDevice(), m_device->getGraphicsFamilyIndex().value(), 0, &m_graphicsQueue);
-		vkGetDeviceQueue(m_device->getLogicalDevice(), m_device->getPresentFamilyIndex().value(), 0, &m_presentQueue);
+		m_graphicsQueue = m_device->GetGraphicsQueue().value();
+		m_presentQueue = m_device->GetPresentQueue().value();
+
+		//		vkGetDeviceQueue(m_device->GetLogicalDevice(), m_device->GetGraphicsFamilyIndex().value(), 0, &m_graphicsQueue);
+		//		vkGetDeviceQueue(m_device->GetLogicalDevice(), m_device->GetPresentFamilyIndex().value(), 0, &m_presentQueue);
 
 		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(m_swapchainSupport.formats);
 		const VkPresentModeKHR presentMode = chooseSwapPresentMode(m_swapchainSupport.presentModes);
@@ -34,9 +37,8 @@ namespace Graphics::Vulkan {
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		const uint32_t queueFamilyIndices[] = {
-				m_device->getGraphicsFamilyIndex().value(), m_device->getPresentFamilyIndex().value()
-		};
-		if (m_device->getGraphicsFamilyIndex() != m_device->getPresentFamilyIndex()) {
+		        m_device->GetGraphicsFamilyIndex().value(), m_device->GetPresentFamilyIndex().value()};
+		if (m_device->GetGraphicsFamilyIndex() != m_device->GetPresentFamilyIndex()) {
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 			createInfo.queueFamilyIndexCount = 2;
 			createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -51,13 +53,13 @@ namespace Graphics::Vulkan {
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-		if (vkCreateSwapchainKHR(m_device->getLogicalDevice(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS) {
+		if (vkCreateSwapchainKHR(m_device->GetLogicalDevice(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create swap chain!");
 		}
 
-		vkGetSwapchainImagesKHR(m_device->getLogicalDevice(), m_swapchain, &m_swapchainMaxImageCount, nullptr);
+		vkGetSwapchainImagesKHR(m_device->GetLogicalDevice(), m_swapchain, &m_swapchainMaxImageCount, nullptr);
 		m_swapchainImages.resize(m_swapchainMaxImageCount);
-		vkGetSwapchainImagesKHR(m_device->getLogicalDevice(), m_swapchain, &m_swapchainMaxImageCount,
+		vkGetSwapchainImagesKHR(m_device->GetLogicalDevice(), m_swapchain, &m_swapchainMaxImageCount,
 		                        m_swapchainImages.data());
 
 		createImageViews();
@@ -66,17 +68,17 @@ namespace Graphics::Vulkan {
 
 	std::optional<uint32_t> VulkanSwapchain::AcquireNewImage(VkSemaphore imageAvailable,
 	                                                         VkFence frameInFlight) {
-		vkWaitForFences(m_device->getLogicalDevice(), 1, &frameInFlight, VK_TRUE, UINT64_MAX);
+		vkWaitForFences(m_device->GetLogicalDevice(), 1, &frameInFlight, VK_TRUE, UINT64_MAX);
 
 
-		auto result = vkAcquireNextImageKHR(m_device->getLogicalDevice(), m_swapchain, UINT64_MAX, imageAvailable,
+		auto result = vkAcquireNextImageKHR(m_device->GetLogicalDevice(), m_swapchain, UINT64_MAX, imageAvailable,
 		                                    VK_NULL_HANDLE,
 		                                    &m_currentImageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			std::cout << " swapchain out of date" << std::endl;
 			return std::nullopt;
 		}
-		vkResetFences(m_device->getLogicalDevice(), 1, &frameInFlight);
+		vkResetFences(m_device->GetLogicalDevice(), 1, &frameInFlight);
 		return std::make_optional(m_currentImageIndex);
 	}
 
@@ -96,7 +98,8 @@ namespace Graphics::Vulkan {
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
-		if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, frameInFlight) != VK_SUCCESS) {
+		auto result = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, frameInFlight);
+		if (result != VK_SUCCESS) {
 			throw std::runtime_error("failed to submit draw command buffer");
 		}
 
@@ -132,15 +135,15 @@ namespace Graphics::Vulkan {
 
 
 		for (const auto imageView: m_swapchainImageViews) {
-			vkDestroyImageView(m_device->getLogicalDevice(), imageView, nullptr);
+			vkDestroyImageView(m_device->GetLogicalDevice(), imageView, nullptr);
 		}
 
-		vkDestroySwapchainKHR(m_device->getLogicalDevice(), m_swapchain, nullptr);
+		vkDestroySwapchainKHR(m_device->GetLogicalDevice(), m_swapchain, nullptr);
 	}
 
 
 	VkSurfaceFormatKHR VulkanSwapchain::chooseSwapSurfaceFormat(
-			const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+	        const std::vector<VkSurfaceFormatKHR>& availableFormats) {
 		for (const auto& availableFormat: availableFormats) {
 			if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
 			    availableFormat.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR) {
@@ -151,7 +154,7 @@ namespace Graphics::Vulkan {
 	}
 
 	VkPresentModeKHR VulkanSwapchain::chooseSwapPresentMode(
-			const std::vector<VkPresentModeKHR>& availablePresentModes) {
+	        const std::vector<VkPresentModeKHR>& availablePresentModes) {
 		for (const auto& availablePresentMode: availablePresentModes) {
 			if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 				return availablePresentMode;
@@ -189,10 +192,10 @@ namespace Graphics::Vulkan {
 			viewInfo.subresourceRange.baseArrayLayer = 0;
 			viewInfo.subresourceRange.layerCount = 1;
 
-			if (vkCreateImageView(m_device->getLogicalDevice(), &viewInfo, nullptr, &m_swapchainImageViews[i]) !=
+			if (vkCreateImageView(m_device->GetLogicalDevice(), &viewInfo, nullptr, &m_swapchainImageViews[i]) !=
 			    VK_SUCCESS) {
 				throw std::runtime_error("Failed to create texture image view!");
 			}
 		}
 	}
-}
+}// namespace Graphics::Vulkan

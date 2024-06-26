@@ -126,7 +126,7 @@ namespace Graphics::Vulkan { ;
 		renderPassInfo.pDependencies = &dependency;
 
 		VkRenderPass renderPass;
-		if (vkCreateRenderPass(vulkanDevice->getLogicalDevice(), &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+		if (vkCreateRenderPass(vulkanDevice->GetLogicalDevice(), &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create render pass!");
 		}
 

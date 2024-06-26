@@ -62,7 +62,7 @@ namespace Core::Window {
 
 		const auto nativeWindowHandleProvider = getNativeWindowHandle(windowWidth, windowHeight);
 		if (!nativeWindowHandleProvider.has_value()) throw std::exception();
-		renderer->Initialize(nativeWindowHandleProvider.value(), windowWidth, windowHeight);
+		renderer->Initialize(nativeWindowHandleProvider.value(), 3840, 2160);
 		if (window == nullptr) {
 			return;
 		}

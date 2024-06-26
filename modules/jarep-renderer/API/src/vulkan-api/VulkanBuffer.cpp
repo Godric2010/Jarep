@@ -7,8 +7,8 @@ namespace Graphics::Vulkan {
 	VulkanBuffer::~VulkanBuffer() = default;
 
 	void VulkanBuffer::Release() {
-		vkFreeMemory(m_device->getLogicalDevice(), m_bufferMemory, nullptr);
-		vkDestroyBuffer(m_device->getLogicalDevice(), m_buffer, nullptr);
+		vkFreeMemory(m_device->GetLogicalDevice(), m_bufferMemory, nullptr);
+		vkDestroyBuffer(m_device->GetLogicalDevice(), m_buffer, nullptr);
 
 		m_bufferReleasedCallback();
 	}

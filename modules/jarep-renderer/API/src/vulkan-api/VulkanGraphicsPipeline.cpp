@@ -14,7 +14,7 @@ namespace Graphics::Vulkan {
 	void VulkanGraphicsPipeline::Release() {
 
 		m_renderPass->Release();
-		vkDestroyPipelineLayout(m_device->getLogicalDevice(), m_pipelineLayout, nullptr);
-		vkDestroyPipeline(m_device->getLogicalDevice(), m_graphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(m_device->GetLogicalDevice(), m_pipelineLayout, nullptr);
+		vkDestroyPipeline(m_device->GetLogicalDevice(), m_graphicsPipeline, nullptr);
 	}
 }

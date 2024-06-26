@@ -24,7 +24,7 @@ namespace Graphics::Vulkan {
 		vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
 		for (const auto& device: devices) {
-			if (isPhysicalDeviceSuitable(device, surface)) {
+			if (IsPhysicalDeviceSuitable(device, surface)) {
 				m_physicalDevice = device;
 				break;
 			}
@@ -57,17 +57,24 @@ namespace Graphics::Vulkan {
 		createInfo.pQueueCreateInfos = queueCreateInfos.data();
 		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 		createInfo.pEnabledFeatures = &deviceFeatures;
-		createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+		createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
+		createInfo.ppEnabledExtensionNames = m_deviceExtensions.data();
 		createInfo.enabledLayerCount = 0;
 
-		if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_FALSE) {
+		VkDevice device;
+		if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &device) != VK_FALSE) {
 			throw std::runtime_error("Failed to create logical device");
 		}
+		m_device = std::make_optional(device);
 	}
 
 	void VulkanDevice::Release() {
-		vkDestroyDevice(m_device, nullptr);
+		vkDestroyDevice(m_device.value(), nullptr);
+	}
+
+	VkDevice VulkanDevice::GetLogicalDevice() const {
+		if (m_device.has_value()) { return m_device.value(); }
+		throw std::runtime_error("Device is not initialized yet!");
 	}
 
 	uint32_t VulkanDevice::GetMaxUsableSampleCount() {
@@ -99,7 +106,7 @@ namespace Graphics::Vulkan {
 		return false;
 	}
 
-	bool VulkanDevice::isPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice,
+	bool VulkanDevice::IsPhysicalDeviceSuitable(VkPhysicalDevice vkPhysicalDevice,
 	                                            std::shared_ptr<VulkanSurface>& surface) {
 		VkPhysicalDeviceProperties deviceProperties;
 		VkPhysicalDeviceFeatures deviceFeatures;
@@ -109,8 +116,8 @@ namespace Graphics::Vulkan {
 		if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) return false;
 		std::cout << deviceProperties.deviceName << std::endl;
 
-		findQueueFamilies(vkPhysicalDevice, surface);
-		bool extensionSupported = checkDeviceExtensionSupport(vkPhysicalDevice);
+		FindQueueFamilies(vkPhysicalDevice, surface);
+		bool extensionSupported = CheckDeviceExtensionSupport(vkPhysicalDevice);
 
 		bool swapChainAdequate;
 		if (extensionSupported) {
@@ -123,7 +130,7 @@ namespace Graphics::Vulkan {
 		       deviceFeatures.samplerAnisotropy;
 	}
 
-	void VulkanDevice::findQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface) {
+	void VulkanDevice::FindQueueFamilies(VkPhysicalDevice vkPhysicalDevice, std::shared_ptr<VulkanSurface>& surface) {
 		uint32_t queueFamilyCount = 0;
 		vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice, &queueFamilyCount, nullptr);
 
@@ -148,19 +155,42 @@ namespace Graphics::Vulkan {
 
 			i++;
 		}
+		if (!m_graphicsFamily.has_value() || !m_presentFamily.has_value()) {
+			throw std::runtime_error("Failed to get queue indices!");
+		}
 	}
 
-	bool VulkanDevice::checkDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice) const {
+	bool VulkanDevice::CheckDeviceExtensionSupport(VkPhysicalDevice vkPhysicalDevice) const {
 		uint32_t extensionCount;
 		vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &extensionCount, nullptr);
 
 		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
 		vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &extensionCount, availableExtensions.data());
 
-		std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+		std::set<std::string> requiredExtensions(m_deviceExtensions.begin(), m_deviceExtensions.end());
 		for (const auto& extension: availableExtensions)
 			requiredExtensions.erase(extension.extensionName);
 
 		return requiredExtensions.empty();
 	}
-}
+	std::optional<uint32_t> VulkanDevice::GetPresentFamilyIndex() const { return m_presentFamily; }
+
+	std::optional<VkQueue> VulkanDevice::GetGraphicsQueue() {
+
+		if (!m_graphicsFamilyQueue.has_value()) {
+			VkQueue graphicsQueue;
+			vkGetDeviceQueue(m_device.value(), m_graphicsFamily.value(), 0, &graphicsQueue);
+			m_graphicsFamilyQueue = std::make_optional(graphicsQueue);
+		}
+		return m_graphicsFamilyQueue;
+	}
+
+	std::optional<VkQueue> VulkanDevice::GetPresentQueue() {
+		if (!m_presentFamilyQueue.has_value()) {
+			VkQueue presentQueue;
+			vkGetDeviceQueue(m_device.value(), m_presentFamily.value(), 0, &presentQueue);
+			m_presentFamilyQueue = std::make_optional(presentQueue);
+		}
+		return m_presentFamilyQueue;
+	}
+}// namespace Graphics::Vulkan

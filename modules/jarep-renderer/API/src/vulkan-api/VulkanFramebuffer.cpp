@@ -16,7 +16,7 @@ namespace Graphics::Vulkan {
 
 	void VulkanFramebuffer::Release() {
 
-		vkDestroyFramebuffer(m_device->getLogicalDevice(), m_framebuffer, nullptr);
+		vkDestroyFramebuffer(m_device->GetLogicalDevice(), m_framebuffer, nullptr);
 		m_targetImageBuffer->Release();
 	}
 

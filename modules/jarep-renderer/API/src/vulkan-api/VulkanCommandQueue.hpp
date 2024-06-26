@@ -29,7 +29,7 @@ namespace Graphics::Vulkan {
 
 			JarCommandBuffer* getNextCommandBuffer() override;
 
-			VkCommandPool getCommandPool() { return m_commandPool; }
+			VkCommandPool GetCommandPool() { return m_commandPool; }
 
 			void Release() override;
 

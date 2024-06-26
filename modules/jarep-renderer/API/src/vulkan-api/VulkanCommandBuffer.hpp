@@ -25,8 +25,7 @@ namespace Graphics::Vulkan {
 
 	class VulkanCommandBuffer final : JarCommandBuffer {
 		public:
-		VulkanCommandBuffer(VkCommandBuffer commandBuffer, VkSemaphore imageAvailableSemaphore,
-		                    VkSemaphore renderFinishedSemaphore, VkFence frameInFlightFence);
+		VulkanCommandBuffer(VkCommandBuffer commandBuffer, std::shared_ptr<VulkanDevice> device);
 
 		~VulkanCommandBuffer() override;
 
@@ -72,10 +71,16 @@ namespace Graphics::Vulkan {
 		std::optional<std::shared_ptr<VulkanGraphicsPipeline>> m_pipeline;
 
 		private:
+		std::shared_ptr<VulkanDevice> m_device;
 		VkCommandBuffer m_commandBuffer;
 		VkSemaphore m_imageAvailableSemaphore;
 		VkSemaphore m_renderFinishedSemaphore;
+		VkSemaphore m_renderStepSemaphore;
+		VkSemaphore m_blitSemaphore;
 		VkFence m_frameInFlightFence;
+
+		void CreateSemaphore(VkSemaphore& semaphore);
+		void CreateFence(VkFence& fence);
 	};
 }// namespace Graphics::Vulkan
 

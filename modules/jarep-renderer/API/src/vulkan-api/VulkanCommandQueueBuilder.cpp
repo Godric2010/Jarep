@@ -19,10 +19,10 @@ namespace Graphics::Vulkan {
 		VkCommandPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		poolInfo.queueFamilyIndex = vulkanDevice->getGraphicsFamilyIndex().value();
+		poolInfo.queueFamilyIndex = vulkanDevice->GetGraphicsFamilyIndex().value();
 
 		VkCommandPool commandPool;
-		if (vkCreateCommandPool(vulkanDevice->getLogicalDevice(), &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+		if (vkCreateCommandPool(vulkanDevice->GetLogicalDevice(), &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create command pool");
 		}
 
@@ -38,36 +38,16 @@ namespace Graphics::Vulkan {
 		allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		allocateInfo.commandBufferCount = (uint32_t) commandBuffers.size();
 
-		VkSemaphoreCreateInfo semaphoreCreateInfo{};
-		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-		VkFenceCreateInfo fenceInfo{};
-		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-		if (vkAllocateCommandBuffers(vulkanDevice->getLogicalDevice(), &allocateInfo, commandBuffers.data()) !=
+		if (vkAllocateCommandBuffers(vulkanDevice->GetLogicalDevice(), &allocateInfo, commandBuffers.data()) !=
 		    VK_SUCCESS) {
 			throw std::runtime_error("failed to allocate command buffer");
 		}
 
 		for (int i = 0; i < bufferCount; i++) {
-			VkSemaphore imageAvailableSemaphore;
-			VkSemaphore renderFinishedSemaphore;
-			VkFence inFlightFence;
-
-			if (vkCreateSemaphore(vulkanDevice->getLogicalDevice(), &semaphoreCreateInfo, nullptr,
-			                      &imageAvailableSemaphore) != VK_SUCCESS ||
-			    vkCreateSemaphore(vulkanDevice->getLogicalDevice(), &semaphoreCreateInfo, nullptr,
-			                      &renderFinishedSemaphore) != VK_SUCCESS ||
-			    vkCreateFence(vulkanDevice->getLogicalDevice(), &fenceInfo, nullptr, &inFlightFence) != VK_SUCCESS) {
-				throw std::runtime_error("failed to create semaphores!");
-			}
-
-			vkCommandBuffers.push_back(new VulkanCommandBuffer(commandBuffers[i], imageAvailableSemaphore,
-			                                                   renderFinishedSemaphore, inFlightFence));
+			vkCommandBuffers.push_back(new VulkanCommandBuffer(commandBuffers[i], vulkanDevice));
 		}
 
 		// Create CommandQueue object
 		return std::make_shared<VulkanCommandQueue>(vulkanDevice, commandPool, vkCommandBuffers);
 	}
-}
+}// namespace Graphics::Vulkan

@@ -102,16 +102,16 @@ namespace Graphics {
 		Viewport viewport{};
 		viewport.x = 0;
 		viewport.y = 0;
-		viewport.width = surface->GetSurfaceExtent().Width;
-		viewport.height = surface->GetSurfaceExtent().Height;
+		viewport.width = static_cast<float>(renderTarget->GetResolutionWidth());
+		viewport.height = static_cast<float>(renderTarget->GetResolutionHeight());
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
 		Scissor scissor{};
 		scissor.x = 0;
 		scissor.y = 0;
-		scissor.width = static_cast<uint32_t>(surface->GetSurfaceExtent().Width);
-		scissor.height = static_cast<uint32_t>(surface->GetSurfaceExtent().Height);
+		scissor.width = renderTarget->GetResolutionWidth();
+		scissor.height = renderTarget->GetResolutionHeight();
 
 		DepthBias depthBias{};
 		depthBias.DepthBiasClamp = 0.0f;

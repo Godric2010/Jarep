@@ -18,8 +18,8 @@ namespace Graphics::Vulkan {
 	void VulkanCommandQueue::Release() {
 
 		for (auto& m_commandBuffer: m_commandBuffers) {
-			m_commandBuffer->Release(m_device->getLogicalDevice());
+			m_commandBuffer->Release(m_device->GetLogicalDevice());
 		}
-		vkDestroyCommandPool(m_device->getLogicalDevice(), m_commandPool, nullptr);
+		vkDestroyCommandPool(m_device->GetLogicalDevice(), m_commandPool, nullptr);
 	}
 }

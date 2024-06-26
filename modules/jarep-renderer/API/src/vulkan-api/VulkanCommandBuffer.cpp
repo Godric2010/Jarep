@@ -4,12 +4,14 @@
 
 #include "VulkanCommandBuffer.hpp"
 namespace Graphics::Vulkan {
-	VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBuffer commandBuffer, VkSemaphore imageAvailableSemaphore,
-	                                         VkSemaphore renderFinishedSemaphore, VkFence frameInFlightFence) {
+	VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBuffer commandBuffer, std::shared_ptr<VulkanDevice> device) {
+		m_device = device;
 		m_commandBuffer = commandBuffer;
-		m_imageAvailableSemaphore = imageAvailableSemaphore;
-		m_renderFinishedSemaphore = renderFinishedSemaphore;
-		m_frameInFlightFence = frameInFlightFence;
+		CreateSemaphore(m_imageAvailableSemaphore);
+		CreateSemaphore(m_renderStepSemaphore);
+		CreateSemaphore(m_renderFinishedSemaphore);
+		CreateSemaphore(m_blitSemaphore);
+		CreateFence(m_frameInFlightFence);
 	}
 
 	VulkanCommandBuffer::~VulkanCommandBuffer() = default;
@@ -76,6 +78,21 @@ namespace Graphics::Vulkan {
 		if (vkEndCommandBuffer(m_commandBuffer) != VK_SUCCESS) {
 			throw std::runtime_error("failed to record command buffer!");
 		}
+
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_commandBuffer;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &m_renderStepSemaphore;
+
+		auto result = vkQueueSubmit(m_device->GetGraphicsQueue().value(), 1, &submitInfo, m_frameInFlightFence);
+		if (result != VK_SUCCESS) {
+			throw std::runtime_error("Failed to submit commandbuffer on end recording");
+		}
+
+		vkWaitForFences(m_device->GetLogicalDevice(), 1, &m_frameInFlightFence, VK_TRUE, UINT64_MAX);
+		vkResetFences(m_device->GetLogicalDevice(), 1, &m_frameInFlightFence);
 	}
 
 	void VulkanCommandBuffer::Draw() {
@@ -136,6 +153,13 @@ namespace Graphics::Vulkan {
 
 		auto vulkanSurface = reinterpret_cast<std::shared_ptr<VulkanSurface>&>(surface);
 
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &m_renderStepSemaphore;
+		VkPipelineStageFlags waitStageFlags[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+		submitInfo.pWaitDstStageMask = waitStageFlags;
+
 		auto currentFrameIndex = vulkanSurface->getSwapchain()->AcquireNewImage(m_imageAvailableSemaphore, m_frameInFlightFence);
 		if (!currentFrameIndex.has_value()) {
 			throw std::runtime_error("Failed to acquire swapchain image!");
@@ -184,6 +208,8 @@ namespace Graphics::Vulkan {
 		if (vkEndCommandBuffer(m_commandBuffer) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to record command buffer");
 		}
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &m_blitSemaphore;
 	}
 
 	void VulkanCommandBuffer::TransitionImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout) {
@@ -236,11 +262,11 @@ namespace Graphics::Vulkan {
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		allocInfo.commandPool = commandQueue->getCommandPool();
+		allocInfo.commandPool = commandQueue->GetCommandPool();
 		allocInfo.commandBufferCount = 1;
 
 		VkCommandBuffer commandBuffer;
-		vkAllocateCommandBuffers(device->getLogicalDevice(), &allocInfo, &commandBuffer);
+		vkAllocateCommandBuffers(device->GetLogicalDevice(), &allocInfo, &commandBuffer);
 
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -263,11 +289,32 @@ namespace Graphics::Vulkan {
 		submitInfo.pCommandBuffers = &commandBuffer;
 
 		VkQueue graphicsQueue;
-		vkGetDeviceQueue(vulkanDevice->getLogicalDevice(), vulkanDevice->getGraphicsFamilyIndex().value(), 0,
+		vkGetDeviceQueue(vulkanDevice->GetLogicalDevice(), vulkanDevice->GetGraphicsFamilyIndex().value(), 0,
 		                 &graphicsQueue);
 		vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
 		vkQueueWaitIdle(graphicsQueue);
 
-		vkFreeCommandBuffers(vulkanDevice->getLogicalDevice(), commandQueue->getCommandPool(), 1, &commandBuffer);
+		vkFreeCommandBuffers(vulkanDevice->GetLogicalDevice(), commandQueue->GetCommandPool(), 1, &commandBuffer);
+	}
+
+
+	void VulkanCommandBuffer::CreateSemaphore(VkSemaphore& semaphore) {
+		VkSemaphoreCreateInfo semaphoreCreateInfo{};
+		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		if (vkCreateSemaphore(m_device->GetLogicalDevice(), &semaphoreCreateInfo, nullptr,
+		                      &semaphore) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create semaphore!");
+		}
+	}
+
+	void VulkanCommandBuffer::CreateFence(VkFence& fence) {
+
+		VkFenceCreateInfo fenceInfo{};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		if (vkCreateFence(m_device->GetLogicalDevice(), &fenceInfo, nullptr, &fence) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create semaphores!");
+		}
 	}
 }// namespace Graphics::Vulkan
