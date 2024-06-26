@@ -7,7 +7,8 @@
 
 namespace Graphics::Vulkan {
 
-	VulkanFramebuffer::VulkanFramebuffer(std::shared_ptr<VulkanDevice> device, std::shared_ptr<VulkanImageBuffer> targetBuffer, VkFramebuffer framebuffer, VkExtent2D framebufferExtent) {
+	VulkanFramebuffer::VulkanFramebuffer(std::shared_ptr<VulkanDevice> device, std::shared_ptr<VulkanImageBuffer> targetBuffer,
+	                                     VkFramebuffer framebuffer, VkExtent2D framebufferExtent) {
 		m_device = device;
 		m_targetImageBuffer = targetBuffer;
 		m_framebuffer = framebuffer;
@@ -16,11 +17,10 @@ namespace Graphics::Vulkan {
 
 	void VulkanFramebuffer::Release() {
 
+		vkDeviceWaitIdle(m_device->GetLogicalDevice());
 		vkDestroyFramebuffer(m_device->GetLogicalDevice(), m_framebuffer, nullptr);
 		m_targetImageBuffer->Release();
 	}
 
-	VkImage VulkanFramebuffer::GetSrcImage() {
-		return m_targetImageBuffer->GetImage();
-	}
+	VkImage VulkanFramebuffer::GetSrcImage() { return m_targetImageBuffer->GetImage(); }
 }// namespace Graphics::Vulkan

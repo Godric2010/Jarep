@@ -65,13 +65,16 @@ namespace Graphics {
 
 	void JarRenderer::ResizeSurface(uint32_t width, uint32_t height) {
 		surface->RecreateSurface(width, height);
-		//		for (const auto& renderStep: renderSteps) {
-		//			renderStep->GetRenderPass()->RecreateRenderPassFramebuffers(width, height, surface);
-		//		}
 	}
 
 	void JarRenderer::ChangeResolution(uint32_t resX, uint32_t resY) {
-		std::runtime_error("Not implemented");
+
+		renderTarget = backend->InitRenderTargetBuilder()->SetRenderTargetType(RenderTargetType::Texture)->SetResolution(resX, resY)->SetMultisamplingCount(64)->SetImageFormat(PixelFormat::BGRA8Unorm)->Build();
+		CreateMultisamplingResources(PixelFormat::BGRA8Unorm);
+		CreateDepthResources(PixelFormat::Depth32Float);
+		for (auto renderStep: renderSteps) {
+			renderStep->ResizeFramebuffer(backend, device, renderTarget, m_multisamplingBuffer, m_depthBuffer.value());
+		}
 	}
 
 	void JarRenderer::AddRenderStep(std::unique_ptr<JarRenderStepDescriptor> renderStepBuilder) {

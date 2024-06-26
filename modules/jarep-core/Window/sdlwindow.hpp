@@ -52,6 +52,8 @@ namespace Core::Window {
 			std::optional<std::pair<uint32_t, uint32_t>> m_pendingResize;
 			std::chrono::time_point<std::chrono::steady_clock> m_lastResizeTime;
 			bool m_resizeOccurred;
+		    bool m_isResolutionHighRes;
+		    bool m_changeResolution;
 
 			std::shared_ptr<Graphics::JarRenderer> renderer;
 

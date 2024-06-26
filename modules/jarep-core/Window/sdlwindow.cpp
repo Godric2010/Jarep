@@ -5,8 +5,8 @@
 #include "sdlwindow.hpp"
 
 #if defined(__linux__)
-#include <X11/Xlib.h>
 #include <X11/Xlib-xcb.h>
+#include <X11/Xlib.h>
 #endif
 
 namespace Core::Window {
@@ -45,12 +45,11 @@ namespace Core::Window {
 
 
 		window = SDL_CreateWindow(
-				"J.A.R.E.P",
-				SDL_WINDOWPOS_CENTERED,
-				SDL_WINDOWPOS_CENTERED,
-				windowWidth, m_currentHeight,
-				windowFlags
-		);
+		        "J.A.R.E.P",
+		        SDL_WINDOWPOS_CENTERED,
+		        SDL_WINDOWPOS_CENTERED,
+		        windowWidth, m_currentHeight,
+		        windowFlags);
 
 		std::vector<const char*> graphicsExtensions;
 #if defined(__APPLE__)
@@ -63,6 +62,7 @@ namespace Core::Window {
 		const auto nativeWindowHandleProvider = getNativeWindowHandle(windowWidth, windowHeight);
 		if (!nativeWindowHandleProvider.has_value()) throw std::exception();
 		renderer->Initialize(nativeWindowHandleProvider.value(), 3840, 2160);
+		m_isResolutionHighRes = true;
 		if (window == nullptr) {
 			return;
 		}
@@ -77,7 +77,7 @@ namespace Core::Window {
 			counter++;
 			m_resizeOccurred = false;
 
-//			if(counter > 10) running = false;
+			//			if(counter > 10) running = false;
 			if (isDirty) {
 				auto newDisplayMode = getDisplayModeFromOpts();
 				if (newDisplayMode.has_value()) {
@@ -109,6 +109,21 @@ namespace Core::Window {
 				m_resizeOccurred = true;
 			}
 
+			if (m_changeResolution) {
+				uint32_t width;
+				uint32_t height;
+				if (m_isResolutionHighRes) {
+					width = 3840;
+					height = 2160;
+				} else {
+					width = 800;
+					height = 600;
+				}
+				renderer->ChangeResolution(width, height);
+				m_changeResolution = false;
+				m_resizeOccurred = true;
+			}
+
 
 			if (!m_resizeOccurred && !m_pendingResize)
 				renderer->Render();
@@ -137,6 +152,10 @@ namespace Core::Window {
 				SDL_SetWindowFullscreen(window, 0);
 				SDL_SetWindowSize(window, m_currentWidth, m_currentHeight);
 				break;
+			case SDLK_r:
+				m_isResolutionHighRes = !m_isResolutionHighRes;
+				m_changeResolution = true;
+				break;
 		}
 	}
 
@@ -146,7 +165,7 @@ namespace Core::Window {
 
 	void SdlWindow::SetDisplayOpts(int displayIndex, int resolutionIndex, int refreshRateIndex) {
 		for (int optIndex = 0; optIndex < displayModes.size(); ++optIndex) {
-			if (displayModes[optIndex].Index != displayIndex)continue;
+			if (displayModes[optIndex].Index != displayIndex) continue;
 			displayModes[optIndex].SelectResolutionAndRefreshRate(resolutionIndex, refreshRateIndex);
 			activeOptIndex = optIndex;
 			isDirty = true;
@@ -214,30 +233,30 @@ namespace Core::Window {
 		}
 #if defined(_WIN32)
 		auto nativeWindowHandleProvider = new Graphics::WindowsWindowHandleProvider(
-			wmInfo.info.win.window, wmInfo.info.win.hinstance, sizeWidth, sizeHeight, Graphics::Win32);
+		        wmInfo.info.win.window, wmInfo.info.win.hinstance, sizeWidth, sizeHeight, Graphics::Win32);
 		return std::make_optional(nativeWindowHandleProvider);
 #elif defined(__APPLE__) && defined(__MACH__)
 		auto nativeWindowHandleProvider = new Graphics::NativeWindowHandleProvider(
-				reinterpret_cast<void*>( wmInfo.info.cocoa.window), sizeWidth, sizeHeight, Graphics::Cocoa);
+		        reinterpret_cast<void*>(wmInfo.info.cocoa.window), sizeWidth, sizeHeight, Graphics::Cocoa);
 		return std::make_optional(nativeWindowHandleProvider);
 #elif defined(__linux__) || defined(__unix__)
 		// X11
 #if defined(SDL_VIDEO_DRIVER_X11)
 		auto xlibHandleProvider = new Graphics::XlibWindowHandleProvider(wmInfo.info.x11.window,
-																		 wmInfo.info.x11.display,
-																		 sizeWidth, sizeHeight, Graphics::X11);
+		                                                                 wmInfo.info.x11.display,
+		                                                                 sizeWidth, sizeHeight, Graphics::X11);
 
 
 		return std::make_optional(xlibHandleProvider);
 		// Wayland
 #elif defined(SDL_VIDEO_DRIVER_WAYLAND)
 		auto wlHandleProvider = Graphics::WaylandWindowHandleProvider(wmInfo.info.wl.m_surface, wmInfo.info.wl.display,
-																	  sizeWidth, sizeWidth, Graphics::Wayland);
+		                                                              sizeWidth, sizeWidth, Graphics::Wayland);
 		return std::make_optional(wlHandleProvider);
 #endif
 
 #else
-		return std::nullopt; // Unsupported platform
+		return std::nullopt;// Unsupported platform
 #endif
 	}
 
@@ -253,4 +272,4 @@ namespace Core::Window {
 		}
 		return sdlExtensions;
 	}
-}
+}// namespace Core::Window

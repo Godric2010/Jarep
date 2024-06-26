@@ -9,8 +9,7 @@ namespace Graphics {
 	namespace Internal {
 		JarRenderStep::JarRenderStep(std::unique_ptr<JarRenderStepDescriptor> desc, std::shared_ptr<Backend> backend,
 		                             std::shared_ptr<JarDevice> device, std::shared_ptr<JarRenderTarget> renderTarget,
-		                             std::shared_ptr<JarSurface> surface,
-		                             std::vector<std::shared_ptr<JarDescriptor>> descriptors,
+		                             std::shared_ptr<JarSurface> surface, std::vector<std::shared_ptr<JarDescriptor>> descriptors,
 		                             std::shared_ptr<JarImageBuffer> multisamplingImageAttachment,
 		                             std::shared_ptr<JarImageBuffer> depthImageAttachment)
 		    : renderStepDescriptor(std::move(desc)), m_descriptors(descriptors), m_renderTarget(renderTarget) {
@@ -22,35 +21,44 @@ namespace Graphics {
 		}
 
 		void JarRenderStep::Release() {
-			for (const auto& descriptor: m_descriptors) {
-				descriptor->Release();
-			}
+			for (const auto& descriptor: m_descriptors) { descriptor->Release(); }
 			m_pipeline->Release();
 			m_shaderStage.vertexShaderModule->Release();
 			m_shaderStage.fragmentShaderModule->Release();
 		}
 
 
+		void JarRenderStep::ResizeFramebuffer(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device,
+		                                      const std::shared_ptr<JarRenderTarget>& renderTarget,
+		                                      const std::shared_ptr<JarImageBuffer> multisamplingImageAttachment,
+		                                      const std::shared_ptr<JarImageBuffer> depthImageAttachment) {
+			m_framebuffer->Release();
+			BuildFramebuffer(backend, device, renderTarget, multisamplingImageAttachment, depthImageAttachment);
+		}
+
+
 #pragma region FramebufferCreation{
 
-		void JarRenderStep::BuildFramebuffer(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device, const std::shared_ptr<JarRenderTarget>& renderTarget, std::shared_ptr<JarImageBuffer> multisamplingImageAttachment, std::shared_ptr<JarImageBuffer> depthImageAttachment) {
+		void JarRenderStep::BuildFramebuffer(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarDevice> device,
+		                                     const std::shared_ptr<JarRenderTarget>& renderTarget,
+		                                     const std::shared_ptr<JarImageBuffer>& multisamplingImageAttachment,
+		                                     const std::shared_ptr<JarImageBuffer>& depthImageAttachment) {
 
-			std::shared_ptr<JarImageBuffer> targetImageBuffer = backend->InitImageBufferBuilder()
-			                                                            ->SetImageBufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
-			                                                            ->SetImageFormat(renderTarget->GetPixelFormat())
-			                                                            ->SetSampleCount(renderTarget->GetMultisamplingCount())
-			                                                            ->SetMipLevels(1)
-			                                                            ->SetImageUsage(ImageUsage::ColorAttachment)
-			                                                            ->SetImageTiling(ImageTiling::Optimal)
-			                                                            ->SetImageAspect(ImageAspect::Color)
-			                                                            ->SetMemoryProperties(MemoryProperties::DeviceLocal)
-			                                                            ->Build(backend, device);
+			std::shared_ptr<JarImageBuffer> targetImageBuffer =
+			        backend->InitImageBufferBuilder()
+			                ->SetImageBufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
+			                ->SetImageFormat(renderTarget->GetPixelFormat())
+			                ->SetSampleCount(renderTarget->GetMultisamplingCount())
+			                ->SetMipLevels(1)
+			                ->SetImageUsage(ImageUsage::ColorAttachment)
+			                ->SetImageTiling(ImageTiling::Optimal)
+			                ->SetImageAspect(ImageAspect::Color)
+			                ->SetMemoryProperties(MemoryProperties::DeviceLocal)
+			                ->Build(backend, device);
 
 			std::vector<std::shared_ptr<JarImageBuffer>> imageBuffers = std::vector<std::shared_ptr<JarImageBuffer>>();
 			imageBuffers.push_back(multisamplingImageAttachment);
-			if (renderStepDescriptor->m_depthTestEnabled) {
-				imageBuffers.push_back(depthImageAttachment);
-			}
+			if (renderStepDescriptor->m_depthTestEnabled) { imageBuffers.push_back(depthImageAttachment); }
 			imageBuffers.push_back(targetImageBuffer);
 
 			m_framebuffer = backend->InitFramebufferBuilder()
@@ -66,12 +74,9 @@ namespace Graphics {
 #pragma region ShaderCreation{
 
 		void JarRenderStep::BuildShaderModules(std::shared_ptr<Backend> backend, std::shared_ptr<JarDevice> device) {
-			auto vertexShaderModule = GetShaderModule(renderStepDescriptor->m_vertexShaderName,
-			                                          ShaderType::VertexShader, backend,
-			                                          device);
-			auto fragmentShaderModule = GetShaderModule(renderStepDescriptor->m_fragmentShaderName,
-			                                            ShaderType::FragmentShader,
-			                                            backend, device);
+			auto vertexShaderModule = GetShaderModule(renderStepDescriptor->m_vertexShaderName, ShaderType::VertexShader, backend, device);
+			auto fragmentShaderModule =
+			        GetShaderModule(renderStepDescriptor->m_fragmentShaderName, ShaderType::FragmentShader, backend, device);
 
 			ShaderStage stage = {};
 			stage.vertexShaderModule = vertexShaderModule;
@@ -81,10 +86,9 @@ namespace Graphics {
 			m_shaderStage = stage;
 		}
 
-		std::shared_ptr<JarShaderModule>
-		JarRenderStep::GetShaderModule(const std::string& shaderName, ShaderType type,
-		                               std::shared_ptr<Backend> backend,
-		                               std::shared_ptr<JarDevice> device) {
+		std::shared_ptr<JarShaderModule> JarRenderStep::GetShaderModule(const std::string& shaderName, ShaderType type,
+		                                                                std::shared_ptr<Backend> backend,
+		                                                                std::shared_ptr<JarDevice> device) {
 
 			auto shaderFileType = "";
 			if (backend->GetType() == BackendType::Vulkan) {
@@ -108,13 +112,9 @@ namespace Graphics {
 		std::string JarRenderStep::ReadFile(const std::string& filename) {
 			std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
-			if (!std::filesystem::exists(filename)) {
-				throw std::runtime_error("File does not exist: " + filename);
-			}
+			if (!std::filesystem::exists(filename)) { throw std::runtime_error("File does not exist: " + filename); }
 
-			if (!file.is_open()) {
-				throw std::runtime_error("Failed to open file: " + filename);
-			}
+			if (!file.is_open()) { throw std::runtime_error("Failed to open file: " + filename); }
 
 			auto fileSize = (size_t) file.tellg();
 			std::vector<char> buffer(fileSize);
@@ -131,8 +131,8 @@ namespace Graphics {
 
 #pragma region RenderPassCreation{
 
-		void
-		JarRenderStep::BuildRenderPass(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarSurface> surface, std::shared_ptr<JarDevice> device) {
+		void JarRenderStep::BuildRenderPass(const std::shared_ptr<Backend>& backend, std::shared_ptr<JarSurface> surface,
+		                                    std::shared_ptr<JarDevice> device) {
 			ColorAttachment colorAttachment;
 			colorAttachment.loadOp = LoadOp::Clear;
 			colorAttachment.storeOp = StoreOp::Store;
@@ -144,9 +144,7 @@ namespace Graphics {
 
 			uint32_t maxMultisamplingCount = device->GetMaxUsableSampleCount();
 			uint32_t multisamplingCount = m_renderTarget->GetMultisamplingCount();
-			if (multisamplingCount > maxMultisamplingCount) {
-				multisamplingCount = maxMultisamplingCount;
-			}
+			if (multisamplingCount > maxMultisamplingCount) { multisamplingCount = maxMultisamplingCount; }
 			rpBuilder->SetMultisamplingCount(multisamplingCount);
 
 			if (renderStepDescriptor->m_depthTestEnabled) {
@@ -158,8 +156,7 @@ namespace Graphics {
 				std::optional<StencilAttachment> stencilAttachment = std::nullopt;
 				DepthAttachment depthStencilAttachment;
 				depthStencilAttachment.Format = depthFormat;
-				depthStencilAttachment.DepthLoadOp = LoadOp::Clear,
-				depthStencilAttachment.DepthStoreOp = StoreOp::DontCare,
+				depthStencilAttachment.DepthLoadOp = LoadOp::Clear, depthStencilAttachment.DepthStoreOp = StoreOp::DontCare,
 				depthStencilAttachment.DepthClearValue = 1.0f;
 				depthStencilAttachment.Stencil = stencilAttachment;
 
@@ -193,9 +190,7 @@ namespace Graphics {
 		                                  std::vector<std::shared_ptr<JarDescriptor>> descriptors) {
 
 			std::vector<std::shared_ptr<JarDescriptorLayout>> descriptorLayouts = std::vector<std::shared_ptr<JarDescriptorLayout>>();
-			for (const auto& descriptor: descriptors) {
-				descriptorLayouts.push_back(descriptor->GetDescriptorLayout());
-			}
+			for (const auto& descriptor: descriptors) { descriptorLayouts.push_back(descriptor->GetDescriptorLayout()); }
 
 			VertexInput vertexInput{};
 			vertexInput.attributeDescriptions = Vertex::GetAttributeDescriptions();
@@ -226,15 +221,18 @@ namespace Graphics {
 
 			uint32_t maxMultisamplingCount = device->GetMaxUsableSampleCount();
 			uint32_t multisamplingCount = m_renderTarget->GetMultisamplingCount();
-			if (multisamplingCount > maxMultisamplingCount) {
-				multisamplingCount = maxMultisamplingCount;
-			}
+			if (multisamplingCount > maxMultisamplingCount) { multisamplingCount = maxMultisamplingCount; }
 
 			JarPipelineBuilder* pipelineBuilder = backend->InitPipelineBuilder();
-			if (depthTestEnabled)
-				pipelineBuilder->SetDepthStencilState(depthStencilState);
+			if (depthTestEnabled) pipelineBuilder->SetDepthStencilState(depthStencilState);
 
-			pipelineBuilder->SetShaderStage(m_shaderStage)->SetRenderPass(m_renderPass)->SetVertexInput(vertexInput)->SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)->SetMultisamplingCount(multisamplingCount)->BindDescriptorLayouts(descriptorLayouts)->SetColorBlendAttachments(colorBlendAttachment);
+			pipelineBuilder->SetShaderStage(m_shaderStage)
+			        ->SetRenderPass(m_renderPass)
+			        ->SetVertexInput(vertexInput)
+			        ->SetInputAssemblyTopology(InputAssemblyTopology::TriangleList)
+			        ->SetMultisamplingCount(multisamplingCount)
+			        ->BindDescriptorLayouts(descriptorLayouts)
+			        ->SetColorBlendAttachments(colorBlendAttachment);
 			m_pipeline = pipelineBuilder->Build(device);
 			delete pipelineBuilder;
 		}
