@@ -11,6 +11,10 @@ namespace Graphics::Metal {
 		return new MetalCommandBuffer(queue->commandBuffer());
 	}
 
+	MetalCommandBuffer MetalCommandQueue::GetCommandBuffer() {
+		return MetalCommandBuffer(queue->commandBuffer());
+	}
+
 	void MetalCommandQueue::Release() {
 		queue->release();
 	}

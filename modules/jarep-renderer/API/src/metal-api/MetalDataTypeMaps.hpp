@@ -101,5 +101,49 @@ namespace Graphics::Metal {
 			{StencilOpState::DecrementAndWrap,  MTL::StencilOperationDecrementWrap},
 			{StencilOpState::Invert,            MTL::StencilOperationInvert},
 	};
+
+	static MTL::TextureUsage TranslateImageUsageToMetal(ImageUsage usage) {
+		MTL::TextureUsage metalUsage = MTL::TextureUsageUnknown;
+
+		if (usage.flags & ImageUsage::ColorAttachment) {
+			metalUsage |= MTL::TextureUsageRenderTarget;
+		}
+		if (usage.flags & ImageUsage::DepthStencilAttachment) {
+			metalUsage |= MTL::TextureUsageRenderTarget;
+		}
+		if (usage.flags & ImageUsage::Sampled) {
+			metalUsage |= MTL::TextureUsageShaderRead;
+		}
+		if (usage.flags & ImageUsage::Storage) {
+			metalUsage |= MTL::TextureUsageShaderWrite;
+		}
+		if (usage.flags & ImageUsage::TransferSrc) {
+			metalUsage |= MTL::TextureUsagePixelFormatView;
+		}
+		if (usage.flags & ImageUsage::TransferDst) {
+			metalUsage |= MTL::TextureUsagePixelFormatView;
+		}
+		if (usage.flags & ImageUsage::InputAttachment) {
+			metalUsage |= MTL::TextureUsagePixelFormatView;
+		}
+		return metalUsage;
+	}
+
+	static MTL::ResourceOptions TranslateMemoryPropertiesToMetal(MemoryProperties properties) {
+		MTL::ResourceOptions options = MTL::ResourceCPUCacheModeDefaultCache;
+		if (properties.flags & MemoryProperties::DeviceLocal) {
+			options |= MTL::ResourceStorageModePrivate;
+		}
+		if (properties.flags & MemoryProperties::HostVisible) {
+			options |= MTL::ResourceStorageModeManaged;
+		}
+		if (properties.flags & MemoryProperties::HostCoherent) {
+			options |= MTL::ResourceStorageModeShared;
+		}
+		if (properties.flags & MemoryProperties::HostCached) {
+			options |= MTL::ResourceCPUCacheModeWriteCombined;
+		}
+		return options;
+	}
 }
 #endif //JAREP_METALDATATYPEMAPS_HPP

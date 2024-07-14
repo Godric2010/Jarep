@@ -11,8 +11,8 @@ namespace Graphics::Metal {
 	class MetalRenderTarget final : public JarRenderTarget {
 
 		public:
-			MetalRenderTarget(RenderTargetType type, uint32_t width, uint32_t height, PixelFormat format) : m_type(
-					type), m_width(width), m_height(height), m_pixelFormat(format) {
+			MetalRenderTarget(RenderTargetType type, uint32_t width, uint32_t height, PixelFormat format, uint16_t multisamplingCount) : m_type(
+					type), m_width(width), m_height(height), m_pixelFormat(format), m_multisampleCount(multisamplingCount) {
 			}
 
 			~MetalRenderTarget() override;
@@ -21,12 +21,15 @@ namespace Graphics::Metal {
 
 			inline const uint32_t GetResolutionHeight() override { return m_height; }
 
+			inline const uint16_t GetMultisamplingCount() override { return m_multisampleCount; }
+
 			inline const PixelFormat GetPixelFormat() override { return m_pixelFormat; }
 
 		private:
 			RenderTargetType m_type;
 			uint32_t m_width;
 			uint32_t m_height;
+			uint16_t m_multisampleCount;
 			PixelFormat m_pixelFormat;
 	};
 }

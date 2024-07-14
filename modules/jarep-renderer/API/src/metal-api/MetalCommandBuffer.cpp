@@ -4,16 +4,16 @@
 
 #include "MetalCommandBuffer.hpp"
 
-namespace Graphics::Metal{
+namespace Graphics::Metal {
 	MetalCommandBuffer::~MetalCommandBuffer() = default;
 
 	bool
-	MetalCommandBuffer::StartRecording(std::shared_ptr<JarFramebuffer> framebuffer, std::shared_ptr<JarRenderPass> renderPass) {
+	MetalCommandBuffer::StartRecording(std::shared_ptr<JarFramebuffer> framebuffer,
+	                                   std::shared_ptr<JarRenderPass> renderPass) {
 		metalRenderPass = reinterpret_cast<std::shared_ptr<MetalRenderPass>&>(renderPass);
 		const auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(framebuffer);
 
 		auto renderPassDesc = metalRenderPass->getRenderPassDesc();
-		renderPassDesc->colorAttachments()->object(0)->setTexture(metalSurface->acquireNewDrawTexture());
 		encoder = buffer->renderCommandEncoder(renderPassDesc);
 		return true;
 	}
@@ -74,6 +74,26 @@ namespace Graphics::Metal{
 		metalScissor.width = scissor.width;
 		metalScissor.height = scissor.height;
 		encoder->setScissorRect(metalScissor);
+	}
+
+	void MetalCommandBuffer::BlitFramebuffersToSurface(std::shared_ptr<JarSurface> surface,
+	                                                   std::vector<std::shared_ptr<JarFramebuffer>> framebuffers) {
+
+		auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
+		MTL::Texture* destinationTexture = metalSurface->acquireNewDrawTexture();
+
+		auto blitEncoder = buffer->blitCommandEncoder();
+		for (auto& framebuffer: framebuffers) {
+			auto metalFramebuffer = reinterpret_cast<std::shared_ptr<MetalFramebuffer>&>(framebuffer);
+			MTL::Texture* sourceTexture = metalFramebuffer->GetRenderTargetBuffer()->GetTexture();
+			MTL::Origin sourceOrigin = {0, 0, 0};
+			MTL::Size sourceSize = {sourceTexture->width(), sourceTexture->height(), 1};
+			MTL::Origin destinationOrigin = {0, 0, 0};
+
+			MTL::Size destinationSize = {destinationTexture->width(), destinationTexture->height(), 1};
+			blitEncoder->copyFromTexture(sourceTexture, 0, 0,sourceOrigin, sourceSize, destinationTexture, 0, 0, destinationOrigin);
+		}
+		blitEncoder->endEncoding();
 	}
 
 	void MetalCommandBuffer::DrawIndexed(size_t indexAmount) {

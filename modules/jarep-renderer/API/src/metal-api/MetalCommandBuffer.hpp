@@ -11,10 +11,12 @@
 #include "MetalPipeline.hpp"
 #include "MetalDescriptor.hpp"
 #include "MetalRenderTarget.hpp"
+#include "MetalFramebuffer.hpp"
 #include <Metal/Metal.hpp>
 
 namespace Graphics::Metal {
 
+	class MetalRenderPass;
 	class MetalCommandBuffer final : public JarCommandBuffer {
 		public:
 			explicit MetalCommandBuffer(MTL::CommandBuffer* cmdBuffer) : buffer(cmdBuffer) {
@@ -41,6 +43,8 @@ namespace Graphics::Metal {
 			void SetViewport(Viewport viewport) override;
 
 			void SetScissor(Scissor scissor) override;
+
+			void BlitFramebuffersToSurface(std::shared_ptr<JarSurface> surface, std::vector<std::shared_ptr<JarFramebuffer>> framebuffers) override;
 
 			void Draw() override;
 

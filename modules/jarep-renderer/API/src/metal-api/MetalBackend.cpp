@@ -67,8 +67,12 @@ namespace Graphics::Metal {
 		return new MetalRenderTargetBuilder();
 	}
 
-JarFramebufferBuilder* MetalBackend::InitFramebufferBuilder() {
+	JarFramebufferBuilder* MetalBackend::InitFramebufferBuilder() {
 		return new MetalFramebufferBuilder();
+	}
+
+	JarImageBufferBuilder* MetalBackend::InitImageBufferBuilder() {
+		return new MetalImageBufferBuilder();
 	}
 
 	extern "C" Backend* CreateMetalBackend() {

@@ -11,6 +11,7 @@
 
 namespace Graphics::Metal {
 
+	class MetalCommandBuffer;
 	class MetalCommandQueue final : public JarCommandQueue {
 		public:
 			MetalCommandQueue(MTL::CommandQueue* cmdQueue) : queue(cmdQueue) {
@@ -19,6 +20,8 @@ namespace Graphics::Metal {
 			~MetalCommandQueue() override;
 
 			JarCommandBuffer* getNextCommandBuffer() override;
+
+			MetalCommandBuffer GetCommandBuffer();
 
 			void Release() override;
 

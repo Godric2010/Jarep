@@ -9,19 +9,24 @@
 #include <Metal/Metal.hpp>
 #include "MetalRenderPassImages.hpp"
 #include "MetalSurface.hpp"
+#include "MetalImageBuffer.hpp"
 
 namespace Graphics::Metal {
 
+	class MetalImageBuffer;
 	class MetalRenderPass final : public JarRenderPass {
 		public:
-			explicit MetalRenderPass(MTL::RenderPassDescriptor* rpd, MetalRenderPassImages* renderPassImages) : renderPassDesc(rpd), renderPassImages(renderPassImages) {
+			explicit MetalRenderPass(MTL::RenderPassDescriptor* rpd, MetalRenderPassImages* renderPassImages)
+					: renderPassDesc(rpd), renderPassImages(renderPassImages) {
 			}
 
 			~MetalRenderPass() override;
 
 			void Release() override;
 
-			void RecreateRenderPassFramebuffers(uint32_t width, uint32_t height, std::shared_ptr<JarSurface> metalSurface) override;
+			void SetRenderPassImageBuffers(std::shared_ptr<MetalImageBuffer> msaaImageBuffer,
+			                               std::shared_ptr<MetalImageBuffer> depthStencilImageBuffer,
+			                               std::shared_ptr<MetalImageBuffer> targetImageBuffer);
 
 			[[nodiscard]] MTL::RenderPassDescriptor* getRenderPassDesc() const { return renderPassDesc; }
 

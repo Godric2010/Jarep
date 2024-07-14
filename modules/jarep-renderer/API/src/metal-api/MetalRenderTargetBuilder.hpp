@@ -26,12 +26,15 @@ namespace Graphics::Metal {
 
 			MetalRenderTargetBuilder* SetImageFormat(PixelFormat format) override;
 
+			MetalRenderTargetBuilder* SetMultisamplingCount(uint16_t multisamplingCount) override;
+
 			std::shared_ptr<JarRenderTarget> Build() override;
 
 		private:
 			std::optional<RenderTargetType> m_renderTargetType;
 			std::optional<uint32_t> m_width;
 			std::optional<uint32_t> m_height;
+			std::optional<uint16_t> m_multisampleCount;
 			std::optional<PixelFormat> m_pixelFormat;
 	};
 }

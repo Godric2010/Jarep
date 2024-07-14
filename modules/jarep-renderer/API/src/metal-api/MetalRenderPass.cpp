@@ -12,12 +12,12 @@ namespace Graphics::Metal {
 		renderPassImages->Release();
 	}
 
-	void MetalRenderPass::RecreateRenderPassFramebuffers(uint32_t width, uint32_t height,
-	                                                     std::shared_ptr<JarSurface> surface) {
-		auto metalSurface = reinterpret_cast<std::shared_ptr<MetalSurface>&>(surface);
-		renderPassImages->RecreateRenderPassImages(width, height, metalSurface->getDrawablePixelFormat());
-		renderPassDesc->colorAttachments()->object(0)->setTexture(renderPassImages->getMSAATexture());
-		renderPassDesc->depthAttachment()->setTexture(renderPassImages->getDepthStencilTexture());
+	void MetalRenderPass::SetRenderPassImageBuffers(std::shared_ptr<MetalImageBuffer> msaaImageBuffer,
+	                                                std::shared_ptr<MetalImageBuffer> depthStencilImageBuffer,
+	                                                std::shared_ptr<MetalImageBuffer> targetImageBuffer) {
+		renderPassDesc->colorAttachments()->object(0)->setTexture(msaaImageBuffer->GetTexture());
+		renderPassDesc->colorAttachments()->object(0)->setResolveTexture(targetImageBuffer->GetTexture());
+		renderPassDesc->depthAttachment()->setTexture(depthStencilImageBuffer->GetTexture());
 	}
 
 	void MetalRenderPass::UpdateRenderPassDescriptor(std::shared_ptr<MetalSurface> metalSurface) {

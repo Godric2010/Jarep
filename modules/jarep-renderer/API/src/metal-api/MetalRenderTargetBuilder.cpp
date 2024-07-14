@@ -25,12 +25,17 @@ namespace Graphics::Metal {
 		return this;
 	}
 
+	MetalRenderTargetBuilder* MetalRenderTargetBuilder::SetMultisamplingCount(uint16_t multisamplingCount) {
+		m_multisampleCount = std::make_optional(multisamplingCount);
+		return this;
+	}
+
 	std::shared_ptr<JarRenderTarget> MetalRenderTargetBuilder::Build() {
 		if (!m_renderTargetType.has_value() || !m_width.has_value() || !m_height.has_value() ||
-		    !m_pixelFormat.has_value())
+		    !m_pixelFormat.has_value()|| !m_multisampleCount.has_value())
 			throw std::runtime_error(
 					"MetalRenderTargetBuilder: Build() called without setting all required parameters");
 		return std::make_shared<MetalRenderTarget>(m_renderTargetType.value(), m_width.value(), m_height.value(),
-		                                           m_pixelFormat.value());
+		                                           m_pixelFormat.value(), m_multisampleCount.value());
 	}
 }

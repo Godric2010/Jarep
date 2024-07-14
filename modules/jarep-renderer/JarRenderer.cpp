@@ -16,11 +16,11 @@ namespace Graphics {
 		device = backend->CreateDevice(surface);
 
 		renderTarget = backend->InitRenderTargetBuilder()
-		                       ->SetRenderTargetType(RenderTargetType::Texture)
-		                       ->SetImageFormat(PixelFormat::BGRA8Unorm)
-		                       ->SetResolution(resolutionX, resolutionY)
-		                       ->SetMultisamplingCount(1)
-		                       ->Build();
+				->SetRenderTargetType(RenderTargetType::Texture)
+				->SetImageFormat(PixelFormat::BGRA8Unorm)
+				->SetResolution(resolutionX, resolutionY)
+				->SetMultisamplingCount(4)
+				->Build();
 
 		const auto commandQueueBuilder = backend->InitCommandQueueBuilder();
 		queue = commandQueueBuilder->Build(device);
@@ -30,31 +30,37 @@ namespace Graphics {
 
 		Internal::JarModelViewProjection mvp{};
 		//		mvp.model = glm::rotate(glm::mat4(1.0f), glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		auto bufferBuilder = backend->InitBufferBuilder()->SetUsageFlags(
-		                                                         BufferUsage::UniformBuffer)
-		                             ->SetMemoryProperties(
-		                                     MemoryProperties::HostVisible | MemoryProperties::HostCoherent)
-		                             ->SetBufferData(
-		                                     &mvp, sizeof(Internal::JarModelViewProjection));
+		auto bufferBuilder = backend
+				->InitBufferBuilder()
+				->SetUsageFlags(BufferUsage::UniformBuffer)
+				->SetMemoryProperties(MemoryProperties::HostVisible | MemoryProperties::HostCoherent)
+				->SetBufferData(&mvp, sizeof(Internal::JarModelViewProjection));
+
 		for (int i = 0; i < surface->GetSwapchainImageAmount(); ++i) {
 			uniformBuffers.push_back(bufferBuilder->Build(device));
 		}
 
 		descriptors = std::vector<std::shared_ptr<JarDescriptor>>();
-		auto uboDescriptor = backend->InitDescriptorBuilder()->SetBinding(1)->SetStageFlags(
-		                                                                            StageFlags::VertexShader)
-		                             ->BuildUniformBufferDescriptor(device, uniformBuffers);
+		auto uboDescriptor = backend
+				->InitDescriptorBuilder()
+				->SetBinding(1)
+				->SetStageFlags(StageFlags::VertexShader)
+				->BuildUniformBufferDescriptor(device, uniformBuffers);
 		descriptors.push_back(uboDescriptor);
 
-		auto image = backend->InitImageBuilder()->EnableMipMaps(true)->SetPixelFormat(
-		                                                                     PixelFormat::BGRA8Unorm)
-		                     ->SetImagePath(
-		                             "../../resources/uv_texture.jpg")
-		                     ->Build(device);
+		auto image = backend
+				->InitImageBuilder()
+				->EnableMipMaps(true)
+				->SetPixelFormat(PixelFormat::BGRA8Unorm)
+				->SetImagePath("../../resources/uv_texture.jpg")
+				->Build(device);
+
 		images.push_back(image);
-		auto imageDescriptor = backend->InitDescriptorBuilder()->SetBinding(2)->SetStageFlags(
-		                                                                              StageFlags::FragmentShader)
-		                               ->BuildImageBufferDescriptor(device, image);
+		auto imageDescriptor = backend
+				->InitDescriptorBuilder()
+				->SetBinding(2)
+				->SetStageFlags(StageFlags::FragmentShader)
+				->BuildImageBufferDescriptor(device, image);
 		descriptors.push_back(imageDescriptor);
 
 		std::vector<std::shared_ptr<JarDescriptorLayout>> descriptorLayouts = std::vector<std::shared_ptr<JarDescriptorLayout>>();
@@ -69,7 +75,13 @@ namespace Graphics {
 
 	void JarRenderer::ChangeResolution(uint32_t resX, uint32_t resY) {
 
-		renderTarget = backend->InitRenderTargetBuilder()->SetRenderTargetType(RenderTargetType::Texture)->SetResolution(resX, resY)->SetMultisamplingCount(64)->SetImageFormat(PixelFormat::BGRA8Unorm)->Build();
+		renderTarget = backend->InitRenderTargetBuilder()
+				->SetRenderTargetType(RenderTargetType::Texture)
+				->SetResolution(resX, resY)
+				->SetMultisamplingCount(4)
+				->SetImageFormat(PixelFormat::BGRA8Unorm)
+				->Build();
+
 		CreateMultisamplingResources(PixelFormat::BGRA8Unorm);
 		CreateDepthResources(PixelFormat::Depth32Float);
 		for (auto renderStep: renderSteps) {
@@ -95,7 +107,9 @@ namespace Graphics {
 		std::shared_ptr<JarBuffer> vertexBuffer = vertexBufferBuilder->Build(device);
 
 		const size_t indexBufferSize = sizeof(mesh.getIndices()[0]) * mesh.getIndices().size();
-		const auto indexBufferBuilder = backend->InitBufferBuilder()->SetBufferData(mesh.getIndices().data(), indexBufferSize)->SetMemoryProperties(MemoryProperties::DeviceLocal)->SetUsageFlags(BufferUsage::IndexBuffer);
+		const auto indexBufferBuilder = backend->InitBufferBuilder()->SetBufferData(mesh.getIndices().data(),
+		                                                                            indexBufferSize)->SetMemoryProperties(
+				MemoryProperties::DeviceLocal)->SetUsageFlags(BufferUsage::IndexBuffer);
 		std::shared_ptr<JarBuffer> indexBuffer = indexBufferBuilder->Build(device);
 		meshes.emplace_back(mesh, vertexBuffer, indexBuffer);
 	}
@@ -180,31 +194,37 @@ namespace Graphics {
 	}
 
 	void JarRenderer::CreateDepthResources(PixelFormat depthFormat) {
+
+		uint32_t sampleCount = renderTarget->GetMultisamplingCount();
+		if (backend->GetType() == BackendType::Metal) {
+			sampleCount = 1;
+		}
+
 		auto depthImageBuffer = backend->InitImageBufferBuilder()
-		                                ->SetImageBufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
-		                                ->SetImageFormat(depthFormat)
-		                                ->SetMipLevels(1)
-		                                ->SetSampleCount(renderTarget->GetMultisamplingCount())
-		                                ->SetImageTiling(ImageTiling::Optimal)
-		                                ->SetImageUsage(ImageUsage::DepthStencilAttachment)
-		                                ->SetMemoryProperties(MemoryProperties::DeviceLocal)
-		                                ->SetImageAspect(ImageAspect::Depth)
-		                                ->Build(backend, device);
+				->SetImageBufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
+				->SetImageFormat(depthFormat)
+				->SetMipLevels(1)
+				->SetSampleCount(sampleCount)
+				->SetImageTiling(ImageTiling::Optimal)
+				->SetImageUsage(ImageUsage::DepthStencilAttachment)
+				->SetMemoryProperties(MemoryProperties::DeviceLocal)
+				->SetImageAspect(ImageAspect::Depth)
+				->Build(backend, device);
 
 		m_depthBuffer = std::make_optional(std::move(depthImageBuffer));
 	}
 
 	void JarRenderer::CreateMultisamplingResources(PixelFormat multisamplingFormat) {
 		m_multisamplingBuffer = backend->InitImageBufferBuilder()
-		                                ->SetImageBufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
-		                                ->SetImageFormat(multisamplingFormat)
-		                                ->SetMipLevels(1)
-		                                ->SetSampleCount(renderTarget->GetMultisamplingCount())
-		                                ->SetImageTiling(ImageTiling::Optimal)
-		                                ->SetImageUsage(ImageUsage::TransientAttachment | ImageUsage::ColorAttachment)
-		                                ->SetMemoryProperties(MemoryProperties::DeviceLocal)
-		                                ->SetImageAspect(ImageAspect::Color)
-		                                ->Build(backend, device);
+				->SetImageBufferExtent(renderTarget->GetResolutionWidth(), renderTarget->GetResolutionHeight())
+				->SetImageFormat(multisamplingFormat)
+				->SetMipLevels(1)
+				->SetSampleCount(renderTarget->GetMultisamplingCount())
+				->SetImageTiling(ImageTiling::Optimal)
+				->SetImageUsage(ImageUsage::TransientAttachment | ImageUsage::ColorAttachment)
+				->SetMemoryProperties(MemoryProperties::DeviceLocal)
+				->SetImageAspect(ImageAspect::Color)
+				->Build(backend, device);
 	}
 
 	void JarRenderer::PrepareModelViewProjectionForFrame() {

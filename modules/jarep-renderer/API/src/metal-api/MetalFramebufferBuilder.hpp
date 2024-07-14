@@ -6,6 +6,10 @@
 #define JAREP_METALFRAMEBUFFERBUILDER_HPP
 
 #include "IRenderAPI.hpp"
+#include "MetalImageBuffer.hpp"
+#include "MetalRenderPass.hpp"
+#include "MetalImageBufferBuilder.hpp"
+#include "MetalFramebuffer.hpp"
 
 namespace Graphics::Metal {
 
@@ -21,13 +25,17 @@ namespace Graphics::Metal {
 
 			MetalFramebufferBuilder* SetRenderPass(std::shared_ptr<JarRenderPass> renderPass) override;
 
+			MetalFramebufferBuilder* SetImageBuffers(std::vector<std::shared_ptr<JarImageBuffer>> imageBuffers) override;
+
 			std::shared_ptr<JarFramebuffer> Build(std::shared_ptr<JarDevice> device) override;
 
 		private:
 			std::optional<uint32_t> m_width;
 			std::optional<uint32_t> m_height;
 			std::optional<PixelFormat> m_pixelFormat;
-			std::optional<std::shared_ptr<JarRenderPass>> m_renderPass;
+			std::vector<std::shared_ptr<MetalImageBuffer>> m_imageBuffers;
+			std::optional<std::shared_ptr<MetalImageBuffer>> m_targetImageBuffer;
+			std::optional<std::shared_ptr<MetalRenderPass>> m_renderPass;
 	};
 }
 

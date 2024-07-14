@@ -9,7 +9,7 @@ namespace Core {
 	void CoreManager::Initialize() {
 		std::cout << "Initialize Core" << std::endl;
 		window = std::make_unique<Window::SdlWindow>();
-		window->Init(3840, 2160);
+		window->Init(2000, 2000);
 
 		auto windowOpts = window->GetAvailableDisplayOpts();
 		for (const auto& opt: windowOpts) {
