@@ -7,9 +7,9 @@
 VulkanBackend::VulkanBackend(const char* const* extensions, size_t count) {
 	m_extensionNames = std::vector<const char*>(extensions, extensions + count);
 	bool enableDebugMode = false;
-#ifdef ENABLE_VALIDATION_LAYERS
-	enable_debug_mode = true;
-#endif
+//#ifdef ENABLE_VALIDATION_LAYERS
+	enableDebugMode = true;
+//#endif
 
 	if (enableDebugMode) {
 		EnableValidationLayers();
@@ -18,7 +18,7 @@ VulkanBackend::VulkanBackend(const char* const* extensions, size_t count) {
 	} else {
 		CreateInstance();
 	}
-	std::cout<<"Vulkan Instance in new GAPI"<<std::endl;
+	std::cout << "Vulkan Instance in new GAPI" << std::endl;
 }
 
 VulkanBackend::~VulkanBackend() { vkDestroyInstance(m_instance, nullptr); }

@@ -7,10 +7,10 @@ set(SOURCE_FILES JarRenderer.cpp
         JarRenderStep.hpp
 )
 
-add_subdirectory(API)
+#add_subdirectory(API)
 add_subdirectory(JarGraphicsApi)
 add_library(JAREP_RENDERER ${SOURCE_FILES})
-target_link_libraries(JAREP_RENDERER PUBLIC JAREP_RENDERER_API JAR_GRAPHICS_API)
+target_link_libraries(JAREP_RENDERER PUBLIC  JAR_GRAPHICS_API)
 
 
 find_package(glm)

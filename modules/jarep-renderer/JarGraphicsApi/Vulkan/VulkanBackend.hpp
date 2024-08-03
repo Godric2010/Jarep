@@ -7,6 +7,7 @@
 #include "JarBackend.hpp"
 #include <iostream>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_core.h>
 
 class VulkanBackend : public JarBackend {
 	public:

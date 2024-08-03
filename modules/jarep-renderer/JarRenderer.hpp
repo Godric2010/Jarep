@@ -16,7 +16,7 @@
 #include "Mesh.hpp"
 #include "Vertex.hpp"
 #include "JarRenderStep.hpp"
-#include "API/src/IRendererAPI/IRenderAPI.hpp"
+//#include "API/src/IRendererAPI/IRenderAPI.hpp"
 
 
 namespace Graphics {
@@ -78,20 +78,20 @@ namespace Graphics {
 		private:
 			std::vector<const char*> m_extensions;
 			std::string shaderFileType;
-			std::shared_ptr<Backend> backend;
-			std::shared_ptr<JarSurface> surface;
-			std::shared_ptr<JarRenderTarget> renderTarget;
-			std::shared_ptr<JarDevice> device;
-			std::shared_ptr<JarCommandQueue> queue;
+//			std::shared_ptr<Backend> backend;
+//			std::shared_ptr<JarSurface> surface;
+//			std::shared_ptr<JarRenderTarget> renderTarget;
+//			std::shared_ptr<JarDevice> device;
+//			std::shared_ptr<JarCommandQueue> queue;
 			std::vector<std::shared_ptr<Internal::JarRenderStep>> renderSteps;
 
 
-			std::vector<std::shared_ptr<JarBuffer>> uniformBuffers;
-			std::vector<std::shared_ptr<JarImage>> images;
-			std::vector<std::shared_ptr<JarDescriptor>> descriptors;
-
-			std::optional<std::shared_ptr<JarImageBuffer>> m_depthBuffer;
-			std::shared_ptr<JarImageBuffer> m_multisamplingBuffer;
+//			std::vector<std::shared_ptr<JarBuffer>> uniformBuffers;
+//			std::vector<std::shared_ptr<JarImage>> images;
+//			std::vector<std::shared_ptr<JarDescriptor>> descriptors;
+//
+//			std::optional<std::shared_ptr<JarImageBuffer>> m_depthBuffer;
+//			std::shared_ptr<JarImageBuffer> m_multisamplingBuffer;
 
 			std::vector<Internal::JarMesh> meshes;
 

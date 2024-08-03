@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include <stb_image.h>
+//#include <stb_image.h>
 
 #ifdef __APPLE__
 #define USE_METAL
