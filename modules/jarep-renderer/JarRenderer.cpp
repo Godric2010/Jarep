@@ -3,11 +3,13 @@
 //
 
 #include "JarRenderer.hpp"
+#include "JarGraphicsApi/JarBackend.hpp"
 
 
 namespace Graphics {
 	JarRenderer::JarRenderer(const std::vector<const char*>& extensionNames) {
 		backend = Graphics::CreateBackend(extensionNames);
+		auto testBackend = JarBackend::Create(extensionNames.data(), extensionNames.size());
 	}
 
 	void JarRenderer::Initialize(NativeWindowHandleProvider* nativeWindowHandle, uint32_t resolutionX,
