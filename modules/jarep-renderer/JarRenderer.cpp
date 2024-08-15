@@ -9,7 +9,7 @@
 namespace Graphics {
 	JarRenderer::JarRenderer(const std::vector<const char*>& extensionNames) {
 		//		backend = Graphics::CreateBackend(extensionNames);
-//		auto testBackend = JarBackend::Create(extensionNames.data(), extensionNames.size());
+		auto backend = JarBackend::Create(extensionNames);
 	}
 
 	void JarRenderer::Initialize(NativeWindowHandleProvider* nativeWindowHandle, uint32_t resolutionX, uint32_t resolutionY) {

@@ -4,23 +4,14 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 class JarBackend {
 	public:
 	virtual ~JarBackend() = default;
 
-	static std::shared_ptr<JarBackend> Create(const char* const* extensions, size_t count);
+	static std::shared_ptr<JarBackend> Create(const std::vector<const char*>& extensionNames);
 
 	protected:
 	JarBackend() = default;
 };
-
-#if defined(PLATFORM_VULKAN)
-class VulkanBackend;
-using DefaultBackend = VulkanBackend;
-#elif defined(PLATFORM_METAL)
-class MetalBackend;
-using DefaultBackend = MetalBackend;
-//#else
-//	#error "Unsupported platform"
-#endif

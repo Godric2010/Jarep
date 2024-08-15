@@ -3,6 +3,9 @@ project(VulkanGraphicsAPI)
 file(GLOB_RECURSE VULKAN_SOURCES src/*.cpp)
 file(GLOB_RECURSE VULKAN_HEADERS include/*.hpp)
 
+
+add_definitions(-DVALIDATION_LAYERS_ENABLED)
+
 add_library(VULKAN_GRAPHICS_API STATIC
         ${VULKAN_SOURCES}
         ${VULKAN_HEADERS}
