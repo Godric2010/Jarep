@@ -224,7 +224,7 @@ namespace Core::Window {
 		return std::nullopt;
 	}
 
-	std::optional<Graphics::NativeWindowHandleProvider*>
+	std::optional<NativeWindowHandleProvider*>
 	SdlWindow::getNativeWindowHandle(int sizeWidth, int sizeHeight) const {
 		SDL_SysWMinfo wmInfo;
 		SDL_VERSION(&wmInfo.version);
@@ -232,19 +232,19 @@ namespace Core::Window {
 			return std::nullopt;
 		}
 #if defined(_WIN32)
-		auto nativeWindowHandleProvider = new Graphics::WindowsWindowHandleProvider(
+		auto nativeWindowHandleProvider = new WindowsWindowHandleProvider(
 		        wmInfo.info.win.window, wmInfo.info.win.hinstance, sizeWidth, sizeHeight, Graphics::Win32);
 		return std::make_optional(nativeWindowHandleProvider);
 #elif defined(__APPLE__) && defined(__MACH__)
-		auto nativeWindowHandleProvider = new Graphics::NativeWindowHandleProvider(
+		auto nativeWindowHandleProvider = new NativeWindowHandleProvider(
 		        reinterpret_cast<void*>(wmInfo.info.cocoa.window), sizeWidth, sizeHeight, Graphics::Cocoa);
 		return std::make_optional(nativeWindowHandleProvider);
 #elif defined(__linux__) || defined(__unix__)
 		// X11
 #if defined(SDL_VIDEO_DRIVER_X11)
-		auto xlibHandleProvider = new Graphics::XlibWindowHandleProvider(wmInfo.info.x11.window,
+		auto xlibHandleProvider = new XlibWindowHandleProvider(wmInfo.info.x11.window,
 		                                                                 wmInfo.info.x11.display,
-		                                                                 sizeWidth, sizeHeight, Graphics::X11);
+		                                                                 sizeWidth, sizeHeight, X11);
 
 
 		return std::make_optional(xlibHandleProvider);

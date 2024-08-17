@@ -16,12 +16,12 @@ namespace Core {
 			printf("%s", opt.as_string());
 		}
 
-		auto renderStepDescriptor = std::make_unique<Graphics::JarRenderStepDescriptor>();
-		renderStepDescriptor->m_vertexShaderName = std::string("triangle_vert");
-		renderStepDescriptor->m_fragmentShaderName = "triangle_frag";
-		renderStepDescriptor->m_depthTestEnabled = true;
-		renderStepDescriptor->m_stencilTestEnabled = true;
-		window->getRenderer()->AddRenderStep(std::move(renderStepDescriptor));
+//		auto renderStepDescriptor = std::make_unique<Graphics::JarRenderStepDescriptor>();
+//		renderStepDescriptor->m_vertexShaderName = std::string("triangle_vert");
+//		renderStepDescriptor->m_fragmentShaderName = "triangle_frag";
+//		renderStepDescriptor->m_depthTestEnabled = true;
+//		renderStepDescriptor->m_stencilTestEnabled = true;
+//		window->getRenderer()->AddRenderStep(std::move(renderStepDescriptor));
 	}
 
 	void CoreManager::Run() {

@@ -13,12 +13,14 @@
 
 class VulkanBackend : public JarBackend {
 	public:
-	VulkanBackend(const std::vector<const char*>& extensionNames);
-	~VulkanBackend();
+	explicit VulkanBackend(const std::vector<const char*>& extensionNames);
+	~VulkanBackend() override;
+
+	[[nodiscard]] inline const VkInstance& GetVulkanInstance() const { return m_instance; };
 
 	private:
-	VkInstance m_instance{};
-	VkDebugUtilsMessengerEXT m_debugMessenger{};
+	VkInstance m_instance;
+	VkDebugUtilsMessengerEXT m_debugMessenger;
 	std::vector<const char*> m_validationLayers;
 
 	void CreateInstance(const std::vector<const char*>& extensionNames);

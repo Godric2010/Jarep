@@ -9,7 +9,7 @@
 
 class JarDevice {
 	public:
-	static std::shared_ptr<JarDevice> Create(std::shared_ptr<JarSurface> surface);
+	static std::shared_ptr<JarDevice> Create(const std::shared_ptr<JarSurface>& surface);
 
 	virtual ~JarDevice() = default;
 

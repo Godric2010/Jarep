@@ -20,27 +20,27 @@ namespace Graphics
     public:
         NativeWindowHandleProvider(void* handle, const int width, const int height, const WindowSystem system)
         {
-            windowHandle = handle;
-            windowWidth = width;
-            windowHeight = height;
-            windowSystem = system;
+			m_windowHandle = handle;
+			m_windowWidth = width;
+			m_windowHeight = height;
+			m_windowSystem = system;
         }
 
         virtual ~NativeWindowHandleProvider() = default;
 
-        [[nodiscard]] void* getNativeWindowHandle() const { return windowHandle; }
+        [[nodiscard]] void* GetNativeWindowHandle() const { return m_windowHandle; }
 
-        [[nodiscard]] int getWindowWidth() const { return windowWidth; }
+        [[nodiscard]] int GetWindowWidth() const { return m_windowWidth; }
 
-        [[nodiscard]] int getWindowHeight() const { return windowHeight; }
+        [[nodiscard]] int GetWindowHeight() const { return m_windowHeight; }
 
-        [[nodiscard]] WindowSystem getWindowSystem() const { return windowSystem; }
+        [[nodiscard]] WindowSystem GetWindowSystem() const { return m_windowSystem; }
 
     private:
-        void* windowHandle;
-        int windowWidth;
-        int windowHeight;
-        WindowSystem windowSystem;
+        void* m_windowHandle;
+        int m_windowWidth;
+        int m_windowHeight;
+        WindowSystem m_windowSystem;
     };
 
     class XlibWindowHandleProvider;
@@ -59,17 +59,17 @@ class Graphics::XlibWindowHandleProvider : public Graphics::NativeWindowHandlePr
 		XlibWindowHandleProvider(Window handle, Display *connection, const int width, const int height,
 		                         const WindowSystem system)
 				: Graphics::NativeWindowHandleProvider(reinterpret_cast<void *>(handle), width, height, system) {
-			displayConnection = connection;
-			xlibWindow = handle;
+		    m_displayConnection = connection;
+		    m_xlibWindow = handle;
 		}
 
-		Display *getDisplayConnection() { return displayConnection; }
+		Display * GetDisplayConnection() { return m_displayConnection; }
 
-		[[nodiscard]] Window getXcbWindow() const { return xlibWindow; }
+		[[nodiscard]] Window GetXcbWindow() const { return m_xlibWindow; }
 
 	private:
-		Display *displayConnection;
-		Window xlibWindow;
+		Display * m_displayConnection;
+		Window m_xlibWindow;
 };
 
 #include <wayland-egl.h>
@@ -84,9 +84,9 @@ class Graphics::WaylandWindowHandleProvider : public Graphics::NativeWindowHandl
 			display = wl_display;
 		}
 
-		wl_display *getDisplay() { return display; }
+		wl_display * GetDisplay() { return display; }
 
-		wl_surface *getWindowHandle() { return surface; }
+		wl_surface * GetWindowHandle() { return surface; }
 
 	private:
 		wl_surface *surface;

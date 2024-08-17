@@ -5,6 +5,7 @@
 #ifndef JAREP_VERTEX_HPP
 #define JAREP_VERTEX_HPP
 
+/*
 #include <glm/glm.hpp>
 #include "API/src/IRendererAPI/IRenderAPI.hpp"
 
@@ -49,3 +50,4 @@ namespace Graphics {
 }
 
 #endif //JAREP_VERTEX_HPP
+*/

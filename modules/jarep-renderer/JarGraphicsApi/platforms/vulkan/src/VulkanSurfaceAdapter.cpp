@@ -1,0 +1,75 @@
+//
+// Created by sebastian on 30.11.23.
+//
+
+#include "../include/VulkanSurfaceAdapter.hpp"
+
+VkSurfaceKHR VulkanSurfaceAdapter::CreateSurfaceFromNativeHandle(NativeWindowHandleProvider* nativeWindowHandleProvider,
+                                                                 VkInstance instance) {
+	switch (nativeWindowHandleProvider->GetWindowSystem()) {
+		case Cocoa:
+			throw std::runtime_error("Using a cocoa window with vulkan is not allowed!");
+		case Win32: {
+			return VulkanSurfaceAdapter::CreateWindowsSurface(nativeWindowHandleProvider, instance);
+		}
+		case Wayland: {
+			return VulkanSurfaceAdapter::CreateWaylandSurface(nativeWindowHandleProvider, instance);
+		}
+		case X11: {
+			return VulkanSurfaceAdapter::CreateX11Surface(nativeWindowHandleProvider, instance);
+		}
+		default:
+			throw std::runtime_error("Invalid window system.");
+	}
+}
+
+VkSurfaceKHR VulkanSurfaceAdapter::CreateWindowsSurface(NativeWindowHandleProvider* nativeWindowHandleProvider, const VkInstance instance) {
+	VkSurfaceKHR surface;
+#if defined(_WIN32)
+
+	const auto windowsWindowHandle = dynamic_cast<WindowsWindowHandleProvider*>(nativeWindowHandleProvider);
+
+	VkWin32SurfaceCreateInfoKHR createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+	createInfo.hwnd = windowsWindowHandle->GetWindowHandle();
+	createInfo.hinstance = windowsWindowHandle->GetHIstance();
+
+	if (vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface)) { throw std::runtime_error("Failed to create Win32 m_surface"); }
+#endif
+	return surface;
+}
+
+VkSurfaceKHR VulkanSurfaceAdapter::CreateX11Surface(NativeWindowHandleProvider* nativeWindowHandleProvider, VkInstance instance) {
+	VkSurfaceKHR surface;
+#if defined(__linux__) || defined(__unix__)
+	auto xcbWindowHandle = dynamic_cast<XlibWindowHandleProvider*>(nativeWindowHandleProvider);
+
+	VkXlibSurfaceCreateInfoKHR xlibCreateInfo = {};
+	xlibCreateInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+	xlibCreateInfo.dpy = xcbWindowHandle->GetDisplayConnection();
+	xlibCreateInfo.window = xcbWindowHandle->GetXcbWindow();
+
+	if (vkCreateXlibSurfaceKHR(instance, &xlibCreateInfo, nullptr, &surface) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create XCB Surface!");
+	}
+#endif
+	return surface;
+}
+
+VkSurfaceKHR VulkanSurfaceAdapter::CreateWaylandSurface(NativeWindowHandleProvider* nativeWindowHandleProvider,
+                                                        VkInstance instance) {
+	VkSurfaceKHR surface;
+#if defined(__linux__) || defined(__unix__)
+	auto waylandWindowHandle = dynamic_cast<WaylandWindowHandleProvider*>(nativeWindowHandleProvider);
+
+	VkWaylandSurfaceCreateInfoKHR waylandCreateInfo = {};
+	waylandCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+	waylandCreateInfo.display = waylandWindowHandle->GetDisplay();
+	waylandCreateInfo.surface = waylandWindowHandle->GetWindowHandle();
+
+	if (vkCreateWaylandSurfaceKHR(instance, &waylandCreateInfo, nullptr, &surface) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create Wayland m_surface.");
+	}
+#endif
+	return surface;
+}

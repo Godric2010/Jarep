@@ -1,17 +1,17 @@
 //
 // Created by Sebastian Borsch on 30.03.24.
 //
-
+/*
 #ifndef JAREP_JARRENDERSTEP_HPP
 #define JAREP_JARRENDERSTEP_HPP
 
+#include "API/src/IRendererAPI/IRenderAPI.hpp"
+#include "Vertex.hpp"
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <utility>
-#include <filesystem>
-#include <fstream>
-#include "API/src/IRendererAPI/IRenderAPI.hpp"
-#include "Vertex.hpp"
 
 
 namespace Graphics {
@@ -88,3 +88,4 @@ namespace Graphics {
 } // Graphics
 
 #endif //JAREP_JARRENDERSTEP_HPP
+*/

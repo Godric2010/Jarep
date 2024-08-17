@@ -14,7 +14,7 @@ VulkanBackend::VulkanBackend(const std::vector<const char*>& extensionNames) {
 	CreateInstance(extensions);
 	CreateDebugCallbackSender();
 #else
-	createInstance(extensions);
+	CreateInstance(extensions);
 #endif
 }
 

@@ -63,7 +63,7 @@ namespace Core::Window {
 
 			std::optional<SDL_DisplayMode> getDisplayModeFromOpts();
 
-			[[nodiscard]] std::optional<Graphics::NativeWindowHandleProvider*>
+			[[nodiscard]] std::optional<NativeWindowHandleProvider*>
 			getNativeWindowHandle(int sizeWidth, int sizeHeight) const;
 
 			[[nodiscard]] std::vector<const char*> getVulkanWindowExtensionsCStr() const;

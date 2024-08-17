@@ -2,12 +2,11 @@
 // Created by sebastian on 11.02.24.
 //
 
-#ifndef JAREP_MESH_HPP
-#define JAREP_MESH_HPP
 
+/*
+#include "Vertex.hpp"
 #include <utility>
 #include <vector>
-#include "Vertex.hpp"
 
 class Mesh {
 	public:
@@ -26,3 +25,4 @@ class Mesh {
 };
 
 #endif //JAREP_MESH_HPP
+*/
