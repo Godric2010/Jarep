@@ -1,0 +1,9 @@
+{
+  "name": "jarep",
+  "version": "0.1.0",
+  "dependencies": [
+    "sdl2",
+    "catch2",
+    "vulkan-loader"
+  ]
+}
