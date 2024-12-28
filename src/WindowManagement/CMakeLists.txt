@@ -30,19 +30,12 @@ if (DOXYGEN_FOUND)
 
     configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
 
-    add_custom_target(doxygen_xml ALL
-            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            COMMENT "Generation API documentation for ${LIBRARY_NAME} with doxygen"
-            VERBATIM
-    )
-
     add_custom_command(
-            OUTPUT ${DOXYGEN_OUTPUT_FILE}
+            TARGET ${LIBRARY_NAME}
+            POST_BUILD
+            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
             COMMAND python3 ${CMAKE_SOURCE_DIR}/markdown_docu_builder.py ${DOXYGEN_XML_DIR} ${DOXYGEN_OUTPUT_FILE}
-            DEPENDS doxygen_xml
             COMMENT "Generating Markdown API documentation for ${LIBRARY_NAME}"
     )
 
-    add_custom_target(${LIBRARY_NAME}_doc ALL DEPENDS ${DOXYGEN_OUTPUT_FILE})
 endif ()

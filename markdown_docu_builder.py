@@ -50,6 +50,9 @@ def parse_function(member):
             if param[1] == param_name:
                 param_type = param[0]
 
+        if param_type == "":
+            continue
+
         md += f"| {param_type} | {param_name} | {param_description if param_description else 'No description'} |\n"
 
     md += "\n"
