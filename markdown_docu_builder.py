@@ -115,7 +115,7 @@ def generate_markdown(xml_dir, output_file):
             compound_name = compound.get("refid")
             compound_kind = compound.get("kind")
 
-            if compound_kind not in ["class", "namespace"]:
+            if compound_kind not in ["class", "namespace", "struct", "enum"]:
                 continue
 
             detail_path = os.path.join(xml_dir, f"{compound_name}.xml")

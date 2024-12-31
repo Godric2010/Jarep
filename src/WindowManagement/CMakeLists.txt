@@ -5,12 +5,18 @@ project(WindowManagement LANGUAGES CXX)
 set(LIBRARY_NAME WindowManagement)
 set(LIBRARY_VERSION 0.1)
 
+find_package(SDL2 REQUIRED)
+
 add_library(${LIBRARY_NAME}
-        include/${LIBRARY_NAME}/${LIBRARY_NAME}.hpp
-        src/${LIBRARY_NAME}.cpp
+        include/${LIBRARY_NAME}/IWindowManager.hpp
+        include/WindowManagement/WindowSettings.hpp
+        src/SdlWindowManager.cpp
+        src/SdlWindowManager.hpp
+        include/WindowManagement/WindowCreator.hpp
 )
 
 target_include_directories(${LIBRARY_NAME} PUBLIC include)
+target_link_libraries(${LIBRARY_NAME} PRIVATE SDL2::SDL2)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES
         CXX_STANDARD 20

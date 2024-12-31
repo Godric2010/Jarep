@@ -3,13 +3,26 @@
 //
 
 #include <iostream>
-#include "WindowManagement/WindowManagement.hpp"
+
+#include "WindowManagement/WindowCreator.hpp"
+
 int main() {
-    std::cout << "Hello World!" << std::endl;
+	std::cout << "Hello World!" << std::endl;
 
-    auto window = WindowManagement();
-    auto val   = window.foo(42);
-    std::cout << val << std::endl;
+	const auto window_manager = JAREP::Window::CreateWindowManager();
+	const auto window_settings = JAREP::Window::WindowSettings{
+		.windowTitle = "Hello World!",
+		.displayIndex = 0,
+		.displayWidth = 800,
+		.displayHeight = 600,
+		.displayRefreshRate = 72
+	};
+	window_manager->Initialize(window_settings);
 
-    return 0;
+	while (!window_manager->ShouldClose()) {
+		window_manager->PollEvents();
+	}
+	window_manager->DestroyWindow();
+
+	return 0;
 }
