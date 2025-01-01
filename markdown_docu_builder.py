@@ -10,29 +10,34 @@ def extract_text(element):
     """Helper function to extract text from XML nodes."""
     return ''.join(element.itertext()).strip() if element is not None else ""
 
+def clean_arg_string(arg_string):
+    end_idx = arg_string.find(')')
+    if end_idx != -1:
+        return arg_string[:end_idx + 1]
+
+    return arg_string
+
 
 def parse_function(member):
     """Parses a single function from the XML."""
+    type = extract_text(member.find("type"))
     name = extract_text(member.find("name"))
-    definition = extract_text(member.find("definition"))
-    argsstring = extract_text(member.find("argsstring"))
+    argsstring = clean_arg_string(extract_text(member.find("argsstring")))
     brief = extract_text(member.find("briefdescription/para"))
+    detailed = extract_text(member.find("detaileddescription/para"))
     params_desc = member.findall("detaileddescription/para/parameterlist/parameteritem")
     params = member.findall("param")
     return_type = extract_text(member.find("type"))
     return_desc = extract_text(member.find("detaileddescription/para/simplesect[@kind='return']/para"))
 
     # Markdown formatting
-    md = f"### `{definition}{argsstring}`\n\n"
-    if brief:
-        md += f"**Description**:<br>*{brief}*\n"
+    md = f"### `{type} {name}{argsstring}`\n\n"
+    if brief or detailed:
+        md += f"**Description**:<br>*{brief if brief else detailed}*\n\n"
 
-    if return_type == "":
-        return_type = "void"
-
-    md += "\n| **Type** | **Name** | **Description** |\n"
-    md += "| --- | --- | --- |\n"
-    md += f"| {return_type} | *Return* | {return_desc} |\n"
+    if return_type != "void" and return_type != "":
+        md += f"*Returns: `{return_type}`*<br>"
+        md += f"*&nbsp;&nbsp;&nbsp;&nbsp;{return_desc}*\n\n"
 
     # Parse parameters
     parameters = []
@@ -53,13 +58,24 @@ def parse_function(member):
         if param_type == "":
             continue
 
-        md += f"| {param_type} | {param_name} | {param_description if param_description else 'No description'} |\n"
+        md += f"*`{param_type} {param_name}`*<br>&nbsp;&nbsp;&nbsp;&nbsp;*{param_description if param_description else 'No description'}* \n\n"
 
     md += "\n"
     return md
 
+def parse_fields(member):
+    """Parses a single field from the XML."""
+    type = extract_text(member.find("type"))
+    name = extract_text(member.find("name"))
+    brief = extract_text(member.find("briefdescription/para"))
+    detailed = extract_text(member.find("detaileddescription/para"))
+    initializer = extract_text(member.find("initializer"))
 
-def parse_class(xml_file):
+    md = f"`{type} {name} {initializer}`<br>"
+    md += f"&nbsp;&nbsp;**Description:** {brief if brief else detailed} \n\n"
+    return md
+
+def parse_class(xml_file, compound_kind):
     """Parses the class from the XML file and generates Markdown."""
     tree = ET.parse(xml_file)
     root = tree.getroot()
@@ -72,7 +88,7 @@ def parse_class(xml_file):
 
     # Markdown for class
     md = f"---\n"
-    md += f"## Class {class_name}\n\n"
+    md += f"## {compound_kind} {class_name}\n\n"
     if detailed:
         desc_text = f"{detailed}"
     else:
@@ -81,16 +97,23 @@ def parse_class(xml_file):
     md += f"**Description**:<br>"
     md += f"{desc_text}\n\n"
 
-    md += f"---\n"
+    md += f"---\n\n"
 
     # Parse functions
-    section = class_def.find("sectiondef[@kind='public-func']")
-    if section is not None:
+    section_functions = class_def.find("sectiondef[@kind='public-func']")
+    if section_functions is not None:
         md += "### Public Functions\n\n"
-        for member in section.findall("memberdef[@kind='function']"):
+        for member in section_functions.findall("memberdef[@kind='function']"):
             md += parse_function(member)
 
-        md += "---\n"
+    section_fields = class_def.find("sectiondef[@kind='public-attrib']")
+    if section_fields is not None:
+        md += "### Public Fields\n\n"
+        variable_members = section_fields.findall("memberdef[@kind='variable']")
+        for member in variable_members:
+            md += parse_fields(member)
+
+    md += f"---\n\n"
 
     return md
 
@@ -115,12 +138,12 @@ def generate_markdown(xml_dir, output_file):
             compound_name = compound.get("refid")
             compound_kind = compound.get("kind")
 
-            if compound_kind not in ["class", "namespace", "struct", "enum"]:
+            if compound_kind not in ["class", "struct", "enum"]:
                 continue
 
             detail_path = os.path.join(xml_dir, f"{compound_name}.xml")
             if os.path.exists(detail_path):
-                parsed = parse_class(detail_path)
+                parsed = parse_class(detail_path, compound_kind)
                 md.write(parsed)
 
 
