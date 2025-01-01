@@ -7,9 +7,6 @@ set(CMAKE_CXX_EXTENSIONS NO)
 
 add_subdirectory(src/WindowManagement)
 
-#find_package(SDL2 REQUIRED)
-#find_package(Vulkan REQUIRED)
-
 add_executable(JAREP main.cpp)
 
 target_link_libraries(JAREP

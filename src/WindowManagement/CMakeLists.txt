@@ -15,7 +15,7 @@ add_library(${LIBRARY_NAME}
         include/WindowManagement/WindowCreator.hpp
 )
 
-target_include_directories(${LIBRARY_NAME} PUBLIC include)
+target_include_directories(${LIBRARY_NAME} PUBLIC include ${SDL2_INCLUDE_DIRS})
 target_link_libraries(${LIBRARY_NAME} PRIVATE SDL2::SDL2)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES
@@ -40,7 +40,7 @@ if (DOXYGEN_FOUND)
             TARGET ${LIBRARY_NAME}
             POST_BUILD
             COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-            COMMAND python3 ${CMAKE_SOURCE_DIR}/markdown_docu_builder.py ${DOXYGEN_XML_DIR} ${DOXYGEN_OUTPUT_FILE}
+            COMMAND python ${CMAKE_SOURCE_DIR}/markdown_docu_builder.py ${DOXYGEN_XML_DIR} ${DOXYGEN_OUTPUT_FILE}
             COMMENT "Generating Markdown API documentation for ${LIBRARY_NAME}"
     )
 
