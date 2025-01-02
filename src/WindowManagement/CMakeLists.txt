@@ -13,13 +13,14 @@ add_library(${LIBRARY_NAME}
         src/SdlWindowManager.cpp
         src/SdlWindowManager.hpp
         include/WindowManagement/WindowCreator.hpp
+        include/WindowManagement/DisplayMode.hpp
 )
 
 target_include_directories(${LIBRARY_NAME} PUBLIC include ${SDL2_INCLUDE_DIRS})
 target_link_libraries(${LIBRARY_NAME} PRIVATE SDL2::SDL2)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES
-        CXX_STANDARD 20
+        CXX_STANDARD 23
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO
 )

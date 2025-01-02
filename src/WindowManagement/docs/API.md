@@ -30,6 +30,15 @@
 *`WindowSettings display_settings`*<br>&nbsp;&nbsp;&nbsp;&nbsp;*The new settings that will be applied to the window.* 
 
 
+### `std::expected< void, std::string > RegisterForWindowUpdate(WindowUpdatedCallback callback)`
+
+**Description**:<br>*Register for the window update event.*
+
+*Returns: `std::expected< void, std::string >`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;*
+
+*`WindowUpdatedCallback callback`*<br>&nbsp;&nbsp;&nbsp;&nbsp;*callback function to execute on window update* 
+
+
 ### `void PollEvents()`
 
 **Description**:<br>*Poll the events from this window if its focussed.*
@@ -67,6 +76,8 @@
 `int displayHeight = 0`<br>&nbsp;&nbsp;**Description:** The pixel resolution height of this window. 
 
 `int displayRefreshRate = 0`<br>&nbsp;&nbsp;**Description:** The refresh rate of this window in hertz. 
+
+`DisplayMode displayMode = DisplayMode::BorderedWindow`<br>&nbsp;&nbsp;**Description:** The mode the display has to be set to. 
 
 ---
 

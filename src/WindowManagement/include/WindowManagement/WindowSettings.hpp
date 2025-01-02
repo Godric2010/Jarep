@@ -5,6 +5,8 @@
 #pragma once
 #include <string>
 
+#include "DisplayMode.hpp"
+
 namespace JAREP::Window {
 	/**
 	 * @struct WindowSettings
@@ -36,5 +38,10 @@ namespace JAREP::Window {
 		 * The refresh rate of this window in hertz.
 		 */
 		int displayRefreshRate = 0;
+
+		/**
+		 * The mode the display has to be set to.
+		 */
+		DisplayMode displayMode = DisplayMode::BorderedWindow;
 	};
 }
