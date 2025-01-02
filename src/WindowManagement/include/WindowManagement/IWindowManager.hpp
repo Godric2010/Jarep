@@ -27,6 +27,12 @@ namespace JAREP::Window {
 			virtual bool Initialize(WindowSettings display_settings) = 0;
 
 			/**
+			 * @brief Set new display settings
+			 * @param display_settings The new settings that will be applied to the window.
+			 */
+			virtual void SetWindowSettings(WindowSettings display_settings) = 0;
+
+			/**
 			 * @brief Poll the events from this window if its focussed.
 			 */
 			virtual void PollEvents() = 0;

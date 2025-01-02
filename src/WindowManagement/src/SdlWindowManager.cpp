@@ -9,10 +9,8 @@ SDLWindowManager::~SDLWindowManager() = default;
 bool SDLWindowManager::Initialize(WindowSettings display_settings) {
 	auto SDL_InitSuccess = SDL_Init(SDL_INIT_VIDEO);
 	if (SDL_InitSuccess != 0) {
-		std::cerr << "Failed to initialize SDL: " << SDL_InitSuccess << std::endl;
 		return false;
 	}
-	std::cout << "Initializing SDL..." << std::endl;
 
 
 	Uint32 flags =  SDL_WINDOW_SHOWN;
@@ -25,12 +23,23 @@ bool SDLWindowManager::Initialize(WindowSettings display_settings) {
 	                          display_settings.displayWidth,
 	                          display_settings.displayHeight,
 	                          flags);
-	std::cout << "Initializing Window..." << std::endl;
 	return window != nullptr;
 }
 
+void SDLWindowManager::SetWindowSettings(WindowSettings display_settings) {
+	window_width = display_settings.displayWidth;
+	window_height = display_settings.displayHeight;
+	isDirty = true;
+}
+
+
 void SDLWindowManager::PollEvents() {
 	SDL_Event event;
+
+	if (isDirty) {
+		updateWindow();
+	}
+
 	while (SDL_PollEvent(&event)) {
 		if (event.type == SDL_QUIT) {
 			closeRequested = true;
@@ -47,4 +56,10 @@ void SDLWindowManager::DestroyWindow() {
 		SDL_DestroyWindow(window);
 		SDL_Quit();
 	}
+}
+
+
+void SDLWindowManager::updateWindow() const {
+	SDL_SetWindowSize(window, window_width, window_height);
+	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 }

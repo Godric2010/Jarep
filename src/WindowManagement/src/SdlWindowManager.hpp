@@ -5,7 +5,6 @@
 #pragma once
 #define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
-#include <iostream>
 #include "WindowManagement/IWindowManager.hpp"
 #include "WindowManagement/WindowSettings.hpp"
 
@@ -18,6 +17,8 @@ namespace JAREP::Window {
 
 			bool Initialize(WindowSettings display_settings) override;
 
+			void SetWindowSettings(WindowSettings display_settings) override;
+
 			void PollEvents() override;
 
 			bool ShouldClose() override;
@@ -29,5 +30,8 @@ namespace JAREP::Window {
 			int window_width = 0;
 			int window_height = 0;
 			bool closeRequested = false;
+			bool isDirty = false;
+
+			void updateWindow() const;
 	};
 }

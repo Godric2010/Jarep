@@ -23,6 +23,13 @@
 *`WindowSettings display_settings`*<br>&nbsp;&nbsp;&nbsp;&nbsp;*Settings of this window.* 
 
 
+### `void SetWindowSettings(WindowSettings display_settings)`
+
+**Description**:<br>*Set new display settings.*
+
+*`WindowSettings display_settings`*<br>&nbsp;&nbsp;&nbsp;&nbsp;*The new settings that will be applied to the window.* 
+
+
 ### `void PollEvents()`
 
 **Description**:<br>*Poll the events from this window if its focussed.*
