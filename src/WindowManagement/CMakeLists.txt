@@ -46,3 +46,14 @@ if (DOXYGEN_FOUND)
     )
 
 endif ()
+
+if(ENABLE_TESTS)
+    find_package(Catch2 3 REQUIRED)
+
+    enable_testing()
+    add_executable(${LIBRARY_NAME}Tests  tests/SDLWindowManager.tests.cpp)
+    target_link_libraries(${LIBRARY_NAME}Tests PRIVATE ${LIBRARY_NAME} Catch2::Catch2WithMain)
+#    include(CTest)
+#    include(Catch)
+#    catch_discover_tests(${LIBRARY_NAME}Tests)
+endif ()

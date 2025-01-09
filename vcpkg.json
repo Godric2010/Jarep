@@ -2,8 +2,11 @@
   "name": "jarep",
   "version": "0.1.0",
   "dependencies": [
+    "vulkan-loader",
     "sdl2",
-    "catch2",
-    "vulkan-loader"
+    {
+      "name": "catch2",
+      "platform": "windows"
+    }
   ]
 }

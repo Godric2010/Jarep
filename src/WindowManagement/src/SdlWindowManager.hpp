@@ -5,42 +5,46 @@
 #pragma once
 #define SDL_MAIN_HANDLED
 #include <functional>
+#include <optional>
 #include <SDL2/SDL.h>
 #include "WindowManagement/IWindowManager.hpp"
 #include "WindowManagement/WindowSettings.hpp"
 
 namespace JAREP::Window {
-	class SDLWindowManager final : public IWindowManager {
-		public:
-			SDLWindowManager();
+    class SDLWindowManager final : public IWindowManager {
+    public:
+        SDLWindowManager();
 
-			~SDLWindowManager() override;
+        ~SDLWindowManager() override;
 
-			bool Initialize(WindowSettings display_settings) override;
+        bool Initialize(WindowSettings display_settings) override;
 
-			void SetWindowSettings(WindowSettings display_settings) override;
+        void SetWindowSettings(WindowSettings display_settings) override;
 
 			std::expected<void, std::string> RegisterForWindowUpdate(WindowUpdatedCallback callback) override;
 
-			void PollEvents() override;
+        void PollEvents() override;
 
-			bool ShouldClose() override;
+        bool ShouldClose() override;
 
-			void DestroyWindow() override;
+        void DestroyWindow() override;
 
-		private:
-			SDL_Window* window = nullptr;
-			int window_width = 0;
-			int window_height = 0;
-			int display_index = 0;
-			DisplayMode display_mode;
+    private:
+        SDL_Window *window = nullptr;
+        int32_t window_width = 0;
+        int32_t window_height = 0;
+        int8_t display_index = 0;
+        DisplayMode display_mode;
 
-			std::vector<WindowUpdatedCallback> update_callbacks;
+        std::vector<WindowUpdatedCallback> update_callbacks;
 
-			bool closeRequested = false;
-			bool isDirty = false;
+        bool closeRequested = false;
+        bool isDirty = false;
 
-
-			void updateWindow();
-	};
+        std::optional<std::pair<int32_t, int32_t> > getWindowDimensions();
+        void updateWindow();
+        void setWindowFullscreenMode(std::pair<int32_t, int32_t> displayDimensions);
+        void setWindowBorderlessWindowMode(std::pair<int32_t, int32_t> displayDimensions);
+        void setWindowBorderedWindowMode(std::pair<int32_t, int32_t> displayDimensions);
+    };
 }

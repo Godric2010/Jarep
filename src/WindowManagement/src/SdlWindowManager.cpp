@@ -1,8 +1,8 @@
 #include "SdlWindowManager.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <ostream>
-#include <bits/ranges_algo.h>
 
 using namespace JAREP::Window;
 
@@ -78,39 +78,37 @@ void SDLWindowManager::DestroyWindow() {
     }
 }
 
+std::optional<std::pair<int32_t, int32_t> > SDLWindowManager::getWindowDimensions() {
+    auto *display_bounds = new SDL_Rect();
+    const int resultCode = SDL_GetDisplayBounds(display_index, display_bounds);
+
+    if (resultCode != 0) {
+        std::cout << SDL_GetError() << std::endl;
+        return std::nullopt;
+    }
+
+    std::pair<int32_t, int32_t> dimensions = std::make_pair(display_bounds->w, display_bounds->h);
+    delete display_bounds;
+    display_bounds = nullptr;
+
+    return std::make_optional(dimensions);
+}
+
 
 void SDLWindowManager::updateWindow() {
+    const auto display_dimensions = getWindowDimensions();
+    if (!display_dimensions.has_value()) {
+        throw std::exception("Display dimensions not found!");
+    }
     switch (display_mode) {
         case DisplayMode::BorderedWindow:
-            SDL_SetWindowFullscreen(window, 0);
-            SDL_SetWindowBordered(window, SDL_TRUE);
-            SDL_SetWindowSize(window, window_width, window_height);
-            SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-            SDL_SetWindowGrab(window, SDL_FALSE);
+            setWindowBorderedWindowMode(display_dimensions.value());
             break;
         case DisplayMode::FullscreenWindow:
-            SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-            SDL_SetWindowBordered(window, SDL_FALSE);
-            SDL_SetWindowGrab(window, SDL_TRUE);
+            setWindowFullscreenMode(display_dimensions.value());
             break;
         case DisplayMode::BorderlessWindow:
-            auto *display_bounds = new SDL_Rect();
-            int result = SDL_GetDisplayBounds(display_index, display_bounds);
-            if (result != 0) {
-                std::cout << SDL_GetError() << std::endl;
-            } else {
-                window_width = display_bounds->w;
-                window_height = display_bounds->h;
-            }
-            delete display_bounds;
-            display_bounds = nullptr;
-
-
-            SDL_SetWindowFullscreen(window, 0);
-            SDL_SetWindowBordered(window, SDL_FALSE);
-            SDL_SetWindowSize(window, window_width, window_height);
-            SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-            SDL_SetWindowGrab(window, SDL_FALSE);
+            setWindowBorderlessWindowMode(display_dimensions.value());
             break;
     }
 
@@ -118,4 +116,40 @@ void SDLWindowManager::updateWindow() {
         callback(window_width, window_height, display_mode);
     });
     isDirty = false;
+}
+
+void SDLWindowManager::setWindowFullscreenMode(const std::pair<int32_t, int32_t> displayDimensions) {
+    window_width = displayDimensions.first;
+    window_height = displayDimensions.second;
+    SDL_SetWindowSize(window, window_width, window_height);
+    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_SetWindowBordered(window, SDL_FALSE);
+    SDL_SetWindowGrab(window, SDL_TRUE);
+}
+
+void SDLWindowManager::setWindowBorderlessWindowMode(const std::pair<int32_t, int32_t> displayDimensions) {
+    window_width = displayDimensions.first;
+    window_height = displayDimensions.second;
+
+    SDL_SetWindowFullscreen(window, 0);
+    SDL_SetWindowBordered(window, SDL_FALSE);
+    SDL_SetWindowSize(window, window_width, window_height);
+    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SetWindowGrab(window, SDL_FALSE);
+}
+
+void SDLWindowManager::setWindowBorderedWindowMode(const std::pair<int32_t, int32_t> displayDimensions) {
+
+    if (window_width > displayDimensions.first) {
+        window_width = displayDimensions.first;
+    }
+    if (window_height > displayDimensions.second) {
+        window_height = displayDimensions.second;
+    }
+
+    SDL_SetWindowFullscreen(window, 0);
+    SDL_SetWindowBordered(window, SDL_TRUE);
+    SDL_SetWindowSize(window, window_width, window_height);
+    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SetWindowGrab(window, SDL_FALSE);
 }

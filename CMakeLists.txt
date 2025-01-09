@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.16)
 project(JAREP)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -12,3 +12,8 @@ add_executable(JAREP main.cpp)
 target_link_libraries(JAREP
         PRIVATE WindowManagement
 )
+
+option(ENABLE_TESTS "Enable building tests" ON)
+if(ENABLE_TESTS)
+    enable_testing()
+endif ()
