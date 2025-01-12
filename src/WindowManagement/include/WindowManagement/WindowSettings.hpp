@@ -22,22 +22,22 @@ namespace JAREP::Window {
 		 * The index of the display the window is shown at. 0 by default,
 		 * which brings the window to the main screen.
 		 */
-		int displayIndex = 0;
+		int8_t displayIndex = 0;
 
 		/**
 		 * The pixel resolution width of this window.
 		 */
-		int displayWidth = 0;
+		int32_t displayWidth = 0;
 
 		/**
 		 * The pixel resolution height of this window.
 		 */
-		int displayHeight = 0;
+		int32_t displayHeight = 0;
 
 		/**
 		 * The refresh rate of this window in hertz.
 		 */
-		int displayRefreshRate = 0;
+		int32_t displayRefreshRate = 0;
 
 		/**
 		 * The mode the display has to be set to.

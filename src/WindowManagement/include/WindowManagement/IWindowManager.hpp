@@ -7,6 +7,8 @@
 #include <expected>
 #include <functional>
 
+#include "IWindowHandle.hpp"
+
 namespace JAREP::Window {
     /**
      * @class IWindowManager
@@ -51,14 +53,32 @@ namespace JAREP::Window {
         virtual void PollEvents() = 0;
 
         /**
-         * Evaluates if the window has been called to close
+         * @brief Evaluates if the window has been called to close
          * @return True if the window is about to be destroyed, False if not.
          */
         virtual bool ShouldClose() = 0;
 
         /**
-         * Destroy the window and remove it from memory.
+         * @brief Destroy the window and remove it from memory.
          */
         virtual void DestroyWindow() = 0;
+
+        /**
+         * @brief Get the current width of the window.
+         * @return The window width in pixels.
+         */
+        virtual int32_t GetWindowWidth() = 0;
+
+        /**
+         * @brief Get the current height of the window.
+         * @return The window height in pixels.
+         */
+        virtual int32_t GetWindowHeight() = 0;
+
+        /**
+         * @brief Get the window handle of this window.
+         * @return Can be null-opt if platform is invalid. Returns valid IWindowHandle if platform is supported. Cast to platform handle for further usage.
+         */
+        virtual std::optional<IWindowHandle> GetNativeWindowHandle() = 0;
     };
 }

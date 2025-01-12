@@ -7,6 +7,7 @@
 #include <functional>
 #include <optional>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
 #include "WindowManagement/IWindowManager.hpp"
 #include "WindowManagement/WindowSettings.hpp"
 
@@ -21,13 +22,20 @@ namespace JAREP::Window {
 
         void SetWindowSettings(WindowSettings display_settings) override;
 
-			std::expected<void, std::string> RegisterForWindowUpdate(WindowUpdatedCallback callback) override;
+        std::expected<void, std::string> RegisterForWindowUpdate(WindowUpdatedCallback callback) override;
 
         void PollEvents() override;
 
         bool ShouldClose() override;
 
         void DestroyWindow() override;
+
+        int32_t GetWindowWidth() override;
+
+        int32_t GetWindowHeight() override;
+
+        std::optional<IWindowHandle> GetNativeWindowHandle() override;
+
 
     private:
         SDL_Window *window = nullptr;
@@ -41,7 +49,7 @@ namespace JAREP::Window {
         bool closeRequested = false;
         bool isDirty = false;
 
-        std::optional<std::pair<int32_t, int32_t> > getWindowDimensions();
+        [[nodiscard]] std::optional<std::pair<int32_t, int32_t> > getWindowDimensions() const;
         void updateWindow();
         void setWindowFullscreenMode(std::pair<int32_t, int32_t> displayDimensions);
         void setWindowBorderlessWindowMode(std::pair<int32_t, int32_t> displayDimensions);

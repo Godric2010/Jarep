@@ -78,7 +78,33 @@ void SDLWindowManager::DestroyWindow() {
     }
 }
 
-std::optional<std::pair<int32_t, int32_t> > SDLWindowManager::getWindowDimensions() {
+int32_t SDLWindowManager::GetWindowWidth() {
+    return window_width;
+}
+
+int32_t SDLWindowManager::GetWindowHeight() {
+    return window_height;
+}
+
+std::optional<IWindowHandle> SDLWindowManager::GetNativeWindowHandle() {
+    SDL_SysWMinfo info;
+    SDL_VERSION(&info.version);
+    if (SDL_GetWindowWMInfo(window, &info)) {
+#if defined (WIN32)
+        return std::make_optional(
+            static_cast<IWindowHandle>(WinWindowHandle(info.info.win.window, info.info.win.hinstance)));
+#elif defined (__linux__)
+        return std::make_optional(static_cast<IWindowHandle>(X11WindowHandle(info.info.x11.window, info.info.x11.display)));
+#else
+    return std::nullopt;
+#endif
+    }
+    return std::nullopt;
+}
+
+
+// private functions
+std::optional<std::pair<int32_t, int32_t> > SDLWindowManager::getWindowDimensions() const {
     auto *display_bounds = new SDL_Rect();
     const int resultCode = SDL_GetDisplayBounds(display_index, display_bounds);
 
@@ -139,7 +165,6 @@ void SDLWindowManager::setWindowBorderlessWindowMode(const std::pair<int32_t, in
 }
 
 void SDLWindowManager::setWindowBorderedWindowMode(const std::pair<int32_t, int32_t> displayDimensions) {
-
     if (window_width > displayDimensions.first) {
         window_width = displayDimensions.first;
     }

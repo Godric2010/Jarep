@@ -1,6 +1,15 @@
 # API Documentation
 
 ---
+## class JAREP::Window::IWindowHandle
+
+**Description**:<br>Wrapper class around the various window handles. Currently, supports Windows (WinWindowHandle) and Linux X11 (X11WindowHandle). Cast into the respected window handles to use this. Cast options depending on the OS at usage.
+
+---
+
+---
+
+---
 ## class JAREP::Window::IWindowManager
 
 **Description**:<br>Provides core functionality to the library.
@@ -46,7 +55,7 @@
 
 ### `bool ShouldClose()`
 
-**Description**:<br>*Evaluates if the window has been called to close True if the window is about to be destroyed, False if not.*
+**Description**:<br>*Evaluates if the window has been called to close.*
 
 *Returns: `bool`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;True if the window is about to be destroyed, False if not.*
 
@@ -54,6 +63,27 @@
 ### `void DestroyWindow()`
 
 **Description**:<br>*Destroy the window and remove it from memory.*
+
+
+### `int32_t GetWindowWidth()`
+
+**Description**:<br>*Get the current width of the window.*
+
+*Returns: `int32_t`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;The window width in pixels.*
+
+
+### `int32_t GetWindowHeight()`
+
+**Description**:<br>*Get the current height of the window.*
+
+*Returns: `int32_t`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;The window height in pixels.*
+
+
+### `std::optional< IWindowHandle > GetNativeWindowHandle()`
+
+**Description**:<br>*Get the window handle of this window.*
+
+*Returns: `std::optional< IWindowHandle >`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;Can be null-opt if platform is invalid. Returns valid IWindowHandle if platform is supported. Cast to platform handle for further usage.*
 
 
 ---
@@ -69,13 +99,13 @@
 
 `std::string windowTitle `<br>&nbsp;&nbsp;**Description:** The title of the window. 
 
-`int displayIndex = 0`<br>&nbsp;&nbsp;**Description:** The index of the display the window is shown at. 0 by default, which brings the window to the main screen. 
+`int8_t displayIndex = 0`<br>&nbsp;&nbsp;**Description:** The index of the display the window is shown at. 0 by default, which brings the window to the main screen. 
 
-`int displayWidth = 0`<br>&nbsp;&nbsp;**Description:** The pixel resolution width of this window. 
+`int32_t displayWidth = 0`<br>&nbsp;&nbsp;**Description:** The pixel resolution width of this window. 
 
-`int displayHeight = 0`<br>&nbsp;&nbsp;**Description:** The pixel resolution height of this window. 
+`int32_t displayHeight = 0`<br>&nbsp;&nbsp;**Description:** The pixel resolution height of this window. 
 
-`int displayRefreshRate = 0`<br>&nbsp;&nbsp;**Description:** The refresh rate of this window in hertz. 
+`int32_t displayRefreshRate = 0`<br>&nbsp;&nbsp;**Description:** The refresh rate of this window in hertz. 
 
 `DisplayMode displayMode = DisplayMode::BorderedWindow`<br>&nbsp;&nbsp;**Description:** The mode the display has to be set to. 
 
