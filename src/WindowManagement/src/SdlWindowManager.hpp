@@ -6,6 +6,13 @@
 #define SDL_MAIN_HANDLED
 #include <functional>
 #include <optional>
+
+#if defined(_WIN32)
+#include <windows.h>
+#elif defined (__linux__)
+#include <X11/Xlib.h>
+#endif
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
 #include "WindowManagement/IWindowManager.hpp"
