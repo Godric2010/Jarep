@@ -6,9 +6,13 @@
 #include <iostream>
 
 #include "WindowManagement/WindowCreator.hpp"
+#include "Rendering/IRenderer.hpp"
 
 int main() {
     std::cout << "Hello World!" << std::endl;
+
+    auto* renderer = new IRenderer();
+    renderer->Foo();
 
     const auto window_manager = JAREP::Window::CreateWindowManager();
     const auto window_settings = JAREP::Window::WindowSettings{

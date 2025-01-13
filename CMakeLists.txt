@@ -6,11 +6,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 
 add_subdirectory(src/WindowManagement)
+add_subdirectory(src/Rendering)
 
 add_executable(JAREP main.cpp)
 
-target_link_libraries(JAREP
-        PRIVATE WindowManagement
+target_link_libraries(JAREP PRIVATE
+        WindowManagement
+        Rendering
 )
 
 option(ENABLE_TESTS "Enable building tests" ON)
