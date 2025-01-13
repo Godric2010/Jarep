@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}"/cmake)
+
 add_subdirectory(src/WindowManagement)
 add_subdirectory(src/Rendering)
 
