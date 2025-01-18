@@ -5,8 +5,13 @@
 
 #include<vulkan\vulkan.hpp>
 
-class IRenderer{
-  public:
-    void Foo();
+namespace JAREP::Rendering {
+    class IRenderer {
+    public:
+        virtual ~IRenderer() = default;
 
-};
+        virtual bool Initialize() = 0;
+
+        virtual void Shutdown() = 0;
+    };
+}

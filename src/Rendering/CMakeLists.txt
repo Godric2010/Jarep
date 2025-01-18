@@ -10,7 +10,9 @@ find_package(Vulkan REQUIRED)
 
 add_library(${LIBRARY_NAME}
         include/${LIBRARY_NAME}/IRenderer.hpp
-        src/foo.cpp
+        src/RenderManager.cpp
+        src/core/VulkanCore.cpp
+        src/core/VulkanInstance.cpp
 )
 
 target_include_directories(${LIBRARY_NAME} PUBLIC include ${VULKAN_INCLUDE_DIRS})
