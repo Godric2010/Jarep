@@ -7,22 +7,31 @@
 #include <vulkan\vulkan.hpp>
 
 namespace JAREP::Rendering::Core {
-    class VulkanInstance {
-    public:
-        VulkanInstance();
+	class VulkanInstance {
+		public:
+			VulkanInstance(std::vector<const char*> extensions);
 
-        ~VulkanInstance();
+			~VulkanInstance();
 
-        VkInstance getInstance() const;
+			VkInstance getInstance() const;
 
-        void Destroy();
+			void Destroy() const;
 
-    private:
-        VkInstance m_instance;
-        VkDebugUtilsMessengerEXT m_debugMessenger;
+		private:
+			VkInstance m_instance;
+			VkDebugUtilsMessengerEXT m_debugMessenger;
+			std::vector<const char *> m_validationLayers;
+			std::vector<const char *> m_extensions;
+			bool enable_validation_layers;
 
-        void createInstance();
+			void createInstance();
 
-        void setupDebugMessenger();
-    };
+			bool checkValidationLayerSupport() const;
+
+			std::vector<const char *> getRequiredExtensions();
+
+			VkResult setupDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT);
+
+			void destroyDebugMessenger() const;
+	};
 }

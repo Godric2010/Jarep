@@ -15,6 +15,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
+#include <SDL_vulkan.h>
 #include "WindowManagement/IWindowManager.hpp"
 #include "WindowManagement/WindowSettings.hpp"
 
@@ -42,6 +43,8 @@ namespace JAREP::Window {
         int32_t GetWindowHeight() override;
 
         std::optional<IWindowHandle> GetNativeWindowHandle() override;
+
+        std::vector<const char *> GetExtensions() override;
 
 
     private:

@@ -10,6 +10,7 @@ find_package(Vulkan REQUIRED)
 
 add_library(${LIBRARY_NAME}
         include/${LIBRARY_NAME}/IRenderer.hpp
+        include/${LIBRARY_NAME}/RendererCreator.hpp
         src/RenderManager.cpp
         src/core/VulkanCore.cpp
         src/core/VulkanInstance.cpp

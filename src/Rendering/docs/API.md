@@ -1,7 +1,7 @@
 # API Documentation
 
 ---
-## class IRenderer
+## class JAREP::Rendering::IRenderer
 
 **Description**:<br>
 
@@ -9,7 +9,15 @@
 
 ### Public Functions
 
-### `void Foo()`
+### ` ~IRenderer()`
+
+
+### `bool Initialize(std::vector< const char * > extensions)`
+
+*Returns: `bool`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;*
+
+
+### `void Shutdown()`
 
 
 ---

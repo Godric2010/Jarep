@@ -9,8 +9,8 @@ VulkanCore::VulkanCore() = default;
 
 VulkanCore::~VulkanCore() = default;
 
-bool VulkanCore::Initialize() {
-     m_instance = std::make_unique<VulkanInstance>();
+bool VulkanCore::Initialize(std::vector<const char*> extensions) {
+     m_instance = std::make_unique<VulkanInstance>(extensions);
      return true;
 }
 

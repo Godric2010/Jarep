@@ -6,12 +6,12 @@
 #include<vulkan\vulkan.hpp>
 
 namespace JAREP::Rendering {
-    class IRenderer {
-    public:
-        virtual ~IRenderer() = default;
+	class IRenderer {
+		public:
+			virtual ~IRenderer() = default;
 
-        virtual bool Initialize() = 0;
+			virtual bool Initialize(std::vector<const char *> extensions) = 0;
 
-        virtual void Shutdown() = 0;
-    };
+			virtual void Shutdown() = 0;
+	};
 }

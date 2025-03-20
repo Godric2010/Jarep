@@ -14,7 +14,7 @@ class VulkanCore {
       VulkanCore();
       ~VulkanCore();
 
-      bool Initialize();
+      bool Initialize(std::vector<const char*> extensions);
       void Shutdown();
 
     private:

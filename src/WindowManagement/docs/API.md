@@ -86,6 +86,13 @@
 *Returns: `std::optional< IWindowHandle >`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;Can be null-opt if platform is invalid. Returns valid IWindowHandle if platform is supported. Cast to platform handle for further usage.*
 
 
+### `std::vector< const char * > GetExtensions()`
+
+**Description**:<br>*Get the window extensions for the renderer to build its surface upon.*
+
+*Returns: `std::vector< const char * >`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;The extensions needed for the renderer.*
+
+
 ---
 
 ---

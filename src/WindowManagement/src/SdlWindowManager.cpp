@@ -86,6 +86,19 @@ int32_t SDLWindowManager::GetWindowHeight() {
     return window_height;
 }
 
+std::vector<const char *> SDLWindowManager::GetExtensions() {
+    unsigned int extensions_count = 0;
+    if (!SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, nullptr)) {
+        throw std::runtime_error("SDL_Vulkan_GetInstanceExtensions could not get number of extensions.");
+    }
+    std::vector<const char *> extensions(extensions_count);
+    if (!SDL_Vulkan_GetInstanceExtensions(window,&extensions_count, extensions.data())) {
+        throw std::runtime_error("SDL_Vulkan_GetInstanceExtensions failed");
+    }
+    return extensions;
+}
+
+
 std::optional<IWindowHandle> SDLWindowManager::GetNativeWindowHandle() {
     SDL_SysWMinfo info;
     SDL_VERSION(&info.version);
