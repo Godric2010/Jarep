@@ -16,8 +16,7 @@ bool SDLWindowManager::Initialize(WindowSettings display_settings) {
         return false;
     }
 
-
-    Uint32 flags = SDL_WINDOW_SHOWN;
+    Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN;
 
     window_width = display_settings.displayWidth;
     window_height = display_settings.displayHeight;
@@ -30,6 +29,7 @@ bool SDLWindowManager::Initialize(WindowSettings display_settings) {
                               display_settings.displayHeight,
                               flags);
     if (window == nullptr) {
+        std::cerr << "Failed to create window: " << SDL_GetError() << std::endl;
         return false;
     }
     updateWindow();

@@ -6,7 +6,8 @@ set(LIBRARY_NAME WindowManagement)
 set(LIBRARY_VERSION 0.1.0)
 
 include(${CMAKE_SOURCE_DIR}/cmake/Helpers.cmake)
-find_package(SDL2 REQUIRED)
+find_package(SDL2 CONFIG REQUIRED)
+find_package(Vulkan REQUIRED)
 
 add_library(${LIBRARY_NAME}
         include/${LIBRARY_NAME}/IWindowManager.hpp
@@ -19,7 +20,7 @@ add_library(${LIBRARY_NAME}
 )
 
 target_include_directories(${LIBRARY_NAME} PUBLIC include ${SDL2_INCLUDE_DIRS})
-target_link_libraries(${LIBRARY_NAME} PRIVATE SDL2::SDL2)
+target_link_libraries(${LIBRARY_NAME} PUBLIC SDL2::SDL2 Vulkan::Vulkan)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES
         CXX_STANDARD 23
