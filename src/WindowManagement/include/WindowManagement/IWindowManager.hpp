@@ -3,6 +3,9 @@
 //
 
 #pragma once
+#include <complex.h>
+#include <complex.h>
+
 #include "WindowSettings.hpp"
 #include <expected>
 #include <functional>
@@ -79,7 +82,7 @@ namespace JAREP::Window {
 			 * @brief Get the window handle of this window.
 			 * @return Can be null-opt if platform is invalid. Returns valid IWindowHandle if platform is supported. Cast to platform handle for further usage.
 			 */
-			virtual std::optional<IWindowHandle> GetNativeWindowHandle() = 0;
+			virtual RawWindowHandle GetNativeWindowHandle() = 0;
 
 			/**
 			 * @brief Get the window extensions for the renderer to build its surface upon

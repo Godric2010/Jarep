@@ -9,12 +9,12 @@ VulkanCore::VulkanCore() = default;
 
 VulkanCore::~VulkanCore() = default;
 
-bool VulkanCore::Initialize(std::vector<const char*> extensions) {
-     m_instance = std::make_unique<VulkanInstance>(extensions);
-     return true;
+bool VulkanCore::Initialize(RenderSettings render_settings) {
+    m_instance = std::make_unique<VulkanInstance>(render_settings.extensions);
+    m_surface = std::make_unique<VulkanSurface>(m_instance->getInstance(), render_settings);
+    return true;
 }
 
 void VulkanCore::Shutdown() {
-
-     m_instance->Destroy();
+    m_instance->Destroy();
 }

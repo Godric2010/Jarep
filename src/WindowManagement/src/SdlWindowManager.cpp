@@ -99,20 +99,19 @@ std::vector<const char *> SDLWindowManager::GetExtensions() {
 }
 
 
-std::optional<IWindowHandle> SDLWindowManager::GetNativeWindowHandle() {
+RawWindowHandle SDLWindowManager::GetNativeWindowHandle() {
     SDL_SysWMinfo info;
     SDL_VERSION(&info.version);
     if (SDL_GetWindowWMInfo(window, &info)) {
 #if defined (WIN32)
-        return std::make_optional(
-            static_cast<IWindowHandle>(WinWindowHandle(info.info.win.window, info.info.win.hinstance)));
+        return {info.info.win.window, nullptr, 1};
 #elif defined (__linux__)
         return std::make_optional(static_cast<IWindowHandle>(X11WindowHandle(info.info.x11.window, info.info.x11.display)));
 #else
     return std::nullopt;
 #endif
     }
-    return std::nullopt;
+    return {nullptr, nullptr, -1};
 }
 
 

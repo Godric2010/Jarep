@@ -6,12 +6,27 @@
 #include<vulkan\vulkan.hpp>
 
 namespace JAREP::Rendering {
-	class IRenderer {
-		public:
-			virtual ~IRenderer() = default;
+    enum class SystemType {
+        Windows,
+        X11,
+        Wayland,
+    };
 
-			virtual bool Initialize(std::vector<const char *> extensions) = 0;
+    struct RenderSettings {
+    public:
+        SystemType systemType;
+        void *handle;
+        void *display;
 
-			virtual void Shutdown() = 0;
-	};
+        std::vector<const char *> extensions;
+    };
+
+    class IRenderer {
+    public:
+        virtual ~IRenderer() = default;
+
+        virtual bool Initialize(RenderSettings render_settings) = 0;
+
+        virtual void Shutdown() = 0;
+    };
 }

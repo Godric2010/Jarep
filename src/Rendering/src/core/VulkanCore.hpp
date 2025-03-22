@@ -6,20 +6,23 @@
 
 #include <vulkan/vulkan.hpp>
 #include "VulkanInstance.hpp"
+#include "VulkanSurface.hpp"
+#include "VulkanDevice.hpp"
+#include "Rendering/IRenderer.hpp"
 
-namespace JAREP::Rendering::Core{
-
-class VulkanCore {
+namespace JAREP::Rendering::Core {
+    class VulkanCore {
     public:
-      VulkanCore();
-      ~VulkanCore();
+        VulkanCore();
 
-      bool Initialize(std::vector<const char*> extensions);
-      void Shutdown();
+        ~VulkanCore();
+
+        bool Initialize(RenderSettings render_settings);
+
+        void Shutdown();
 
     private:
         std::unique_ptr<VulkanInstance> m_instance;
-
-};
+        std::unique_ptr<VulkanSurface> m_surface;
+    };
 }
-

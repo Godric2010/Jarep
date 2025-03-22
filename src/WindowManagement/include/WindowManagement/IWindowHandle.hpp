@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <SDL2/SDL_syswm.h>
 namespace JAREP::Window {
     /**
      * Wrapper class around the various window handles.

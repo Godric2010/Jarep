@@ -13,7 +13,7 @@ namespace JAREP::Rendering {
 
         ~RenderManager() override;
 
-        bool Initialize(std::vector<const char*> extensions) override;
+        bool Initialize(RenderSettings render_settings) override;
 
         void Shutdown() override;
 

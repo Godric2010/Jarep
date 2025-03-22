@@ -26,8 +26,16 @@ int main() {
 	}
 
 	auto render_extensions = window_manager->GetExtensions();
+	auto window_ptr = window_manager->GetNativeWindowHandle();
+
+	JAREP::Rendering::RenderSettings render_settings;
+	render_settings.systemType = JAREP::Rendering::SystemType::Windows;
+	render_settings.extensions = render_extensions;
+	render_settings.handle = nullptr;
+	render_settings.display = nullptr;
+
 	auto* renderer = JAREP::Rendering::CreateRenderer();
-	renderer->Initialize(render_extensions);
+	renderer->Initialize(render_settings);
 
 	auto result = window_manager->RegisterForWindowUpdate([](int width, int height, JAREP::Window::DisplayMode mode) {
 		std::cout << "Width: " << width << ", Height: " << height << std::endl;

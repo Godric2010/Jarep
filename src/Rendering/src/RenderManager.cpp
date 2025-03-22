@@ -10,7 +10,7 @@ RenderManager::RenderManager() = default;
 
 RenderManager::~RenderManager() = default;
 
-bool RenderManager::Initialize(std::vector<const char *> extensions) {
+bool RenderManager::Initialize(RenderSettings render_settings) {
 	// Initialize Core systems
 	m_core = std::make_unique<Core::VulkanCore>();
 	m_core->Initialize(extensions);
