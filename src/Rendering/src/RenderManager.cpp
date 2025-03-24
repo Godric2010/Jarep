@@ -13,7 +13,7 @@ RenderManager::~RenderManager() = default;
 bool RenderManager::Initialize(RenderSettings render_settings) {
 	// Initialize Core systems
 	m_core = std::make_unique<Core::VulkanCore>();
-	m_core->Initialize(extensions);
+	m_core->Initialize(render_settings);
 
 	// Initialize Pipelines and Render passes
 

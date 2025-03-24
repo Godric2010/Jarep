@@ -104,7 +104,7 @@ RawWindowHandle SDLWindowManager::GetNativeWindowHandle() {
     SDL_VERSION(&info.version);
     if (SDL_GetWindowWMInfo(window, &info)) {
 #if defined (WIN32)
-        return {info.info.win.window, nullptr, 1};
+        return {info.info.win.window, info.info.win.hinstance, 1};
 #elif defined (__linux__)
         return std::make_optional(static_cast<IWindowHandle>(X11WindowHandle(info.info.x11.window, info.info.x11.display)));
 #else

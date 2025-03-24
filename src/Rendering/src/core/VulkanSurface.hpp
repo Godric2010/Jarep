@@ -4,6 +4,8 @@
 
 #pragma once
 #include <vulkan/vulkan.h>
+#include <windows.h>
+#include<vulkan/vulkan_win32.h>
 
 #include "Rendering/IRenderer.hpp"
 
@@ -19,6 +21,9 @@ class VulkanSurface {
       private:
         VkInstance m_instance;
         VkSurfaceKHR m_surface;
+
+		void createSurfaceWin(void* handle, void* display);
+		void createSurfaceX11(void* handle, void* display);
 };
 
 }

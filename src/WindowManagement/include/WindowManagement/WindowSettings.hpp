@@ -9,7 +9,7 @@
 
 namespace JAREP::Window {
 
-	using RawWindowHandle = std::tuple<void*, void*, uint8_t>;
+
 
 	/**
 	 * @struct WindowSettings

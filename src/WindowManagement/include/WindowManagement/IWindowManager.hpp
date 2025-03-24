@@ -4,15 +4,16 @@
 
 #pragma once
 #include <complex.h>
-#include <complex.h>
 
 #include "WindowSettings.hpp"
 #include <expected>
 #include <functional>
 
-#include "IWindowHandle.hpp"
 
 namespace JAREP::Window {
+
+	using RawWindowHandle = std::tuple<void *, void *, uint8_t>;
+
 	/**
 	 * @class IWindowManager
 	 * @brief Main interface with the window management system

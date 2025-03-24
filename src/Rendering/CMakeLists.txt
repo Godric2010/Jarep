@@ -14,6 +14,7 @@ add_library(${LIBRARY_NAME}
         src/RenderManager.cpp
         src/core/VulkanCore.cpp
         src/core/VulkanInstance.cpp
+        src/core/VulkanSurface.cpp
 )
 
 target_include_directories(${LIBRARY_NAME} PUBLIC include ${VULKAN_INCLUDE_DIRS})

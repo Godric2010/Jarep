@@ -79,11 +79,11 @@
 *Returns: `int32_t`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;The window height in pixels.*
 
 
-### `std::optional< IWindowHandle > GetNativeWindowHandle()`
+### `RawWindowHandle GetNativeWindowHandle()`
 
 **Description**:<br>*Get the window handle of this window.*
 
-*Returns: `std::optional< IWindowHandle >`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;Can be null-opt if platform is invalid. Returns valid IWindowHandle if platform is supported. Cast to platform handle for further usage.*
+*Returns: `RawWindowHandle`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;Can be null-opt if platform is invalid. Returns valid IWindowHandle if platform is supported. Cast to platform handle for further usage.*
 
 
 ### `std::vector< const char * > GetExtensions()`

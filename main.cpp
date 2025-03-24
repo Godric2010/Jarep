@@ -26,13 +26,13 @@ int main() {
 	}
 
 	auto render_extensions = window_manager->GetExtensions();
-	auto window_ptr = window_manager->GetNativeWindowHandle();
+	auto [handle, display, type] = window_manager->GetNativeWindowHandle();
 
 	JAREP::Rendering::RenderSettings render_settings;
 	render_settings.systemType = JAREP::Rendering::SystemType::Windows;
 	render_settings.extensions = render_extensions;
-	render_settings.handle = nullptr;
-	render_settings.display = nullptr;
+	render_settings.handle = handle;
+	render_settings.display = display;
 
 	auto* renderer = JAREP::Rendering::CreateRenderer();
 	renderer->Initialize(render_settings);

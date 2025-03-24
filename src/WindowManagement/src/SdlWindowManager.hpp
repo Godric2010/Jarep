@@ -14,6 +14,8 @@
 #endif
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
+#include <SDL2/SDL_syswm.h>
 #include "WindowManagement/IWindowManager.hpp"
 #include "WindowManagement/WindowSettings.hpp"
 
