@@ -8,7 +8,10 @@ set(LIBRARY_VERSION 0.1.0)
 include(${CMAKE_SOURCE_DIR}/cmake/Helpers.cmake)
 find_package(Vulkan REQUIRED)
 
-add_library(${LIBRARY_NAME}
+add_library(${LIBRARY_NAME})
+
+
+target_sources(${LIBRARY_NAME} PRIVATE
         include/${LIBRARY_NAME}/IRenderer.hpp
         include/${LIBRARY_NAME}/RendererCreator.hpp
         src/RenderManager.cpp
@@ -16,6 +19,15 @@ add_library(${LIBRARY_NAME}
         src/core/VulkanInstance.cpp
         src/core/VulkanSurface.cpp
 )
+
+if (WIN32)
+    target_sources(${LIBRARY_NAME} PRIVATE
+            src/core/VulkanSurface_Windows.cpp
+    )
+elseif (UNIX)
+    target_sources(${LIBRARY_NAME} PRIVATE src/core/VulkanSurface_LinuxX11.cpp)
+endif ()
+
 
 target_include_directories(${LIBRARY_NAME} PUBLIC include ${VULKAN_INCLUDE_DIRS})
 target_link_libraries(${LIBRARY_NAME} PRIVATE Vulkan::Vulkan)
