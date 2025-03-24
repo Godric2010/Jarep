@@ -20,6 +20,14 @@ int main() {
 		.displayRefreshRate = 72,
 		.displayMode = JAREP::Window::DisplayMode::BorderlessWindow,
 	};
+	const auto window_settings_2 = JAREP::Window::WindowSettings{
+		.windowTitle = "JAREP",
+		.displayIndex = 0,
+		.displayWidth = 1920,
+		.displayHeight = 1080,
+		.displayRefreshRate = 72,
+		.displayMode = JAREP::Window::DisplayMode::BorderedWindow,
+	};
 	if (bool init_success = window_manager->Initialize(window_settings); !init_success) {
 		std::cerr << "Failed to initialize window manager" << std::endl;
 		return -1;
@@ -34,6 +42,7 @@ int main() {
 	render_settings.handle = handle;
 	render_settings.display = display;
 
+
 	auto* renderer = JAREP::Rendering::CreateRenderer();
 	renderer->Initialize(render_settings);
 
@@ -41,14 +50,6 @@ int main() {
 		std::cout << "Width: " << width << ", Height: " << height << std::endl;
 	});
 
-	const auto window_settings_2 = JAREP::Window::WindowSettings{
-		.windowTitle = "JAREP",
-		.displayIndex = 0,
-		.displayWidth = 1920,
-		.displayHeight = 1080,
-		.displayRefreshRate = 72,
-		.displayMode = JAREP::Window::DisplayMode::BorderedWindow,
-	};
 
 	auto start_time = std::chrono::high_resolution_clock::now();
 	bool resized = false;

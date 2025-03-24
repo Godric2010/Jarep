@@ -24,5 +24,6 @@ namespace JAREP::Rendering::Core {
     private:
         std::unique_ptr<VulkanInstance> m_instance;
         std::unique_ptr<VulkanSurface> m_surface;
+        std::unique_ptr<VulkanDevice> m_device;
     };
 }

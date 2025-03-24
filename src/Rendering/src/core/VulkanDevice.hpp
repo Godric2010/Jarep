@@ -3,20 +3,57 @@
 //
 
 #pragma once
+#include <vulkan/vulkan.h>
+#include <vector>
+#include <optional>
 
-class VulkanDevice {
-    public:
-      VulkanDevice();
-      ~VulkanDevice();
+namespace JAREP::Rendering::Core {
+	class VulkanDevice {
+		public:
+			VulkanDevice(VkInstance instance, VkSurfaceKHR surface);
 
-    private:
-      void pickPhysicalDevice();
-      void createLogicalDevice();
-      void findQueueFamilies();
+			~VulkanDevice();
 
+			VkDevice getDevice() const;
 
+			VkPhysicalDevice getPhysicalDevice() const;
 
-};
+			VkQueue getGraphicsQueue() const;
 
+			VkQueue getPresentQueue() const;
 
+			uint32_t findMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties) const;
 
+		private:
+			struct QueueFamilyIndices {
+				std::optional<uint32_t> graphicsFamily;
+				std::optional<uint32_t> presentFamily;
+
+				bool isComplete() const {
+					return graphicsFamily.has_value() && presentFamily.has_value();
+				}
+			};
+
+			void pickPhysicalDevice();
+
+			void createLogicalDevice();
+
+			QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) const;
+
+			bool isDeviceSuitable(VkPhysicalDevice device) const;
+
+			bool checkDeviceExtensionSupport(VkPhysicalDevice device) const;
+
+			VkInstance m_instance;
+			VkSurfaceKHR m_surface;
+			VkPhysicalDevice m_physicalDevice;
+			VkDevice m_device;
+			VkQueue m_graphicsQueue;
+			VkQueue m_presentQueue;
+			QueueFamilyIndices m_queueFamilies;
+
+			const std::vector<const char *> m_deviceExtensions = {
+				VK_KHR_SWAPCHAIN_EXTENSION_NAME
+			};
+	};
+}
