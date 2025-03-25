@@ -19,6 +19,7 @@ target_sources(${LIBRARY_NAME} PRIVATE
         src/core/VulkanInstance.cpp
         src/core/VulkanSurface.cpp
         src/core/VulkanDevice.cpp
+        src/core/VulkanCommandPool.cpp
 )
 
 if (WIN32)
