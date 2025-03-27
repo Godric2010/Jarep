@@ -25,6 +25,9 @@ target_sources(${LIBRARY_NAME} PRIVATE
         src/core/VulkanImageOperations.cpp
         src/core/VulkanSampler.cpp
         src/core/VulkanSamplerPresets.cpp
+        src/core/VulkanDescriptorSetLayout.cpp
+        src/core/VulkanDescriptorPool.cpp
+        src/core/VulkanDescriptorSet.cpp
 )
 
 if (WIN32)
