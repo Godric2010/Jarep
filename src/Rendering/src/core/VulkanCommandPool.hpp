@@ -8,6 +8,9 @@
 #include <vector>
 
 namespace JAREP::Rendering::Core {
+	/**
+	 * Manages the allocation and reuse of Vulkan command buffers. Provides helpers to begin and end command recording.
+	 */
 	class VulkanCommandPool {
 		public:
 			VulkanCommandPool(VkDevice device, uint32_t queueFamilyIndex);

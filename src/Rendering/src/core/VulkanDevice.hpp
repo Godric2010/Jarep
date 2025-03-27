@@ -8,6 +8,9 @@
 #include <optional>
 
 namespace JAREP::Rendering::Core {
+	/**
+	 * Encapsulates both the physical and logical Vulkan device. Handles queue family selection and device creation.
+	 */
 	class VulkanDevice {
 		public:
 			VulkanDevice(VkInstance instance, VkSurfaceKHR surface);

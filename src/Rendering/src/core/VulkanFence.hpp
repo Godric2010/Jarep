@@ -6,6 +6,9 @@
 #include <vulkan/vulkan.hpp>
 
 namespace JAREP::Rendering::Core {
+	/**
+	 * GPU-CPU synchronization primitive used to wait for GPU operations to complete from the CPU side.
+	 */
 	class VulkanFence {
 		public:
 			VulkanFence(VkDevice device, bool signaled = false);

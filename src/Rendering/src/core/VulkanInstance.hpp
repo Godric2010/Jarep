@@ -7,9 +7,12 @@
 #include <vulkan\vulkan.hpp>
 
 namespace JAREP::Rendering::Core {
+	/**
+	 * Initializes the Vulkan API and creates a VkInstance. Responsible for managing Vulkan extensions and validation layers.
+	 */
 	class VulkanInstance {
 		public:
-			VulkanInstance(std::vector<const char*> extensions);
+			VulkanInstance(std::vector<const char *> extensions);
 
 			~VulkanInstance();
 

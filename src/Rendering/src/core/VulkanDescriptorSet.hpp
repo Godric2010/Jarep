@@ -7,6 +7,9 @@
 #include <vector>
 
 namespace JAREP::Rendering::Core {
+	/**
+	 * Handles th binding of actual resources (buffers, images) to a descriptor set layout.
+	 */
 	class VulkanDescriptorSet {
 		public:
 			VulkanDescriptorSet(VkDevice device, VkDescriptorPool descriptorPool,

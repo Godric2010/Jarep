@@ -8,6 +8,9 @@
 #include <cstdint>
 
 namespace JAREP::Rendering::Core {
+	/**
+	 * Abstraction for Vulkan buffer objects. Handles creation, memory allocation and data transfer.
+	 */
 	class VulkanBuffer {
 		public:
 			VulkanBuffer(VkDevice device,

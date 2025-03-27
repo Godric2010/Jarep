@@ -7,6 +7,9 @@
 #include <vector>
 
 namespace JAREP::Rendering::Core {
+	/**
+	 * Manages the allocation of descriptor sets. Pre-allocates memory for various descriptor types.
+	 */
 	class VulkanDescriptorPool {
 		public:
 			struct PoolSize {

@@ -7,6 +7,9 @@
 #include <vulkan/vulkan.hpp>
 
 namespace JAREP::Rendering::Core {
+	/**
+	 * Represents a Vulkan image object (textures, render tragets). Manages memory and layout transitions.
+	 */
 	class VulkanImage {
 		public:
 			VulkanImage(VkDevice device,

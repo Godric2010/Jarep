@@ -7,20 +7,23 @@
 #include "Rendering/IRenderer.hpp"
 
 struct SDL_Window;
-namespace JAREP::Rendering::Core{
-class VulkanSurface {
-    public:
-      VulkanSurface(VkInstance instance, RenderSettings render_settings);
-      ~VulkanSurface();
 
-      VkSurfaceKHR get() const;
+namespace JAREP::Rendering::Core {
+	class VulkanSurface {
+		/**
+		 *Represents the platform-specific rendering surface. Connects the Vulkan instance to the windowing system (here SDL2)
+		 **/
+		public:
+			VulkanSurface(VkInstance instance, RenderSettings render_settings);
 
-      private:
-        VkInstance m_instance;
-        VkSurfaceKHR m_surface;
+			~VulkanSurface();
 
-		void createSurface(void* handle, void* display);
-};
+			VkSurfaceKHR get() const;
 
+		private:
+			VkInstance m_instance;
+			VkSurfaceKHR m_surface;
+
+			void createSurface(void* handle, void* display);
+	};
 }
-

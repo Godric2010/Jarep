@@ -6,6 +6,9 @@
 #include <vulkan/vulkan.hpp>
 
 namespace JAREP::Rendering::Core {
+	/**
+	 * GPU-GPU synchronization primitive used to coordinate operations between queues.
+	 */
 	class VulkanSemaphore {
 		public:
 			explicit VulkanSemaphore(VkDevice device);

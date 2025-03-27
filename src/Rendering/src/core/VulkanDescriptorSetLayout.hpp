@@ -7,6 +7,9 @@
 #include <vector>
 
 namespace JAREP::Rendering::Core {
+	/**
+	 * Defines the layout of a descriptor set. Specifies the types and binding points of resources used in shaders.
+	 */
 	class VulkanDescriptorSetLayout {
 		public:
 			struct BindingInfo {
