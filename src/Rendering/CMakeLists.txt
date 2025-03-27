@@ -28,6 +28,8 @@ target_sources(${LIBRARY_NAME} PRIVATE
         src/core/VulkanDescriptorSetLayout.cpp
         src/core/VulkanDescriptorPool.cpp
         src/core/VulkanDescriptorSet.cpp
+        src/core/VulkanSemaphore.cpp
+        src/core/VulkanFence.cpp
 )
 
 if (WIN32)
