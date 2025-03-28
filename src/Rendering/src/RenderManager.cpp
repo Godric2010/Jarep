@@ -19,6 +19,8 @@ bool RenderManager::Initialize(RenderSettings render_settings) {
 	initSwapchain(render_settings.width, render_settings.height);
 
 	// Initialize Pipelines and Render passes
+	createRenderPass();
+	createFramebuffers();
 
 	// Allocate resources
 
@@ -35,6 +37,8 @@ void RenderManager::Shutdown() {
 	// Free resources
 
 	// Destroy render passes and pipelines
+	m_framebuffers.clear();
+	m_renderPass.reset();
 
 	// Destroy swapchain
 	m_swapchain.reset();
@@ -55,4 +59,33 @@ void RenderManager::initSwapchain(uint32_t width, uint32_t height) {
 	                                                          vulkanDevice->getPhysicalDevice(),
 	                                                          vulkanSurface->get(),
 	                                                          swapchainConfig);
+}
+
+void RenderManager::createRenderPass() {
+	Pipeline::RenderPassConfig config = {
+		.colorFormat = m_swapchain->getFormat(),
+		.depthFormat = std::nullopt,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+	};
+
+	m_renderPass = std::make_unique<Pipeline::VulkanRenderPass>(m_core->getDevice()->getDevice(), config);
+}
+
+void RenderManager::createFramebuffers() {
+	m_framebuffers.clear();
+
+	const auto&imageViews = m_swapchain->getImageViews();
+	std::optional<VkImageView> depthView = std::nullopt;
+	for (auto&imageView: imageViews) {
+		std::vector<VkImageView> attachments = {imageView};
+		if (depthView.has_value()) {
+			attachments.push_back(depthView.value());
+		}
+
+		m_framebuffers.push_back(std::make_unique<Pipeline::VulkanFramebuffer>(
+			m_core->getDevice()->getDevice(),
+			m_renderPass->get(),
+			m_swapchain->getExtent(),
+			attachments));
+	}
 }
