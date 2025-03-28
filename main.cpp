@@ -41,6 +41,8 @@ int main() {
 	render_settings.extensions = render_extensions;
 	render_settings.handle = handle;
 	render_settings.display = display;
+	render_settings.width = window_settings.displayWidth;
+	render_settings.height = window_settings.displayHeight;
 
 
 	auto* renderer = JAREP::Rendering::CreateRenderer();
@@ -59,6 +61,7 @@ int main() {
 		std::chrono::duration<double> delta_time = current_time - start_time;
 		if (delta_time.count() > 3 && !resized) {
 			window_manager->SetWindowSettings(window_settings_2);
+			renderer->Resize(window_settings_2.displayWidth, window_settings_2.displayHeight);
 			resized = true;
 		}
 	}

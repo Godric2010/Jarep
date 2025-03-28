@@ -21,6 +21,10 @@ namespace JAREP::Rendering::Core {
 
         void Shutdown();
 
+        const VulkanDevice* getDevice() const;
+
+        const VulkanSurface* getSurface() const;
+
     private:
         std::unique_ptr<VulkanInstance> m_instance;
         std::unique_ptr<VulkanSurface> m_surface;
