@@ -30,8 +30,8 @@ target_sources(${LIBRARY_NAME} PRIVATE
         src/core/VulkanDescriptorSet.cpp
         src/core/VulkanSemaphore.cpp
         src/core/VulkanFence.cpp
-        src/rendering/VulkanSwapchain.cpp
-        src/rendering/VulkanRenderPass.cpp
+        src/pipeline/VulkanSwapchain.cpp
+        src/pipeline/VulkanRenderPass.cpp
 )
 
 if (WIN32)

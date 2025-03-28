@@ -5,7 +5,7 @@
 #include "VulkanRenderPass.hpp"
 #include <stdexcept>
 
-using namespace JAREP::Rendering::Rendering;
+using namespace JAREP::Rendering::Pipeline;
 
 VulkanRenderPass::VulkanRenderPass(VkDevice device, const RenderPassConfig&config) {
 	m_device = device;

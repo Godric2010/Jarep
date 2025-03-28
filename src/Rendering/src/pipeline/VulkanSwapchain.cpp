@@ -7,7 +7,7 @@
 #include <limits>
 #include <algorithm>
 
-using namespace JAREP::Rendering::Rendering;
+using namespace JAREP::Rendering::Pipeline;
 
 VulkanSwapchain::VulkanSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
                                  const SwapchainConfig&config) {

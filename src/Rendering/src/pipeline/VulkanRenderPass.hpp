@@ -6,7 +6,7 @@
 #include <vulkan/vulkan.hpp>
 #include <optional>
 
-namespace JAREP::Rendering::Rendering {
+namespace JAREP::Rendering::Pipeline {
 	struct RenderPassConfig {
 		VkFormat colorFormat;
 		std::optional<VkFormat> depthFormat = std::nullopt;

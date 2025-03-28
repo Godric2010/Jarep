@@ -8,7 +8,7 @@
 #include "VulkanInstance.hpp"
 #include "VulkanSurface.hpp"
 #include "VulkanDevice.hpp"
-#include "Rendering/IRenderer.hpp"
+#include "../include/Rendering/IRenderer.hpp"
 
 namespace JAREP::Rendering::Core {
     class VulkanCore {

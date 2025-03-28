@@ -6,7 +6,7 @@
 #include <vulkan/vulkan.hpp>
 #include <vector>
 
-namespace JAREP::Rendering::Rendering {
+namespace JAREP::Rendering::Pipeline {
 	struct SwapchainConfig {
 		uint32_t width;
 		uint32_t height;

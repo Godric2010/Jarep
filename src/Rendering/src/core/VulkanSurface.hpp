@@ -4,7 +4,7 @@
 
 #pragma once
 #include <vulkan/vulkan.h>
-#include "Rendering/IRenderer.hpp"
+#include "../include/Rendering/IRenderer.hpp"
 
 struct SDL_Window;
 

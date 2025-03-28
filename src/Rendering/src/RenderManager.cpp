@@ -47,12 +47,12 @@ void RenderManager::initSwapchain(uint32_t width, uint32_t height) {
 	auto vulkanDevice = m_core->getDevice();
 	auto vulkanSurface = m_core->getSurface();
 
-	Rendering::SwapchainConfig swapchainConfig{};
+	Pipeline::SwapchainConfig swapchainConfig{};
 	swapchainConfig.width = width;
 	swapchainConfig.height = height;
 
-	m_swapchain = std::make_unique<Rendering::VulkanSwapchain>(vulkanDevice->getDevice(),
-	                                                           vulkanDevice->getPhysicalDevice(),
-	                                                           vulkanSurface->get(),
-	                                                           swapchainConfig);
+	m_swapchain = std::make_unique<Pipeline::VulkanSwapchain>(vulkanDevice->getDevice(),
+	                                                          vulkanDevice->getPhysicalDevice(),
+	                                                          vulkanSurface->get(),
+	                                                          swapchainConfig);
 }
