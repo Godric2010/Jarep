@@ -38,6 +38,8 @@ void RenderManager::Shutdown() {
 
 	// Destroy render passes and pipelines
 	m_framebuffers.clear();
+	m_pipeline.reset();
+	vkDestroyPipelineLayout(m_core->getDevice()->getDevice(), m_pipelineLayout, nullptr);
 	m_renderPass.reset();
 
 	// Destroy swapchain
@@ -70,6 +72,34 @@ void RenderManager::createRenderPass() {
 
 	m_renderPass = std::make_unique<Pipeline::VulkanRenderPass>(m_core->getDevice()->getDevice(), config);
 }
+
+
+void RenderManager::createPipeline() {
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutInfo.setLayoutCount = 0;
+	pipelineLayoutInfo.pSetLayouts = nullptr;
+	pipelineLayoutInfo.pushConstantRangeCount = 0;
+	pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+	if (vkCreatePipelineLayout(m_core->getDevice()->getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) !=
+	    VK_SUCCESS) {
+		throw std::runtime_error("failed to create pipeline layout!");
+	}
+
+	Pipeline::VulkanPipelineConfig config = {
+		.device = m_core->getDevice()->getDevice(),
+		.renderPass = m_renderPass->get(),
+		.extent = m_swapchain->getExtent(),
+		.vertexShaderPath = "triangle.vert.spv",
+		.fragmentShaderPath = "triangle.frag.spv",
+		.pipelineLayout = m_pipelineLayout,
+		.depthFormat = std::nullopt,
+	};
+
+	m_pipeline = std::make_unique<Pipeline::VulkanPipeline>(config);
+}
+
 
 void RenderManager::createFramebuffers() {
 	m_framebuffers.clear();
