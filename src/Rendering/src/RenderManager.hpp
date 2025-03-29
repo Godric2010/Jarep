@@ -12,7 +12,7 @@
 
 namespace JAREP::Rendering {
 	struct RenderSettings;
-
+	constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 	class RenderManager : public IRenderer {
 		public:
 			RenderManager();
@@ -45,6 +45,7 @@ namespace JAREP::Rendering {
 			size_t m_currentFrame;
 			uint32_t m_acquiredImageIndex;
 
+
 			void initSwapchain(uint32_t width, uint32_t height);
 
 			void createRenderPass();
@@ -52,6 +53,12 @@ namespace JAREP::Rendering {
 			void createFramebuffers();
 
 			void createPipeline();
+
+			void createSyncObjects();
+
+			void allocateCommandBuffers();
+
+			void destroySyncObjects();
 
 			void beginFrame();
 

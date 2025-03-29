@@ -26,12 +26,12 @@ namespace JAREP::Rendering::Pipeline {
 		VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
 		VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT;
 		VkFrontFace frontFace = VK_FRONT_FACE_CLOCKWISE;
-		VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
+		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-		bool depthTestEnable = true;
-		bool depthWriteEnable = true;
+
+		bool depthTestEnable = false;
+		bool depthWriteEnable = false;
 		std::optional<VkFormat> depthFormat = std::nullopt;
-
 	};
 
 	/**
@@ -40,22 +40,26 @@ namespace JAREP::Rendering::Pipeline {
 	 */
 	class VulkanPipeline {
 		public:
-		explicit VulkanPipeline(const VulkanPipelineConfig& config);
-		~VulkanPipeline();
-		VulkanPipeline(const VulkanPipeline&) = delete;
-		VulkanPipeline& operator=(const VulkanPipeline&) = delete;
+			explicit VulkanPipeline(const VulkanPipelineConfig&config);
 
-		VkPipeline get() const;
+			~VulkanPipeline();
+
+			VulkanPipeline(const VulkanPipeline&) = delete;
+
+			VulkanPipeline& operator=(const VulkanPipeline&) = delete;
+
+			VkPipeline get() const;
 
 		private:
-		void createShaderModule(const std::string& filePath, VkShaderModule* shaderModule);
-		void createGraphicsPipeline();
+			void createShaderModule(const std::string&filePath, VkShaderModule* shaderModule);
 
-		VkDevice m_device;
-		VulkanPipelineConfig m_config;
+			void createGraphicsPipeline();
 
-		VkPipeline m_pipeline;
-		VkShaderModule m_vertexShaderModule;
-		VkShaderModule m_fragmentShaderModule;
+			VkDevice m_device;
+			VulkanPipelineConfig m_config;
+
+			VkPipeline m_pipeline;
+			VkShaderModule m_vertexShaderModule;
+			VkShaderModule m_fragmentShaderModule;
 	};
 }

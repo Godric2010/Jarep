@@ -47,6 +47,8 @@ namespace JAREP::Rendering::Pipeline {
 
 			VkExtent2D getExtent() const;
 
+			uint32_t getImageCount() const;
+
 		private:
 			void createSwapchain();
 

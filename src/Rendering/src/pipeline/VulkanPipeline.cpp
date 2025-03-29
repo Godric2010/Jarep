@@ -14,7 +14,7 @@ static std::vector<char> readFile(const std::string&fileName) {
 	std::filesystem::path shaderBase = std::filesystem::current_path() / "Resources"/ "Shaders";
 	std::string shaderPath = (shaderBase / fileName).string();
 
-	std::ifstream file(fileName, std::ios::ate | std::ios::binary);
+	std::ifstream file(shaderPath, std::ios::ate | std::ios::binary);
 
 	if (!file.is_open()) {
 		throw std::runtime_error("Could not open file " + fileName);
@@ -65,7 +65,7 @@ void VulkanPipeline::createShaderModule(const std::string&filePath, VkShaderModu
 	createInfo.codeSize = code.size();
 	createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
-	if (vkCreateShaderModule(m_device, &createInfo, nullptr, &m_vertexShaderModule) != VK_SUCCESS) {
+	if (vkCreateShaderModule(m_device, &createInfo, nullptr, shaderModule) != VK_SUCCESS) {
 		throw std::runtime_error("Could not create shaders module from: " + filePath);
 	}
 }
@@ -73,6 +73,12 @@ void VulkanPipeline::createShaderModule(const std::string&filePath, VkShaderModu
 void VulkanPipeline::createGraphicsPipeline() {
 	createShaderModule(m_config.vertexShaderPath, &m_vertexShaderModule);
 	createShaderModule(m_config.fragmentShaderPath, &m_fragmentShaderModule);
+
+	assert(m_vertexShaderModule != VK_NULL_HANDLE);
+	assert(m_fragmentShaderModule != VK_NULL_HANDLE);
+
+	assert(m_config.pipelineLayout != VK_NULL_HANDLE);
+	assert(m_config.renderPass != VK_NULL_HANDLE);
 
 	VkPipelineShaderStageCreateInfo vertexShaderStageInfo = {};
 	vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -126,19 +132,20 @@ void VulkanPipeline::createGraphicsPipeline() {
 	rasterizerInfo.cullMode = m_config.cullMode;
 	rasterizerInfo.frontFace = m_config.frontFace;
 	rasterizerInfo.depthBiasEnable = VK_FALSE;
+	rasterizerInfo.lineWidth = 1.0f;
 
 	VkPipelineMultisampleStateCreateInfo multisampleInfo = {};
 	multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multisampleInfo.sampleShadingEnable = VK_FALSE;
-	multisampleInfo.rasterizationSamples = m_config.samples;
+	multisampleInfo.rasterizationSamples = m_config.msaaSamples;
 
-	VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {};
-	depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depthStencilInfo.depthTestEnable = m_config.depthTestEnable ? VK_TRUE : VK_FALSE;
-	depthStencilInfo.depthWriteEnable = m_config.depthWriteEnable ? VK_TRUE : VK_FALSE;
-	depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-	depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-	depthStencilInfo.stencilTestEnable = VK_FALSE;
+	// VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {};
+	// depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	// depthStencilInfo.depthTestEnable = m_config.depthTestEnable ? VK_TRUE : VK_FALSE;
+	// depthStencilInfo.depthWriteEnable = m_config.depthWriteEnable ? VK_TRUE : VK_FALSE;
+	// depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+	// depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+	// depthStencilInfo.stencilTestEnable = VK_FALSE;
 
 	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
@@ -160,7 +167,7 @@ void VulkanPipeline::createGraphicsPipeline() {
 	pipelineInfo.pViewportState = &viewportStateInfo;
 	pipelineInfo.pRasterizationState = &rasterizerInfo;
 	pipelineInfo.pMultisampleState = &multisampleInfo;
-	pipelineInfo.pDepthStencilState = m_config.depthFormat.has_value() ? &depthStencilInfo : nullptr;
+	//pipelineInfo.pDepthStencilState = m_config.depthFormat.has_value() ? &depthStencilInfo : nullptr;
 	pipelineInfo.pColorBlendState = &colorBlendingInfo;
 	pipelineInfo.layout = m_config.pipelineLayout;
 	pipelineInfo.renderPass = m_config.renderPass;

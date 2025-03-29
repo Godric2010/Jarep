@@ -4,6 +4,10 @@
 
 #include "RenderManager.hpp"
 
+#include <iostream>
+
+#include "core/VulkanCommandPool.hpp"
+
 using namespace JAREP::Rendering;
 
 RenderManager::RenderManager() = default;
@@ -20,9 +24,15 @@ bool RenderManager::Initialize(RenderSettings render_settings) {
 
 	// Initialize Pipelines and Render passes
 	createRenderPass();
+	createPipeline();
 	createFramebuffers();
 
 	// Allocate resources
+	createSyncObjects();
+	allocateCommandBuffers();
+
+	m_currentFrame = 0;
+	m_acquiredImageIndex = 0;
 
 	return true;
 }
@@ -36,9 +46,9 @@ void RenderManager::DrawFrame() {
 	beginFrame();
 
 	uint32_t imageIndex = m_acquiredImageIndex;
-	VkCommandBuffer cmdBuffer = m_commandBuffers[imageIndex];
+	VkCommandBuffer cmdBuffer = m_commandBuffers[m_acquiredImageIndex];
 
-	recordCommandBuffer(cmdBuffer, imageIndex);
+	recordCommandBuffer(cmdBuffer, m_acquiredImageIndex);
 
 	endFrame(imageIndex);
 }
@@ -46,6 +56,9 @@ void RenderManager::DrawFrame() {
 
 void RenderManager::Shutdown() {
 	// Free resources
+	vkFreeCommandBuffers(m_core->getDevice()->getDevice(), m_core->getCommandPool()->get(),
+	                     static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
+	destroySyncObjects();
 
 	// Destroy render passes and pipelines
 	m_framebuffers.clear();
@@ -106,6 +119,8 @@ void RenderManager::createPipeline() {
 		.fragmentShaderPath = "triangle.frag.spv",
 		.pipelineLayout = m_pipelineLayout,
 		.depthFormat = std::nullopt,
+		// .depthTestEnable = false,
+		// .depthWriteEnable = false,
 	};
 
 	m_pipeline = std::make_unique<Pipeline::VulkanPipeline>(config);
@@ -131,7 +146,67 @@ void RenderManager::createFramebuffers() {
 	}
 }
 
+void RenderManager::createSyncObjects() {
+	uint32_t imageCount = m_swapchain->getImageCount();
+	m_imageAvailableSemaphores.resize(imageCount);
+	m_renderFinishedSemaphores.resize(imageCount);
+	m_inFlightFences.resize(imageCount);
+	m_commandBuffers.resize(imageCount);
+
+	VkSemaphoreCreateInfo semaphoreInfo{};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fenceInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		if (vkCreateSemaphore(m_core->getDevice()->getDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i])
+		    != VK_SUCCESS ||
+		    vkCreateSemaphore(m_core->getDevice()->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i])
+		    != VK_SUCCESS ||
+		    vkCreateFence(m_core->getDevice()->getDevice(), &fenceInfo, nullptr, &m_inFlightFences[i])
+		    != VK_SUCCESS
+		) {
+			throw std::runtime_error("failed to create fence!");
+		}
+	}
+}
+
+void RenderManager::allocateCommandBuffers() {
+	VkCommandBufferAllocateInfo allocateInfo{};
+	allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocateInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
+	allocateInfo.commandPool = m_core->getCommandPool()->get();
+
+	if (vkAllocateCommandBuffers(m_core->getDevice()->getDevice(), &allocateInfo, m_commandBuffers.data()) !=
+	    VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate command buffers!");
+	}
+}
+
+
+void RenderManager::destroySyncObjects() {
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		if (m_imageAvailableSemaphores[i] != VK_NULL_HANDLE) {
+			vkDestroySemaphore(m_core->getDevice()->getDevice(), m_renderFinishedSemaphores[i], nullptr);
+		}
+		if (m_renderFinishedSemaphores[i] != VK_NULL_HANDLE) {
+			vkDestroySemaphore(m_core->getDevice()->getDevice(), m_renderFinishedSemaphores[i], nullptr);
+		}
+		if (m_inFlightFences[i] != VK_NULL_HANDLE) {
+			vkDestroyFence(m_core->getDevice()->getDevice(), m_inFlightFences[i], nullptr);
+		}
+		m_imageAvailableSemaphores.clear();
+		m_renderFinishedSemaphores.clear();
+		m_inFlightFences.clear();
+	}
+}
+
 void RenderManager::recordCommandBuffer(VkCommandBuffer cmdBuffer, uint32_t imageIndex) {
+
+
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = 0;
@@ -155,6 +230,9 @@ void RenderManager::recordCommandBuffer(VkCommandBuffer cmdBuffer, uint32_t imag
 
 	vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+	std::cout << "Swapchain extent {W: " << m_swapchain->getExtent().width << " H:" << m_swapchain->getExtent().height
+			<< "}" << std::endl;
+
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
@@ -171,6 +249,7 @@ void RenderManager::recordCommandBuffer(VkCommandBuffer cmdBuffer, uint32_t imag
 
 	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->get());
 	vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+	std::cout <<"Drawing triangle for image index: "<< imageIndex << std::endl;
 
 	vkCmdEndRenderPass(cmdBuffer);
 
@@ -180,37 +259,40 @@ void RenderManager::recordCommandBuffer(VkCommandBuffer cmdBuffer, uint32_t imag
 }
 
 void RenderManager::beginFrame() {
-	vkWaitForFences(m_core->getDevice()->getDevice(),1,&m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+	vkWaitForFences(m_core->getDevice()->getDevice(), 1, &m_inFlightFences[m_acquiredImageIndex], VK_TRUE, UINT64_MAX);
+	vkResetFences(m_core->getDevice()->getDevice(), 1, &m_inFlightFences[m_acquiredImageIndex]);
 
+	vkResetCommandBuffer(m_commandBuffers[m_acquiredImageIndex], 0);
 	VkResult result = vkAcquireNextImageKHR(m_core->getDevice()->getDevice(),
-		m_swapchain->get(),
-		UINT64_MAX,
-		m_imageAvailableSemaphores[m_currentFrame],
-		VK_NULL_HANDLE,
-		&m_acquiredImageIndex);
+	                                        m_swapchain->get(),
+	                                        UINT64_MAX,
+	                                        m_imageAvailableSemaphores[m_currentFrame],
+	                                        VK_NULL_HANDLE,
+	                                        &m_acquiredImageIndex);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("failed to acquire image from swapchain!");
 	}
 }
 
 void RenderManager::endFrame(uint32_t imageIndex) {
-	vkResetFences(m_core->getDevice()->getDevice(),1,&m_inFlightFences[m_currentFrame]);
+	vkResetFences(m_core->getDevice()->getDevice(), 1, &m_inFlightFences[m_currentFrame]);
 
-	VkSemaphore waitSemphores[] = {m_imageAvailableSemaphores[m_currentFrame]};
+	VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphores[m_currentFrame]};
 	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-	VkSemaphore signalSemaphore[] = {m_imageAvailableSemaphores[m_currentFrame]};
+	VkSemaphore signalSemaphore[] = {m_renderFinishedSemaphores[m_currentFrame]};
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = waitSemphores;
+	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
+	submitInfo.pCommandBuffers = &m_commandBuffers[m_acquiredImageIndex];
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphore;
 
-	if (vkQueueSubmit(m_core->getDevice()->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame])!= VK_SUCCESS) {
+	if (vkQueueSubmit(m_core->getDevice()->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_acquiredImageIndex]) !=
+	    VK_SUCCESS) {
 		throw std::runtime_error("failed to submit command buffer command buffer!");
 	}
 
@@ -229,7 +311,5 @@ void RenderManager::endFrame(uint32_t imageIndex) {
 		throw std::runtime_error("failed to present!");
 	}
 
-	m_currentFrame = (m_currentFrame + 1) % 3;
-
+	m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
-

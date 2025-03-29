@@ -158,3 +158,8 @@ VulkanDevice::QueueFamilyIndices VulkanDevice::findQueueFamilies(VkPhysicalDevic
 	}
 	return queueFamilyIndices;
 }
+
+std::optional<uint32_t> VulkanDevice::getGraphicsQueueFamilyIndex() const {
+	return m_queueFamilies.graphicsFamily;
+}
+

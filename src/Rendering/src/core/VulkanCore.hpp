@@ -5,6 +5,8 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
+
+#include "VulkanCommandPool.hpp"
 #include "VulkanInstance.hpp"
 #include "VulkanSurface.hpp"
 #include "VulkanDevice.hpp"
@@ -25,9 +27,12 @@ namespace JAREP::Rendering::Core {
 
         const VulkanSurface* getSurface() const;
 
+        const VulkanCommandPool* getCommandPool() const;
+
     private:
         std::unique_ptr<VulkanInstance> m_instance;
         std::unique_ptr<VulkanSurface> m_surface;
         std::unique_ptr<VulkanDevice> m_device;
+        std::unique_ptr<VulkanCommandPool> m_commandPool;
     };
 }

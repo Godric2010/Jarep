@@ -29,6 +29,8 @@ namespace JAREP::Rendering::Core {
 
 			VkQueue getPresentQueue() const;
 
+			std::optional<uint32_t> getGraphicsQueueFamilyIndex() const;
+
 			uint32_t findMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties) const;
 
 		private:

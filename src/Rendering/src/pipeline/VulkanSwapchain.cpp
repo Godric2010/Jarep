@@ -186,3 +186,8 @@ VkFormat VulkanSwapchain::getFormat() const {
 VkExtent2D VulkanSwapchain::getExtent() const {
 	return m_extent;
 }
+
+uint32_t VulkanSwapchain::getImageCount() const {
+	return m_images.size();
+}
+
