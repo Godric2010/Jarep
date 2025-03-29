@@ -64,6 +64,7 @@ int main() {
 			renderer->Resize(window_settings_2.displayWidth, window_settings_2.displayHeight);
 			resized = true;
 		}
+		renderer->DrawFrame();
 	}
 	window_manager->DestroyWindow();
 

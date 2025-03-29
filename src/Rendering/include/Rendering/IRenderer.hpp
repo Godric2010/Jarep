@@ -32,6 +32,8 @@ namespace JAREP::Rendering {
 
 			virtual void Resize(uint32_t width, uint32_t height) = 0;
 
+			virtual void DrawFrame() = 0;
+
 			virtual void Shutdown() = 0;
 	};
 }
