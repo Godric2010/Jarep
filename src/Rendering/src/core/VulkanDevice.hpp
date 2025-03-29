@@ -17,6 +17,10 @@ namespace JAREP::Rendering::Core {
 
 			~VulkanDevice();
 
+			VulkanDevice(const VulkanDevice&) = delete;
+
+			VulkanDevice& operator=(const VulkanDevice&) = delete;
+
 			VkDevice getDevice() const;
 
 			VkPhysicalDevice getPhysicalDevice() const;

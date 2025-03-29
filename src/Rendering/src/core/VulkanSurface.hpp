@@ -18,6 +18,10 @@ namespace JAREP::Rendering::Core {
 
 			~VulkanSurface();
 
+			VulkanSurface(const VulkanSurface&) = delete;
+
+			VulkanSurface& operator=(const VulkanSurface&) = delete;
+
 			VkSurfaceKHR get() const;
 
 		private:

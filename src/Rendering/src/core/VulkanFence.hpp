@@ -15,6 +15,10 @@ namespace JAREP::Rendering::Core {
 
 			~VulkanFence();
 
+			VulkanFence(const VulkanFence&) = delete;
+
+			VulkanFence& operator=(const VulkanFence&) = delete;
+
 			VkFence get() const;
 
 			void wait(uint64_t timeout = UINT64_MAX) const;

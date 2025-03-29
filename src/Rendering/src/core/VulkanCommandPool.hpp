@@ -17,6 +17,10 @@ namespace JAREP::Rendering::Core {
 
 			~VulkanCommandPool();
 
+			VulkanCommandPool(const VulkanCommandPool&) = delete;
+
+			VulkanCommandPool& operator=(const VulkanCommandPool&) = delete;
+
 			VkCommandPool get() const;
 
 			std::vector<VkCommandBuffer> allocateCommandBuffers(uint32_t count, VkCommandBufferLevel level =

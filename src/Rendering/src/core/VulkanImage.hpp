@@ -24,6 +24,10 @@ namespace JAREP::Rendering::Core {
 
 			~VulkanImage();
 
+			VulkanImage(const VulkanImage&) = delete;
+
+			VulkanImage& operator=(const VulkanImage&) = delete;
+
 			VkImage getImage() const;
 
 			VkImageView getImageView() const;

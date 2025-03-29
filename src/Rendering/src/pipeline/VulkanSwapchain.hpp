@@ -31,6 +31,10 @@ namespace JAREP::Rendering::Pipeline {
 
 			~VulkanSwapchain();
 
+			VulkanSwapchain(const VulkanSwapchain&) = delete;
+
+			VulkanSwapchain& operator=(const VulkanSwapchain&) = delete;
+
 			void recreate(uint32_t width, uint32_t height);
 
 			void cleanup(bool recreate = false);

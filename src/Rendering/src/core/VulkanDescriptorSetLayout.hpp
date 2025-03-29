@@ -23,6 +23,10 @@ namespace JAREP::Rendering::Core {
 
 			~VulkanDescriptorSetLayout();
 
+			VulkanDescriptorSetLayout(const VulkanDescriptorSetLayout&) = delete;
+
+			VulkanDescriptorSetLayout& operator=(const VulkanDescriptorSetLayout&) = delete;
+
 			VkDescriptorSetLayout get() const;
 
 		private:

@@ -21,6 +21,10 @@ namespace JAREP::Rendering::Core {
 
 			~VulkanDescriptorPool();
 
+			VulkanDescriptorPool(const VulkanDescriptorPool&) = delete;
+
+			VulkanDescriptorPool& operator=(const VulkanDescriptorPool&) = delete;
+
 			VkDescriptorPool get() const;
 
 			void reset() const;

@@ -15,6 +15,10 @@ namespace JAREP::Rendering::Core {
 
 			~VulkanSemaphore();
 
+			VulkanSemaphore(const VulkanSemaphore&) = delete;
+
+			VulkanSemaphore& operator=(const VulkanSemaphore&) = delete;
+
 			VkSemaphore get() const;
 
 		private:

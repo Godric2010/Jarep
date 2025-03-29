@@ -21,6 +21,10 @@ namespace JAREP::Rendering::Core {
 
 			~VulkanBuffer();
 
+			VulkanBuffer(const VulkanBuffer&) = delete;
+
+			VulkanBuffer& operator=(const VulkanBuffer&) = delete;
+
 			VkBuffer getBuffer() const;
 
 			VkDeviceMemory getMemory() const;

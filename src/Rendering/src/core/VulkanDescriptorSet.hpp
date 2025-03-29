@@ -17,6 +17,10 @@ namespace JAREP::Rendering::Core {
 
 			~VulkanDescriptorSet() = default;
 
+			VulkanDescriptorSet(const VulkanDescriptorSet&) = delete;
+
+			VulkanDescriptorSet& operator=(const VulkanDescriptorSet&) = delete;
+
 			VkDescriptorSet get() const;
 
 			void bindUniformBuffer(uint32_t binding, VkBuffer buffer, VkDeviceSize size, VkDeviceSize offset = 0);

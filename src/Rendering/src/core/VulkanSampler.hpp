@@ -17,6 +17,10 @@ namespace JAREP::Rendering::Core {
 
 			~VulkanSampler();
 
+			VulkanSampler(const VulkanSampler&) = delete;
+
+			VulkanSampler& operator=(const VulkanSampler&) = delete;
+
 			VkSampler get() const;
 
 		private:
