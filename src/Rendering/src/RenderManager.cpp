@@ -40,6 +40,13 @@ bool RenderManager::Initialize(RenderSettings render_settings) {
 void RenderManager::Resize(uint32_t width, uint32_t height) {
 	vkDeviceWaitIdle(m_core->getDevice()->getDevice());
 	m_swapchain->recreate(width, height);
+	m_renderPass.reset();
+	m_pipeline.reset();
+	m_framebuffers.clear();
+
+	createRenderPass();
+	createPipeline();
+	createFramebuffers();
 }
 
 void RenderManager::DrawFrame() {

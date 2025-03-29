@@ -8,9 +8,9 @@
 #include "WindowManagement/WindowCreator.hpp"
 #include "Rendering/RendererCreator.hpp"
 
-int main() {
-	std::cout << "Hello World!" << std::endl;
+bool framebufferResized = false;
 
+int main() {
 	const auto window_manager = JAREP::Window::CreateWindowManager();
 	const auto window_settings = JAREP::Window::WindowSettings{
 		.windowTitle = "JAREP",
@@ -28,7 +28,7 @@ int main() {
 		.displayRefreshRate = 72,
 		.displayMode = JAREP::Window::DisplayMode::BorderedWindow,
 	};
-	if (bool init_success = window_manager->Initialize(window_settings_2); !init_success) {
+	if (bool init_success = window_manager->Initialize(window_settings); !init_success) {
 		std::cerr << "Failed to initialize window manager" << std::endl;
 		return -1;
 	}
@@ -41,15 +41,17 @@ int main() {
 	render_settings.extensions = render_extensions;
 	render_settings.handle = handle;
 	render_settings.display = display;
-	render_settings.width = window_settings_2.displayWidth;
-	render_settings.height = window_settings_2.displayHeight;
+	render_settings.width = window_settings.displayWidth;
+	render_settings.height = window_settings.displayHeight;
 
 
 	auto* renderer = JAREP::Rendering::CreateRenderer();
 	renderer->Initialize(render_settings);
 
+
 	auto result = window_manager->RegisterForWindowUpdate([](int width, int height, JAREP::Window::DisplayMode mode) {
 		std::cout << "Width: " << width << ", Height: " << height << std::endl;
+		framebufferResized = true;
 	});
 
 
@@ -57,13 +59,19 @@ int main() {
 	bool resized = false;
 	while (!window_manager->ShouldClose()) {
 		window_manager->PollEvents();
-		// auto current_time = std::chrono::high_resolution_clock::now();
-		// std::chrono::duration<double> delta_time = current_time - start_time;
-		// if (delta_time.count() > 3 && !resized) {
-		// 	window_manager->SetWindowSettings(window_settings_2);
-		// 	renderer->Resize(window_settings_2.displayWidth, window_settings_2.displayHeight);
-		// 	resized = true;
-		// }
+		auto current_time = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> delta_time = current_time - start_time;
+		if (delta_time.count() > 1 && !resized) {
+			window_manager->SetWindowSettings(window_settings_2);
+			resized = true;
+			continue;
+		}
+		if (framebufferResized) {
+			renderer->Resize(window_settings_2.displayWidth, window_settings_2.displayHeight);
+			framebufferResized = false;
+			continue;
+		}
+
 		renderer->DrawFrame();
 	}
 	window_manager->DestroyWindow();
