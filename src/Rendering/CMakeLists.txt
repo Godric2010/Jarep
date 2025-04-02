@@ -34,6 +34,10 @@ target_sources(${LIBRARY_NAME} PRIVATE
         src/pipeline/VulkanRenderPass.cpp
         src/pipeline/VulkanFramebuffer.cpp
         src/pipeline/VulkanPipeline.cpp
+        src/pipeline/VulkanOffscreenTarget.cpp
+        src/steps/RenderStepManager.cpp
+        src/steps/MainPassStep.cpp
+        src/steps/FinalBlitStep.cpp
 )
 
 if (WIN32)

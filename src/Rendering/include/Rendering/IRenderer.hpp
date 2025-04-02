@@ -13,15 +13,17 @@ namespace JAREP::Rendering {
 	};
 
 	struct RenderSettings {
-		public:
-			SystemType systemType;
-			void* handle;
-			void* display;
+		SystemType systemType;
+		void* handle;
+		void* display;
 
-			std::vector<const char *> extensions;
+		std::vector<const char *> extensions;
 
-			uint32_t width = 800;
-			uint32_t height = 600;
+		uint32_t width = 800;
+		uint32_t height = 600;
+
+		uint32_t renderWidth = width;
+		uint32_t renderHeight = height;
 	};
 
 	class IRenderer {
