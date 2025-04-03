@@ -35,6 +35,10 @@ void MainPassStep::Prepare(const VkExtent2D extent, const VkFormat format) {
 	createFramebuffer();
 }
 
+void MainPassStep::BindToOutputOf(IRenderStep *previousRenderStep) {
+	throw std::runtime_error("Not implemented for main pass step!");
+}
+
 void MainPassStep::Resize(VkExtent2D newExtent) {
 	m_extent = newExtent;
 	m_offscreenTarget.reset();

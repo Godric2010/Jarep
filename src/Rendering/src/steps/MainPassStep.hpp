@@ -23,6 +23,8 @@ namespace JAREP::Rendering::Steps {
 
 			void Prepare(VkExtent2D extent, VkFormat format) override;
 
+			void BindToOutputOf(IRenderStep *previousRenderStep) override;
+
 			void Resize(VkExtent2D newExtent) override;
 
 			void Record(VkCommandBuffer cmdBuffer) override;

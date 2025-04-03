@@ -49,6 +49,10 @@
 
 `uint32_t height = 600`<br>&nbsp;&nbsp;**Description:**  
 
+`uint32_t renderWidth = width`<br>&nbsp;&nbsp;**Description:**  
+
+`uint32_t renderHeight = height`<br>&nbsp;&nbsp;**Description:**  
+
 ---
 
 ---

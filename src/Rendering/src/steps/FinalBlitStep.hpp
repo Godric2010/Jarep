@@ -4,35 +4,57 @@
 
 #pragma once
 #include "IRenderStep.hpp"
-
-namespace JAREP::Rendering::Pipeline {
-	class VulkanPipeline;
-	class VulkanRenderPass;
-}
+#include "../pipeline/VulkanRenderPass.hpp"
+#include "../pipeline/VulkanPipeline.hpp"
 
 namespace JAREP::Rendering::Steps {
-	class FinalBlitStep : public IRenderStep {
-		public:
-		FinalBlitStep(VkDevice device, VkPhysicalDevice physicalDevice);
-		~FinalBlitStep() override;
-		FinalBlitStep(const FinalBlitStep&) = delete;
-		FinalBlitStep& operator=(const FinalBlitStep&) = delete;
+    class FinalBlitStep : public IRenderStep {
+    public:
+        FinalBlitStep(VkDevice device, VkPhysicalDevice physicalDevice);
 
-		void Prepare(VkExtent2D extent, VkFormat format) override;
-		void Resize(VkExtent2D newExtent) override;
-		void Record(VkCommandBuffer cmd) override;
-		VkImageView GetOutput() override;
+        ~FinalBlitStep() override;
 
-		private:
+        FinalBlitStep(const FinalBlitStep &) = delete;
 
-		VkDevice m_device;
-		VkPhysicalDevice m_physicalDevice;
-		VkExtent2D m_extent;
-		VkFormat m_format;
-		VkPipelineLayout m_pipelineLayout;
+        FinalBlitStep &operator=(const FinalBlitStep &) = delete;
 
-		std::unique_ptr<Pipeline::VulkanRenderPass> m_renderPass;
-		std::unique_ptr<Pipeline::VulkanPipeline> m_pipeline;
+        void Prepare(VkExtent2D extent, VkFormat format) override;
 
-	};
+        void BindToOutputOf(IRenderStep *previousRenderStep) override;
+
+        void Resize(VkExtent2D newExtent) override;
+
+        void Record(VkCommandBuffer cmd) override;
+
+        VkImageView GetOutput() override;
+
+        void SetTargetFramebuffer(VkFramebuffer framebuffer);
+
+    private:
+
+        void createSampler();
+        void createDescriptorSetLayout();
+        void createDescriptorPool();
+        void allocateDescriptorSet();
+        void createRenderPass();
+        void createPipeline();
+
+        VkDevice m_device;
+        VkPhysicalDevice m_physicalDevice;
+        VkExtent2D m_extent;
+        VkFormat m_format;
+        VkPipelineLayout m_pipelineLayout;
+        VkFramebuffer m_framebuffer;
+
+        VkDescriptorSetLayout m_descriptorSetLayout;
+        VkDescriptorPool m_descriptorPool;
+        VkDescriptorSet m_descriptorSet;
+
+        VkSampler m_sampler;
+
+        IRenderStep* m_previousRenderStep;
+
+        std::unique_ptr<Pipeline::VulkanRenderPass> m_renderPass;
+        std::unique_ptr<Pipeline::VulkanPipeline> m_pipeline;
+    };
 }
