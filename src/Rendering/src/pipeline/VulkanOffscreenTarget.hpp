@@ -11,7 +11,7 @@ namespace JAREP::Rendering::Pipeline {
 	class VulkanOffscreenTarget {
 		public:
 			VulkanOffscreenTarget(VkDevice device, VkPhysicalDevice physicalDevice, VkExtent2D resolution,
-			                      VkFormat format, VkRenderPass renderPass);
+			                      VkFormat format, VkRenderPass renderPass, VkCommandPool commandPool, VkQueue queue);
 
 			~VulkanOffscreenTarget();
 
@@ -22,6 +22,8 @@ namespace JAREP::Rendering::Pipeline {
 			VkFramebuffer getFramebuffer() const;
 
 			VkImageView getImageView() const;
+
+			VkImage getImage() const;
 
 			VkExtent2D getExtent() const;
 

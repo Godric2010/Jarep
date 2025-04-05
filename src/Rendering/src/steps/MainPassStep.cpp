@@ -6,147 +6,149 @@
 
 #include <iostream>
 
+#include "../core/VulkanCore.hpp"
+#include "../core/VulkanImageOperations.hpp"
+
 using namespace JAREP::Rendering::Steps;
 
 MainPassStep::MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice) {
-	m_device = device;
-	m_physicalDevice = physicalDevice;
-	m_pipelineLayout = VK_NULL_HANDLE;
-	m_format = {};
-	m_extent = {};
+    m_device = device;
+    m_physicalDevice = physicalDevice;
+    m_commandPool = VK_NULL_HANDLE;
+    m_queue = VK_NULL_HANDLE;
+    m_pipelineLayout = VK_NULL_HANDLE;
+    m_format = {};
+    m_extent = {};
 } ;
 
 MainPassStep::~MainPassStep() {
-	m_offscreenTarget.reset();
-	m_pipeline.reset();
-	if (m_pipelineLayout != VK_NULL_HANDLE) {
-		vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
-	}
-	m_renderPass.reset();
+    m_offscreenTarget.reset();
+    m_pipeline.reset();
+    if (m_pipelineLayout != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+    }
+    m_renderPass.reset();
 }
 
 
-void MainPassStep::Prepare(const VkExtent2D extent, const VkFormat format) {
-	m_extent = extent;
-	m_format = format;
+void MainPassStep::Prepare(const VkExtent2D extent, const VkFormat format, VkQueue graphicsQueue,
+                           VkCommandPool commandPool) {
+    m_extent = extent;
+    m_format = format;
+    m_commandPool = commandPool;
+    m_queue = graphicsQueue;
 
-	createRenderPass();
-	createPipeline();
-	createFramebuffer();
+    createRenderPass();
+    createPipeline();
+    createFramebuffer(commandPool, graphicsQueue);
 }
 
 void MainPassStep::BindToOutputOf(IRenderStep *previousRenderStep) {
-	throw std::runtime_error("Not implemented for main pass step!");
+    throw std::runtime_error("Not implemented for main pass step!");
 }
 
 void MainPassStep::Resize(VkExtent2D newExtent) {
-	m_extent = newExtent;
-	m_offscreenTarget.reset();
-	m_pipeline.reset();
-	m_renderPass.reset();
+    m_extent = newExtent;
+    m_offscreenTarget.reset();
+    m_pipeline.reset();
+    m_renderPass.reset();
 
-	createRenderPass();
-	createPipeline();
-	createFramebuffer();
+    createRenderPass();
+    createPipeline();
+    createFramebuffer(m_commandPool, m_queue);
 }
 
 void MainPassStep::Record(VkCommandBuffer cmdBuffer) {
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = m_renderPass->get();
+    renderPassInfo.framebuffer = m_offscreenTarget->getFramebuffer();
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = m_extent;
 
-	vkResetCommandBuffer(cmdBuffer, 0);
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
+    clearValues[1].depthStencil = {1.0f, 0};
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
 
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = 0;
+    vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	if (vkBeginCommandBuffer(cmdBuffer, &beginInfo) != VK_SUCCESS) {
-		throw std::runtime_error("failed to begin recording command buffer!");
-	}
+    std::cout << "Framebuffer extent {W: " << m_extent.width << " H:" << m_extent.height
+            << "}" << std::endl;
 
-	VkRenderPassBeginInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = m_renderPass->get();
-	renderPassInfo.framebuffer = m_offscreenTarget->getFramebuffer();
-	renderPassInfo.renderArea.offset = {0, 0};
-	renderPassInfo.renderArea.extent = m_extent;
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(m_extent.width);
+    viewport.height = static_cast<float>(m_extent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
 
-	std::array<VkClearValue, 2> clearValues{};
-	clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
-	clearValues[1].depthStencil = {1.0f, 0};
-	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-	renderPassInfo.pClearValues = clearValues.data();
+    VkRect2D scissor{};
+    scissor.extent = m_extent;
+    scissor.offset = {0, 0};
+    vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
-	vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->get());
+    vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 
-	std::cout << "Framebuffer extent {W: " << m_extent.width << " H:" << m_extent.height
-			<< "}" << std::endl;
+    vkCmdEndRenderPass(cmdBuffer);
 
-	VkViewport viewport{};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(m_extent.width);
-	viewport.height = static_cast<float>(m_extent.height);
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
-
-	VkRect2D scissor{};
-	scissor.extent = m_extent;
-	scissor.offset = {0, 0};
-	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
-
-	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->get());
-	vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
-
-	vkCmdEndRenderPass(cmdBuffer);
-
-	if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS) {
-		throw std::runtime_error("failed to record command buffer!");
-	}
+    Core::transitionImageLayout(m_device, m_commandPool, m_queue, m_offscreenTarget->getImage(),
+                                m_format,
+                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-VkImageView MainPassStep::GetOutput() {
-	return m_offscreenTarget->getImageView();
+VkImageView MainPassStep::GetOutputImageView() {
+    return m_offscreenTarget->getImageView();
+}
+
+VkImage MainPassStep::GetOutputImage() {
+    return m_offscreenTarget->getImage();
 }
 
 void MainPassStep::createRenderPass() {
-	Pipeline::RenderPassConfig config = {
-		.colorFormat = m_format,
-		.depthFormat = std::nullopt,
-		.samples = VK_SAMPLE_COUNT_1_BIT,
-	};
+    Pipeline::RenderPassConfig config = {
+        .colorFormat = m_format,
+        .depthFormat = std::nullopt,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+    };
 
-	m_renderPass = std::make_unique<Pipeline::VulkanRenderPass>(m_device, config);
+    m_renderPass = std::make_unique<Pipeline::VulkanRenderPass>(m_device, config);
 }
 
 void MainPassStep::createPipeline() {
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
-	pipelineLayoutInfo.pSetLayouts = nullptr;
-	pipelineLayoutInfo.pushConstantRangeCount = 0;
-	pipelineLayoutInfo.pPushConstantRanges = nullptr;
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 0;
+    pipelineLayoutInfo.pSetLayouts = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-	if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) !=
-	    VK_SUCCESS) {
-		throw std::runtime_error("failed to create pipeline layout!");
-	}
+    if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("failed to create pipeline layout!");
+    }
 
-	Pipeline::VulkanPipelineConfig config = {
-		.device = m_device,
-		.renderPass = m_renderPass->get(),
-		.extent = m_extent,
-		.vertexShaderPath = "triangle.vert.spv",
-		.fragmentShaderPath = "triangle.frag.spv",
-		.pipelineLayout = m_pipelineLayout,
-		.depthFormat = std::nullopt,
-		// .depthTestEnable = false,
-		// .depthWriteEnable = false,
-	};
+    Pipeline::VulkanPipelineConfig config = {
+        .device = m_device,
+        .renderPass = m_renderPass->get(),
+        .extent = m_extent,
+        .vertexShaderPath = "triangle.vert.spv",
+        .fragmentShaderPath = "triangle.frag.spv",
+        .pipelineLayout = m_pipelineLayout,
+        .depthFormat = std::nullopt,
+        // .depthTestEnable = false,
+        // .depthWriteEnable = false,
+    };
 
-	m_pipeline = std::make_unique<Pipeline::VulkanPipeline>(config);
+    m_pipeline = std::make_unique<Pipeline::VulkanPipeline>(config);
 }
 
-void MainPassStep::createFramebuffer() {
-	m_offscreenTarget = std::make_unique<Pipeline::VulkanOffscreenTarget>(
-		m_device, m_physicalDevice, m_extent, m_format, m_renderPass->get());
+void MainPassStep::createFramebuffer(VkCommandPool commandPool, VkQueue queue) {
+    m_offscreenTarget = std::make_unique<Pipeline::VulkanOffscreenTarget>(
+        m_device, m_physicalDevice, m_extent, m_format, m_renderPass->get(), commandPool, queue);
 }

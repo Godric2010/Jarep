@@ -14,8 +14,10 @@ namespace JAREP::Rendering::Steps {
 			 * Prepare the render step with e.g. Resize, Resource-Rebuild, etc.
 			 * @param extent The extent of the framebuffer to render to.
 			 * @param format The image format used for this render step.
+			 * @param graphicsQueue
+			 * @param commandPool
 			 */
-			virtual void Prepare(VkExtent2D extent, VkFormat format) = 0;
+			virtual void Prepare(VkExtent2D extent, VkFormat format, VkQueue graphicsQueue, VkCommandPool commandPool) = 0;
 
 			/**
 			 * Bind the output of another render step to this one, to create a chain of processing.
@@ -39,6 +41,8 @@ namespace JAREP::Rendering::Steps {
 			 * Return the result of this render step as VKImageView.
 			 * @return The result VkImageView of this Render Step
 			 */
-			virtual VkImageView GetOutput() = 0;
+			virtual VkImageView GetOutputImageView() = 0;
+
+			virtual VkImage GetOutputImage() = 0;
 	};
 }

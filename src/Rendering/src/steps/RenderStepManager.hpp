@@ -18,6 +18,8 @@ namespace JAREP::Rendering::Steps {
 
 			void Execute(VkCommandBuffer commandBuffer);
 
+			void SetRenderResolution(VkExtent2D resolution);
+
 			void Resize(VkExtent2D newExtent);
 
 		private:

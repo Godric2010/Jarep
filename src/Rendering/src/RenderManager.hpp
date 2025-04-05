@@ -9,6 +9,7 @@
 #include "pipeline/VulkanRenderPass.hpp"
 #include "pipeline/VulkanSwapchain.hpp"
 #include "Rendering/IRenderer.hpp"
+#include "steps/RenderStepManager.hpp"
 
 namespace JAREP::Rendering {
 	struct RenderSettings;
@@ -23,6 +24,8 @@ namespace JAREP::Rendering {
 
 			void Resize(uint32_t width, uint32_t height) override;
 
+			void SetRenderResolution(uint32_t resX, uint32_t resY) override;
+
 			void DrawFrame() override;
 
 			void Shutdown() override;
@@ -31,12 +34,15 @@ namespace JAREP::Rendering {
 			std::unique_ptr<Core::VulkanCore> m_core;
 			std::unique_ptr<Pipeline::VulkanSwapchain> m_swapchain;
 
+			std::unique_ptr<Steps::RenderStepManager> m_renderStepManager;
+
 			std::unique_ptr<Pipeline::VulkanRenderPass> m_renderPass;
 			std::vector<std::unique_ptr<Pipeline::VulkanFramebuffer>> m_framebuffers;
 			std::unique_ptr<Pipeline::VulkanPipeline> m_pipeline;
 			VkPipelineLayout m_pipelineLayout;
 
 			VkCommandPool m_commandPool;
+			VkCommandPool m_oneTimeSubmitPool;
 			std::vector<VkCommandBuffer> m_commandBuffers;
 
 			std::vector<VkSemaphore> m_imageAvailableSemaphores;
@@ -44,15 +50,12 @@ namespace JAREP::Rendering {
 			std::vector<VkFence> m_inFlightFences;
 			size_t m_currentFrame;
 			uint32_t m_acquiredImageIndex;
+			VkExtent2D m_renderResolution;
 
 
 			void initSwapchain(uint32_t width, uint32_t height);
 
-			void createRenderPass();
-
-			void createFramebuffers();
-
-			void createPipeline();
+			void createRenderSteps();
 
 			void createSyncObjects();
 
@@ -60,9 +63,9 @@ namespace JAREP::Rendering {
 
 			void destroySyncObjects();
 
-			void beginFrame();
+			void createOneTimeSubmitPool();
 
-			void recordCommandBuffer(VkCommandBuffer cmdBuffer, uint32_t imageIndex);
+			void beginFrame();
 
 			void endFrame(uint32_t imageIndex);
 	};

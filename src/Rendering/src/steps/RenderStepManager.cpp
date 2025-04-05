@@ -7,7 +7,7 @@
 using namespace JAREP::Rendering::Steps;
 
 RenderStepManager::RenderStepManager() {
-    m_renderSteps = std::vector<std::unique_ptr<IRenderStep>>();
+    m_renderSteps = std::vector<std::unique_ptr<IRenderStep> >();
 }
 
 RenderStepManager::~RenderStepManager() {
@@ -19,13 +19,30 @@ void RenderStepManager::AddStep(std::unique_ptr<IRenderStep> step) {
 }
 
 void RenderStepManager::Execute(VkCommandBuffer commandBuffer) {
+    vkResetCommandBuffer(commandBuffer, 0);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
     for (const auto &step: m_renderSteps) {
         step->Record(commandBuffer);
+    }
+
+    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to record command buffer!");
+    }
+}
+
+void RenderStepManager::SetRenderResolution(VkExtent2D resolution) {
+    for (size_t i = 0; i < m_renderSteps.size() - 1; i++) {
+        m_renderSteps[i]->Resize(resolution);
     }
 }
 
 void RenderStepManager::Resize(VkExtent2D newExtent) {
-    for (const auto &step: m_renderSteps) {
-        step->Prepare(newExtent, VK_FORMAT_B8G8R8A8_SRGB);
-    }
+    size_t lastStep = m_renderSteps.size() - 1;
+    m_renderSteps[lastStep]->Resize(newExtent);
 }

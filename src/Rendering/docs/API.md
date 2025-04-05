@@ -20,6 +20,9 @@
 ### `void Resize(uint32_t width, uint32_t height)`
 
 
+### `void SetRenderResolution(uint32_t resX, uint32_t resY)`
+
+
 ### `void DrawFrame()`
 
 

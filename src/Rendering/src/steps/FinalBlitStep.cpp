@@ -5,15 +5,24 @@
 #include "FinalBlitStep.hpp"
 
 #include <filesystem>
+#include <utility>
+
+#include "../core/VulkanCore.hpp"
+#include "../core/VulkanImageOperations.hpp"
+#include "../pipeline/VulkanFramebuffer.hpp"
 
 using namespace JAREP::Rendering::Steps;
 
-FinalBlitStep::FinalBlitStep(VkDevice device, VkPhysicalDevice physicalDevice) {
+FinalBlitStep::FinalBlitStep(VkDevice device, VkPhysicalDevice physicalDevice,
+                             const std::vector<VkImageView> &swapchainImageViews,
+                             std::function<uint32_t()> getFramebufferIndex) {
     m_device = device;
     m_physicalDevice = physicalDevice;
-    m_extent = {};
+    m_getFramebufferIndex = std::move(getFramebufferIndex);
+    m_swapchainImageViews = swapchainImageViews;
+    m_extent = VkExtent2D();
     m_pipelineLayout = VK_NULL_HANDLE;
-    m_framebuffer = VK_NULL_HANDLE;
+    m_framebuffers = std::vector<std::unique_ptr<Pipeline::VulkanFramebuffer> >();
     m_renderPass = VK_NULL_HANDLE;
     m_pipeline = VK_NULL_HANDLE;
     m_previousRenderStep = nullptr;
@@ -43,15 +52,18 @@ FinalBlitStep::~FinalBlitStep() {
     m_renderPass.reset();
 }
 
-void FinalBlitStep::Prepare(VkExtent2D extent, VkFormat format) {
+void FinalBlitStep::Prepare(VkExtent2D extent, VkFormat format, VkQueue graphicsQueue, VkCommandPool commandPool) {
     m_extent = extent;
     m_format = format;
+    m_graphicsQueue = graphicsQueue;
+    m_commandPool = commandPool;
 
     createSampler();
     createDescriptorSetLayout();
     createDescriptorPool();
     allocateDescriptorSet();
     createRenderPass();
+    createFramebuffers();
     createPipeline();
 }
 
@@ -60,7 +72,7 @@ void FinalBlitStep::BindToOutputOf(IRenderStep *previousRenderStep) {
 
     VkDescriptorImageInfo imageInfo = {};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = previousRenderStep->GetOutput();
+    imageInfo.imageView = previousRenderStep->GetOutputImageView();
     imageInfo.sampler = m_sampler;
 
     VkWriteDescriptorSet descriptorWrite = {};
@@ -78,29 +90,27 @@ void FinalBlitStep::BindToOutputOf(IRenderStep *previousRenderStep) {
 void FinalBlitStep::Resize(VkExtent2D newExtent) {
     m_extent = newExtent;
     m_pipeline.reset();
+    m_framebuffers.clear();
     m_renderPass.reset();
 
     createRenderPass();
+    createFramebuffers();
     createPipeline();
 }
 
 void FinalBlitStep::Record(VkCommandBuffer cmd) {
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0;
+    uint32_t index = m_getFramebufferIndex();
 
-    if (vkBeginCommandBuffer(cmd, &beginInfo) != VK_SUCCESS) {
-        throw std::runtime_error("failed to begin recording command buffer!");
-    }
+
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass->get();
-    renderPassInfo.framebuffer = m_framebuffer;
+    renderPassInfo.framebuffer = m_framebuffers[index]->get();
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_extent;
 
-    std::array<VkClearValue, 2> clearValues{};
+    std::array<VkClearValue, 1> clearValues{};
     clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
@@ -126,18 +136,14 @@ void FinalBlitStep::Record(VkCommandBuffer cmd) {
     vkCmdDraw(cmd, 3, 1, 0, 0);
 
     vkCmdEndRenderPass(cmd);
-
-    if (vkEndCommandBuffer(cmd) != VK_SUCCESS) {
-        throw std::runtime_error("failed to record command buffer!");
-    }
 }
 
-VkImageView FinalBlitStep::GetOutput() {
+VkImageView FinalBlitStep::GetOutputImageView() {
     return VK_NULL_HANDLE;
 }
 
-void FinalBlitStep::SetTargetFramebuffer(VkFramebuffer framebuffer) {
-    m_framebuffer = framebuffer;
+VkImage FinalBlitStep::GetOutputImage() {
+    return VK_NULL_HANDLE;
 }
 
 void FinalBlitStep::createSampler() {
@@ -149,7 +155,9 @@ void FinalBlitStep::createSampler() {
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
-    vkCreateSampler(m_device, &samplerInfo, nullptr, &m_sampler);
+    if (vkCreateSampler(m_device, &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create sampler!");
+    }
 }
 
 void FinalBlitStep::createDescriptorSetLayout() {
@@ -165,7 +173,9 @@ void FinalBlitStep::createDescriptorSetLayout() {
     layoutInfo.bindingCount = 1;
     layoutInfo.pBindings = &binding;
 
-    vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout);
+    if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create descriptor set layout!");
+    }
 }
 
 void FinalBlitStep::createDescriptorPool() {
@@ -179,7 +189,10 @@ void FinalBlitStep::createDescriptorPool() {
     poolInfo.pPoolSizes = &poolSize;
     poolInfo.maxSets = 1;
 
-    vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool);
+
+    if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create descriptor pool!");
+    }
 }
 
 void FinalBlitStep::allocateDescriptorSet() {
@@ -189,7 +202,9 @@ void FinalBlitStep::allocateDescriptorSet() {
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &m_descriptorSetLayout;
 
-    vkAllocateDescriptorSets(m_device, &allocInfo, &m_descriptorSet);
+    if (vkAllocateDescriptorSets(m_device, &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate descriptor sets!");
+    }
 }
 
 
@@ -229,4 +244,22 @@ void FinalBlitStep::createPipeline() {
     };
 
     m_pipeline = std::make_unique<Pipeline::VulkanPipeline>(config);
+}
+
+void FinalBlitStep::createFramebuffers() {
+    m_framebuffers.clear();
+
+    std::optional<VkImageView> depthView = std::nullopt;
+    for (auto &imageView: m_swapchainImageViews) {
+        std::vector<VkImageView> attachments = {imageView};
+        if (depthView.has_value()) {
+            attachments.push_back(depthView.value());
+        }
+
+        m_framebuffers.push_back(std::make_unique<Pipeline::VulkanFramebuffer>(
+            m_device,
+            m_renderPass->get(),
+            m_extent,
+            attachments));
+    }
 }

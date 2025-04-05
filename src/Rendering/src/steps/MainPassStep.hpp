@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include <functional>
 #include <vulkan/vulkan.hpp>
 
 #include "IRenderStep.hpp"
@@ -21,7 +22,7 @@ namespace JAREP::Rendering::Steps {
 
 			MainPassStep& operator=(const MainPassStep&) = delete;
 
-			void Prepare(VkExtent2D extent, VkFormat format) override;
+			void Prepare(VkExtent2D extent, VkFormat format, VkQueue graphicsQueue, VkCommandPool commandPool) override;
 
 			void BindToOutputOf(IRenderStep *previousRenderStep) override;
 
@@ -29,11 +30,13 @@ namespace JAREP::Rendering::Steps {
 
 			void Record(VkCommandBuffer cmdBuffer) override;
 
-			VkImageView GetOutput() override;
+			VkImageView GetOutputImageView() override;
+
+			VkImage GetOutputImage() override;
 
 		private:
 
-			void createFramebuffer();
+			void createFramebuffer(VkCommandPool commandPool, VkQueue queue);
 			void createRenderPass();
 			void createPipeline();
 
@@ -43,6 +46,8 @@ namespace JAREP::Rendering::Steps {
 			VkExtent2D m_extent;
 			VkFormat m_format;
 			VkPipelineLayout m_pipelineLayout;
+			VkCommandPool m_commandPool;
+			VkQueue m_queue;
 
 			std::unique_ptr<Pipeline::VulkanOffscreenTarget> m_offscreenTarget;
 			std::unique_ptr<Pipeline::VulkanPipeline> m_pipeline;
