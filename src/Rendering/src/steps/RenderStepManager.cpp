@@ -19,7 +19,6 @@ void RenderStepManager::AddStep(std::unique_ptr<IRenderStep> step) {
 }
 
 void RenderStepManager::Execute(VkCommandBuffer commandBuffer) {
-    vkResetCommandBuffer(commandBuffer, 0);
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

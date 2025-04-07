@@ -22,7 +22,7 @@ namespace JAREP::Rendering::Steps {
 
 			MainPassStep& operator=(const MainPassStep&) = delete;
 
-			void Prepare(VkExtent2D extent, VkFormat format, VkQueue graphicsQueue, VkCommandPool commandPool) override;
+			void Prepare(VkExtent2D extent, VkFormat format) override;
 
 			void BindToOutputOf(IRenderStep *previousRenderStep) override;
 
@@ -36,7 +36,7 @@ namespace JAREP::Rendering::Steps {
 
 		private:
 
-			void createFramebuffer(VkCommandPool commandPool, VkQueue queue);
+			void createFramebuffer();
 			void createRenderPass();
 			void createPipeline();
 
@@ -46,8 +46,6 @@ namespace JAREP::Rendering::Steps {
 			VkExtent2D m_extent;
 			VkFormat m_format;
 			VkPipelineLayout m_pipelineLayout;
-			VkCommandPool m_commandPool;
-			VkQueue m_queue;
 
 			std::unique_ptr<Pipeline::VulkanOffscreenTarget> m_offscreenTarget;
 			std::unique_ptr<Pipeline::VulkanPipeline> m_pipeline;

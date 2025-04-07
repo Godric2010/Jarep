@@ -12,7 +12,7 @@ VulkanRenderPass::VulkanRenderPass(VkDevice device, const RenderPassConfig&confi
 	m_config = config;
 	m_renderPass = VK_NULL_HANDLE;
 
-	createRenderPass();
+	createRenderPass(config.outputLayout);
 }
 
 VulkanRenderPass::~VulkanRenderPass() {
@@ -25,7 +25,7 @@ VkRenderPass VulkanRenderPass::get() const {
 	return m_renderPass;
 }
 
-void VulkanRenderPass::createRenderPass() {
+void VulkanRenderPass::createRenderPass(VkImageLayout outputLayout) {
 	VkAttachmentDescription colorAttachment = {};
 	colorAttachment.format = m_config.colorFormat;
 	colorAttachment.samples = m_config.samples;
@@ -34,7 +34,7 @@ void VulkanRenderPass::createRenderPass() {
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachment.finalLayout = outputLayout;
 
 	VkAttachmentReference colorAttachmentRef = {};
 	colorAttachmentRef.attachment = 0;

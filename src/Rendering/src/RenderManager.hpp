@@ -42,7 +42,6 @@ namespace JAREP::Rendering {
 			VkPipelineLayout m_pipelineLayout;
 
 			VkCommandPool m_commandPool;
-			VkCommandPool m_oneTimeSubmitPool;
 			std::vector<VkCommandBuffer> m_commandBuffers;
 
 			std::vector<VkSemaphore> m_imageAvailableSemaphores;
@@ -50,12 +49,13 @@ namespace JAREP::Rendering {
 			std::vector<VkFence> m_inFlightFences;
 			size_t m_currentFrame;
 			uint32_t m_acquiredImageIndex;
+			VkExtent2D m_windowResolution;
 			VkExtent2D m_renderResolution;
 
 
 			void initSwapchain(uint32_t width, uint32_t height);
 
-			void createRenderSteps();
+			void createRenderSteps() const;
 
 			void createSyncObjects();
 

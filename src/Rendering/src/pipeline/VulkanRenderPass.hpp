@@ -11,6 +11,7 @@ namespace JAREP::Rendering::Pipeline {
 		VkFormat colorFormat;
 		std::optional<VkFormat> depthFormat = std::nullopt;
 		VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
+		VkImageLayout outputLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	};
 
 	/**
@@ -36,7 +37,7 @@ namespace JAREP::Rendering::Pipeline {
 			VkRenderPass get() const;
 
 		private:
-			void createRenderPass();
+			void createRenderPass(VkImageLayout outputLayout);
 
 			VkDevice m_device;
 			RenderPassConfig m_config;
