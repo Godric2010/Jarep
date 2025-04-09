@@ -12,7 +12,8 @@
 using namespace JAREP::Rendering::Pipeline;
 
 VulkanOffscreenTarget::VulkanOffscreenTarget(VkDevice device, VkPhysicalDevice physicalDevice, VkExtent2D resolution,
-                                             VkFormat format, VkRenderPass renderPass) {
+                                             VkFormat format, VkRenderPass renderPass,
+                                             std::optional<VkImageView> depthImageView) {
 	m_device = device;
 	m_physicalDevice = physicalDevice;
 	m_extent = resolution;
@@ -25,7 +26,7 @@ VulkanOffscreenTarget::VulkanOffscreenTarget(VkDevice device, VkPhysicalDevice p
 
 	createImage();
 	createImageView();
-	createFramebuffer(renderPass);
+	createFramebuffer(renderPass, depthImageView);
 }
 
 VulkanOffscreenTarget::~VulkanOffscreenTarget() {
@@ -122,8 +123,11 @@ void VulkanOffscreenTarget::createImageView() {
 	}
 }
 
-void VulkanOffscreenTarget::createFramebuffer(VkRenderPass renderPass) {
-	std::array<VkImageView, 1> attachments = {m_imageView};
+void VulkanOffscreenTarget::createFramebuffer(VkRenderPass renderPass, std::optional<VkImageView> depthImageView) {
+	std::vector<VkImageView> attachments = {m_imageView};
+	if (depthImageView.has_value()) {
+		attachments.push_back(depthImageView.value());
+	}
 
 	VkFramebufferCreateInfo framebufferInfo = {};
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;

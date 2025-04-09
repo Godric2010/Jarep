@@ -139,13 +139,13 @@ void VulkanPipeline::createGraphicsPipeline() {
 	multisampleInfo.sampleShadingEnable = VK_FALSE;
 	multisampleInfo.rasterizationSamples = m_config.msaaSamples;
 
-	// VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {};
-	// depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	// depthStencilInfo.depthTestEnable = m_config.depthTestEnable ? VK_TRUE : VK_FALSE;
-	// depthStencilInfo.depthWriteEnable = m_config.depthWriteEnable ? VK_TRUE : VK_FALSE;
-	// depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-	// depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-	// depthStencilInfo.stencilTestEnable = VK_FALSE;
+	VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {};
+	depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencilInfo.depthTestEnable = m_config.depthTestEnable ? VK_TRUE : VK_FALSE;
+	depthStencilInfo.depthWriteEnable = m_config.depthWriteEnable ? VK_TRUE : VK_FALSE;
+	depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+	depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+	depthStencilInfo.stencilTestEnable = VK_FALSE;
 
 	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
@@ -167,7 +167,7 @@ void VulkanPipeline::createGraphicsPipeline() {
 	pipelineInfo.pViewportState = &viewportStateInfo;
 	pipelineInfo.pRasterizationState = &rasterizerInfo;
 	pipelineInfo.pMultisampleState = &multisampleInfo;
-	//pipelineInfo.pDepthStencilState = m_config.depthFormat.has_value() ? &depthStencilInfo : nullptr;
+	pipelineInfo.pDepthStencilState = m_config.depthFormat.has_value() ? &depthStencilInfo : nullptr;
 	pipelineInfo.pColorBlendState = &colorBlendingInfo;
 	pipelineInfo.layout = m_config.pipelineLayout;
 	pipelineInfo.renderPass = m_config.renderPass;

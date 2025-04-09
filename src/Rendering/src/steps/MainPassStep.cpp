@@ -7,7 +7,7 @@
 #include <iostream>
 
 #include "../core/VulkanCore.hpp"
-#include "../core/VulkanImageOperations.hpp"
+#include "../pipeline/VulkanDepthBuffer.hpp"
 
 using namespace JAREP::Rendering::Steps;
 
@@ -33,6 +33,7 @@ void MainPassStep::Prepare(const VkExtent2D extent, const VkFormat format) {
 	m_extent = extent;
 	m_format = format;
 
+	createDepthImage();
 	createRenderPass();
 	createPipeline();
 	createFramebuffer();
@@ -54,8 +55,6 @@ void MainPassStep::Resize(VkExtent2D newExtent) {
 }
 
 void MainPassStep::Record(VkCommandBuffer cmdBuffer) {
-	// m_offscreenTarget->TransitionImage(cmdBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = m_renderPass->get();
@@ -89,9 +88,6 @@ void MainPassStep::Record(VkCommandBuffer cmdBuffer) {
 	vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmdBuffer);
-
-	// // m_offscreenTarget->TransitionImage(cmdBuffer, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-	//                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 VkImageView MainPassStep::GetOutputImageView() {
@@ -105,7 +101,7 @@ VkImage MainPassStep::GetOutputImage() {
 void MainPassStep::createRenderPass() {
 	Pipeline::RenderPassConfig config = {
 		.colorFormat = m_format,
-		.depthFormat = std::nullopt,
+		.depthFormat = std::make_optional(m_depthImageBuffer->getFormat()),
 		.samples = VK_SAMPLE_COUNT_1_BIT,
 		.outputLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	};
@@ -133,15 +129,22 @@ void MainPassStep::createPipeline() {
 		.vertexShaderPath = "triangle.vert.spv",
 		.fragmentShaderPath = "triangle.frag.spv",
 		.pipelineLayout = m_pipelineLayout,
-		.depthFormat = std::nullopt,
-		// .depthTestEnable = false,
-		// .depthWriteEnable = false,
+		.depthTestEnable = false,
+		.depthWriteEnable = false,
+		.depthFormat = m_depthImageBuffer->getFormat(),
+
 	};
 
 	m_pipeline = std::make_unique<Pipeline::VulkanPipeline>(config);
 }
 
 void MainPassStep::createFramebuffer() {
+	auto depthImageView = std::make_optional(m_depthImageBuffer->getImageView());
 	m_offscreenTarget = std::make_unique<Pipeline::VulkanOffscreenTarget>(
-		m_device, m_physicalDevice, m_extent, m_format, m_renderPass->get());
+		m_device, m_physicalDevice, m_extent, m_format, m_renderPass->get(), depthImageView);
+}
+
+void MainPassStep::createDepthImage() {
+	m_depthImageBuffer = std::make_unique<Pipeline::VulkanDepthBuffer>(m_device, m_physicalDevice, m_extent,
+	                                                                   true);
 }

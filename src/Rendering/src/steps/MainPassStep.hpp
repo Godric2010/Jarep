@@ -11,6 +11,10 @@
 #include "../pipeline/VulkanPipeline.hpp"
 #include "../pipeline/VulkanRenderPass.hpp"
 
+namespace JAREP::Rendering::Pipeline {
+	class VulkanDepthBuffer;
+}
+
 namespace JAREP::Rendering::Steps {
 	class MainPassStep : public IRenderStep {
 		public:
@@ -37,6 +41,7 @@ namespace JAREP::Rendering::Steps {
 		private:
 
 			void createFramebuffer();
+			void createDepthImage();
 			void createRenderPass();
 			void createPipeline();
 
@@ -47,6 +52,7 @@ namespace JAREP::Rendering::Steps {
 			VkFormat m_format;
 			VkPipelineLayout m_pipelineLayout;
 
+			std::unique_ptr<Pipeline::VulkanDepthBuffer> m_depthImageBuffer;
 			std::unique_ptr<Pipeline::VulkanOffscreenTarget> m_offscreenTarget;
 			std::unique_ptr<Pipeline::VulkanPipeline> m_pipeline;
 			std::unique_ptr<Pipeline::VulkanRenderPass> m_renderPass;

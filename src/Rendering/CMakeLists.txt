@@ -35,6 +35,7 @@ target_sources(${LIBRARY_NAME} PRIVATE
         src/pipeline/VulkanFramebuffer.cpp
         src/pipeline/VulkanPipeline.cpp
         src/pipeline/VulkanOffscreenTarget.cpp
+        src/pipeline/VulkanDepthBuffer.cpp
         src/steps/RenderStepManager.cpp
         src/steps/MainPassStep.cpp
         src/steps/FinalBlitStep.cpp
