@@ -11,6 +11,7 @@ namespace JAREP::Rendering::Pipeline {
 		VkFormat colorFormat;
 		std::optional<VkFormat> depthFormat = std::nullopt;
 		VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
+		bool multisamplingEnabled = false;
 		VkImageLayout outputLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	};
 

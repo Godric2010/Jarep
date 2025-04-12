@@ -11,9 +11,10 @@
 
 using namespace JAREP::Rendering::Steps;
 
-MainPassStep::MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice) {
+MainPassStep::MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkSampleCountFlagBits sampleCountFlags) {
 	m_device = device;
 	m_physicalDevice = physicalDevice;
+	m_sampleCountFlag = sampleCountFlags;
 	m_pipelineLayout = VK_NULL_HANDLE;
 	m_format = {};
 	m_extent = {};
@@ -62,9 +63,20 @@ void MainPassStep::Record(VkCommandBuffer cmdBuffer) {
 	renderPassInfo.renderArea.offset = {0, 0};
 	renderPassInfo.renderArea.extent = m_extent;
 
-	std::array<VkClearValue, 2> clearValues{};
-	clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
-	clearValues[1].depthStencil = {1.0f, 0};
+	std::vector<VkClearValue> clearValues;
+	VkClearValue clearColor = {};
+	clearColor.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+	clearValues.push_back(clearColor);
+
+	if (m_sampleCountFlag != VK_SAMPLE_COUNT_1_BIT) {
+		VkClearValue clearResolve = {};
+		clearValues.push_back(clearResolve);
+	}
+
+	VkClearValue clearDepth = {};
+	clearDepth.depthStencil = {1.0f, 0};
+	clearValues.push_back(clearDepth);
+
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	renderPassInfo.pClearValues = clearValues.data();
 
@@ -102,7 +114,8 @@ void MainPassStep::createRenderPass() {
 	Pipeline::RenderPassConfig config = {
 		.colorFormat = m_format,
 		.depthFormat = std::make_optional(m_depthImageBuffer->getFormat()),
-		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.samples = m_sampleCountFlag,
+		.multisamplingEnabled = m_sampleCountFlag != VK_SAMPLE_COUNT_1_BIT,
 		.outputLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	};
 
@@ -129,6 +142,7 @@ void MainPassStep::createPipeline() {
 		.vertexShaderPath = "triangle.vert.spv",
 		.fragmentShaderPath = "triangle.frag.spv",
 		.pipelineLayout = m_pipelineLayout,
+		.msaaSamples = m_sampleCountFlag,
 		.depthTestEnable = false,
 		.depthWriteEnable = false,
 		.depthFormat = m_depthImageBuffer->getFormat(),
@@ -141,10 +155,10 @@ void MainPassStep::createPipeline() {
 void MainPassStep::createFramebuffer() {
 	auto depthImageView = std::make_optional(m_depthImageBuffer->getImageView());
 	m_offscreenTarget = std::make_unique<Pipeline::VulkanOffscreenTarget>(
-		m_device, m_physicalDevice, m_extent, m_format, m_renderPass->get(), depthImageView);
+		m_device, m_physicalDevice, m_extent, m_format, m_renderPass->get(), depthImageView, m_sampleCountFlag);
 }
 
 void MainPassStep::createDepthImage() {
 	m_depthImageBuffer = std::make_unique<Pipeline::VulkanDepthBuffer>(m_device, m_physicalDevice, m_extent,
-	                                                                   true);
+	                                                                   m_sampleCountFlag, true);
 }

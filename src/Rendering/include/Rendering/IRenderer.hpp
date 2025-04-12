@@ -24,6 +24,8 @@ namespace JAREP::Rendering {
 
         uint32_t renderWidth = width;
         uint32_t renderHeight = height;
+
+        uint8_t msaa = 1;
     };
 
     class IRenderer {

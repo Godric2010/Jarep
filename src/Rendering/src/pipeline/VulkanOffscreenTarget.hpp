@@ -11,7 +11,8 @@ namespace JAREP::Rendering::Pipeline {
 	class VulkanOffscreenTarget {
 		public:
 			VulkanOffscreenTarget(VkDevice device, VkPhysicalDevice physicalDevice, VkExtent2D resolution,
-			                      VkFormat format, VkRenderPass renderPass, std::optional<VkImageView> depthImageView);
+			                      VkFormat format, VkRenderPass renderPass, std::optional<VkImageView> depthImageView,
+			                      VkSampleCountFlagBits sampleCountFlagBits);
 
 			~VulkanOffscreenTarget();
 
@@ -28,11 +29,17 @@ namespace JAREP::Rendering::Pipeline {
 			VkExtent2D getExtent() const;
 
 		private:
-			void createImage();
+			void createImage(VkSampleCountFlagBits sampleCountFlagBits);
+
+			void createResolveImage();
 
 			void createImageView();
 
+			void createResolveImageView();
+
 			void createFramebuffer(VkRenderPass renderPass, std::optional<VkImageView> depthImageView);
+
+			bool m_multisamplingEnabled;
 
 			VkDevice m_device;
 			VkPhysicalDevice m_physicalDevice;
@@ -43,5 +50,9 @@ namespace JAREP::Rendering::Pipeline {
 			VkImageView m_imageView;
 			VkFramebuffer m_framebuffer;
 			VkDeviceMemory m_memory;
+
+			VkImage m_resolveImage;
+			VkImageView m_resolveImageView;
+			VkDeviceMemory m_resolveMemory;
 	};
 }

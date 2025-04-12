@@ -14,6 +14,7 @@
 namespace JAREP::Rendering {
 	struct RenderSettings;
 	constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
 	class RenderManager : public IRenderer {
 		public:
 			RenderManager();
@@ -51,7 +52,9 @@ namespace JAREP::Rendering {
 			uint32_t m_acquiredImageIndex;
 			VkExtent2D m_windowResolution;
 			VkExtent2D m_renderResolution;
+			VkSampleCountFlagBits m_sampleCountFlag;
 
+			void clampAndSetSampleCount(uint8_t requestedSample);
 
 			void initSwapchain(uint32_t width, uint32_t height);
 
@@ -62,8 +65,6 @@ namespace JAREP::Rendering {
 			void allocateCommandBuffers();
 
 			void destroySyncObjects();
-
-			void createOneTimeSubmitPool();
 
 			void beginFrame();
 

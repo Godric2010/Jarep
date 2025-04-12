@@ -43,6 +43,10 @@ VkQueue VulkanDevice::getPresentQueue() const {
 	return m_presentQueue;
 }
 
+VkSampleCountFlagBits VulkanDevice::getMaxSampleCount() const {
+	return m_maxSampleCount;
+}
+
 
 void VulkanDevice::pickPhysicalDevice() {
 	uint32_t physicalDeviceCount = 0;
@@ -56,6 +60,7 @@ void VulkanDevice::pickPhysicalDevice() {
 	for (const auto&device: physicalDevices) {
 		if (isDeviceSuitable(device)) {
 			m_physicalDevice = device;
+			getMaxUsableSampleCount();
 			break;
 		}
 	}
@@ -83,6 +88,41 @@ bool VulkanDevice::checkDeviceExtensionSupport(VkPhysicalDevice device) const {
 	}
 	return required.empty();
 }
+
+void VulkanDevice::getMaxUsableSampleCount() {
+	VkPhysicalDeviceProperties deviceProperties;
+	vkGetPhysicalDeviceProperties(m_physicalDevice, &deviceProperties);
+
+	VkSampleCountFlags counts = deviceProperties.limits.framebufferColorSampleCounts & deviceProperties.limits.
+	                            framebufferDepthSampleCounts;
+	if (counts & VK_SAMPLE_COUNT_64_BIT) {
+		m_maxSampleCount = VK_SAMPLE_COUNT_64_BIT;
+		return;
+	}
+	if (counts & VK_SAMPLE_COUNT_32_BIT) {
+		m_maxSampleCount = VK_SAMPLE_COUNT_32_BIT;
+		return;
+	}
+	if (counts & VK_SAMPLE_COUNT_16_BIT) {
+		m_maxSampleCount = VK_SAMPLE_COUNT_16_BIT;
+		return;
+	}
+	if (counts & VK_SAMPLE_COUNT_8_BIT) {
+		m_maxSampleCount = VK_SAMPLE_COUNT_8_BIT;
+		return;
+	}
+	if (counts & VK_SAMPLE_COUNT_4_BIT) {
+		m_maxSampleCount = VK_SAMPLE_COUNT_4_BIT;
+		return;
+	}
+	if (counts & VK_SAMPLE_COUNT_2_BIT) {
+		m_maxSampleCount = VK_SAMPLE_COUNT_2_BIT;
+		return;
+	}
+
+	m_maxSampleCount = VK_SAMPLE_COUNT_1_BIT;
+}
+
 
 void VulkanDevice::createLogicalDevice() {
 	m_queueFamilies = {};
@@ -162,4 +202,3 @@ VulkanDevice::QueueFamilyIndices VulkanDevice::findQueueFamilies(VkPhysicalDevic
 std::optional<uint32_t> VulkanDevice::getGraphicsQueueFamilyIndex() const {
 	return m_queueFamilies.graphicsFamily;
 }
-

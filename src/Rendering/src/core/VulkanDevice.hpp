@@ -29,6 +29,8 @@ namespace JAREP::Rendering::Core {
 
 			VkQueue getPresentQueue() const;
 
+			VkSampleCountFlagBits getMaxSampleCount() const;
+
 			std::optional<uint32_t> getGraphicsQueueFamilyIndex() const;
 
 			uint32_t findMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties) const;
@@ -53,6 +55,8 @@ namespace JAREP::Rendering::Core {
 
 			bool checkDeviceExtensionSupport(VkPhysicalDevice device) const;
 
+			void getMaxUsableSampleCount();
+
 			VkInstance m_instance;
 			VkSurfaceKHR m_surface;
 			VkPhysicalDevice m_physicalDevice;
@@ -60,6 +64,7 @@ namespace JAREP::Rendering::Core {
 			VkQueue m_graphicsQueue;
 			VkQueue m_presentQueue;
 			QueueFamilyIndices m_queueFamilies;
+			VkSampleCountFlagBits m_maxSampleCount;
 
 			const std::vector<const char *> m_deviceExtensions = {
 				VK_KHR_SWAPCHAIN_EXTENSION_NAME

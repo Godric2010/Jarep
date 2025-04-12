@@ -43,6 +43,7 @@ int main() {
 	render_settings.display = display;
 	render_settings.width = window_settings.displayWidth;
 	render_settings.height = window_settings.displayHeight;
+	render_settings.msaa = 8;
 
 
 	auto* renderer = JAREP::Rendering::CreateRenderer();

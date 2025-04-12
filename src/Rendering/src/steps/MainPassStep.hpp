@@ -18,7 +18,7 @@ namespace JAREP::Rendering::Pipeline {
 namespace JAREP::Rendering::Steps {
 	class MainPassStep : public IRenderStep {
 		public:
-			MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice);
+			MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkSampleCountFlagBits sampleCountFlags);
 
 			~MainPassStep() override;
 
@@ -28,7 +28,7 @@ namespace JAREP::Rendering::Steps {
 
 			void Prepare(VkExtent2D extent, VkFormat format) override;
 
-			void BindToOutputOf(IRenderStep *previousRenderStep) override;
+			void BindToOutputOf(IRenderStep* previousRenderStep) override;
 
 			void Resize(VkExtent2D newExtent) override;
 
@@ -39,10 +39,12 @@ namespace JAREP::Rendering::Steps {
 			VkImage GetOutputImage() override;
 
 		private:
-
 			void createFramebuffer();
+
 			void createDepthImage();
+
 			void createRenderPass();
+
 			void createPipeline();
 
 
@@ -51,6 +53,7 @@ namespace JAREP::Rendering::Steps {
 			VkExtent2D m_extent;
 			VkFormat m_format;
 			VkPipelineLayout m_pipelineLayout;
+			VkSampleCountFlagBits m_sampleCountFlag;
 
 			std::unique_ptr<Pipeline::VulkanDepthBuffer> m_depthImageBuffer;
 			std::unique_ptr<Pipeline::VulkanOffscreenTarget> m_offscreenTarget;

@@ -56,6 +56,8 @@
 
 `uint32_t renderHeight = height`<br>&nbsp;&nbsp;**Description:**  
 
+`uint8_t msaa = 1`<br>&nbsp;&nbsp;**Description:**  
+
 ---
 
 ---

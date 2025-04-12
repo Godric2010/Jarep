@@ -20,6 +20,7 @@ bool RenderManager::Initialize(RenderSettings render_settings) {
 	// Initialize Core systems
 	m_core = std::make_unique<Core::VulkanCore>();
 	m_core->Initialize(render_settings);
+	clampAndSetSampleCount(render_settings.msaa);
 
 	m_renderResolution = {render_settings.renderWidth, render_settings.renderHeight};
 	m_renderStepManager = std::make_unique<Steps::RenderStepManager>();
@@ -90,6 +91,28 @@ void RenderManager::Shutdown() {
 	m_core->Shutdown();
 }
 
+void RenderManager::clampAndSetSampleCount(uint8_t requestedSample) {
+	bool sampleIsValid = requestedSample >= 1 && requestedSample <= 64 && (requestedSample & (requestedSample - 1)) ==
+	                     0;
+	VkSampleCountFlagBits maxSampleCount = m_core->getDevice()->getMaxSampleCount();
+	if (!sampleIsValid) {
+		m_sampleCountFlag = maxSampleCount;
+		std::cout << "Invalid sample count. Switched to max value: " << maxSampleCount << std::endl;
+		return;
+	}
+
+	uint32_t desired = static_cast<uint32_t>(requestedSample);
+	uint32_t max = static_cast<uint32_t>(maxSampleCount);
+	if (desired <= max) {
+		m_sampleCountFlag = static_cast<VkSampleCountFlagBits>(desired);
+	}
+	else {
+		m_sampleCountFlag = maxSampleCount;
+	}
+	std::cout << "Sample count: " << m_sampleCountFlag << std::endl;
+}
+
+
 void RenderManager::initSwapchain(uint32_t width, uint32_t height) {
 	auto vulkanDevice = m_core->getDevice();
 	auto vulkanSurface = m_core->getSurface();
@@ -106,7 +129,7 @@ void RenderManager::initSwapchain(uint32_t width, uint32_t height) {
 
 void RenderManager::createRenderSteps() const {
 	auto mainStep = std::make_unique<Steps::MainPassStep>(m_core->getDevice()->getDevice(),
-	                                                      m_core->getDevice()->getPhysicalDevice());
+	                                                      m_core->getDevice()->getPhysicalDevice(), m_sampleCountFlag);
 	mainStep->Prepare(m_renderResolution, m_swapchain->getFormat());
 
 

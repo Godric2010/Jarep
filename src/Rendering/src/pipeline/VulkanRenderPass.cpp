@@ -34,14 +34,35 @@ void VulkanRenderPass::createRenderPass(VkImageLayout outputLayout) {
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = outputLayout;
+	colorAttachment.finalLayout = m_config.multisamplingEnabled
+		                              ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		                              : outputLayout;
 
 	VkAttachmentReference colorAttachmentRef = {};
 	colorAttachmentRef.attachment = 0;
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+
 	std::vector<VkAttachmentDescription> attachments = {colorAttachment};
 	std::vector<VkAttachmentReference> colorAttachmentReferences = {colorAttachmentRef};
+
+	VkAttachmentReference multisamplingAttachmentRef = {};
+	if (m_config.multisamplingEnabled) {
+		VkAttachmentDescription multisamplingAttachment = {};
+		multisamplingAttachment.format = m_config.colorFormat;
+		multisamplingAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		multisamplingAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		multisamplingAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		multisamplingAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		multisamplingAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		multisamplingAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		multisamplingAttachment.finalLayout = outputLayout;
+
+		multisamplingAttachmentRef.attachment = static_cast<uint32_t>(attachments.size());
+		multisamplingAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		attachments.push_back(multisamplingAttachment);
+	}
 
 	VkAttachmentReference depthStencilAttachmentRef = {};
 	if (m_config.depthFormat.has_value()) {
@@ -65,6 +86,11 @@ void VulkanRenderPass::createRenderPass(VkImageLayout outputLayout) {
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentReferences.size());
 	subpass.pColorAttachments = colorAttachmentReferences.data();
+
+	if (m_config.multisamplingEnabled) {
+		subpass.pResolveAttachments = &multisamplingAttachmentRef;
+	}
+
 	if (m_config.depthFormat.has_value()) {
 		subpass.pDepthStencilAttachment = &depthStencilAttachmentRef;
 	}

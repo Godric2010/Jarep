@@ -10,7 +10,7 @@
 using namespace JAREP::Rendering::Pipeline;
 
 VulkanDepthBuffer::VulkanDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkExtent2D extent,
-                                     bool enableStencil) {
+                                     VkSampleCountFlagBits sampleCountFlagBits, bool enableStencil) {
 	m_device = device;
 
 	m_format = VK_FORMAT_UNDEFINED;
@@ -19,7 +19,7 @@ VulkanDepthBuffer::VulkanDepthBuffer(VkDevice device, VkPhysicalDevice physicalD
 	m_depthImageMemory = VK_NULL_HANDLE;
 
 	findDepthFormat(physicalDevice, enableStencil);
-	createImage(physicalDevice, extent);
+	createImage(physicalDevice, extent, sampleCountFlagBits);
 	createImageView(enableStencil);
 }
 
@@ -78,7 +78,8 @@ void VulkanDepthBuffer::findDepthFormat(VkPhysicalDevice physicalDevice, bool en
 }
 
 
-void VulkanDepthBuffer::createImage(VkPhysicalDevice physicalDevice, VkExtent2D extent) {
+void VulkanDepthBuffer::createImage(VkPhysicalDevice physicalDevice, VkExtent2D extent,
+                                    VkSampleCountFlagBits sampleCountFlagBits) {
 	VkImageCreateInfo imageInfo = {};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -92,7 +93,7 @@ void VulkanDepthBuffer::createImage(VkPhysicalDevice physicalDevice, VkExtent2D 
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.samples = sampleCountFlagBits;
 
 	if (vkCreateImage(m_device, &imageInfo, nullptr, &m_depthImage) != VK_SUCCESS) {
 		throw std::runtime_error("failed to depth create image!");

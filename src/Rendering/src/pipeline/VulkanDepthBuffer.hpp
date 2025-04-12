@@ -8,7 +8,8 @@
 namespace JAREP::Rendering::Pipeline {
 	class VulkanDepthBuffer {
 		public:
-			VulkanDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkExtent2D extent, bool enableStencil);
+			VulkanDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkExtent2D extent,
+			                  VkSampleCountFlagBits sampleCountFlagBits, bool enableStencil);
 
 			~VulkanDepthBuffer();
 
@@ -23,10 +24,10 @@ namespace JAREP::Rendering::Pipeline {
 			VkFormat getFormat() const;
 
 		private:
-
 			void findDepthFormat(VkPhysicalDevice physicalDevice, bool enableStencil);
 
-			void createImage(VkPhysicalDevice physicalDevice, VkExtent2D extent);
+			void createImage(VkPhysicalDevice physicalDevice, VkExtent2D extent,
+			                 VkSampleCountFlagBits sampleCountFlagBits);
 
 			void createImageView(bool enableStencil);
 
