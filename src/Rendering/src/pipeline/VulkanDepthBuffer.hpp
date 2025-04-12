@@ -3,7 +3,9 @@
 //
 
 #pragma once
+#include <memory>
 #include <vulkan/vulkan_core.h>
+#include "../core/VulkanImage.hpp"
 
 namespace JAREP::Rendering::Pipeline {
 	class VulkanDepthBuffer {
@@ -27,15 +29,12 @@ namespace JAREP::Rendering::Pipeline {
 			void findDepthFormat(VkPhysicalDevice physicalDevice, bool enableStencil);
 
 			void createImage(VkPhysicalDevice physicalDevice, VkExtent2D extent,
-			                 VkSampleCountFlagBits sampleCountFlagBits);
-
-			void createImageView(bool enableStencil);
+			                 VkSampleCountFlagBits sampleCountFlagBits, bool enableStencil);
 
 			VkDevice m_device;
-
 			VkFormat m_format;
-			VkImage m_depthImage;
-			VkImageView m_depthImageView;
-			VkDeviceMemory m_depthImageMemory;
+
+			std::unique_ptr<Core::VulkanImage> m_depthImage;
+			VkDevice device_;
 	};
 }

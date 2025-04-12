@@ -7,6 +7,10 @@
 #include <vulkan/vulkan.hpp>
 #include <memory>
 
+namespace JAREP::Rendering::Core {
+	class VulkanImage;
+}
+
 namespace JAREP::Rendering::Pipeline {
 	class VulkanOffscreenTarget {
 		public:
@@ -33,26 +37,18 @@ namespace JAREP::Rendering::Pipeline {
 
 			void createResolveImage();
 
-			void createImageView();
-
-			void createResolveImageView();
-
 			void createFramebuffer(VkRenderPass renderPass, std::optional<VkImageView> depthImageView);
 
 			bool m_multisamplingEnabled;
+
+			std::unique_ptr<Core::VulkanImage> m_colorImage;
+			std::unique_ptr<Core::VulkanImage> m_resolveImage;
 
 			VkDevice m_device;
 			VkPhysicalDevice m_physicalDevice;
 			VkExtent2D m_extent;
 			VkFormat m_format;
 
-			VkImage m_image;
-			VkImageView m_imageView;
 			VkFramebuffer m_framebuffer;
-			VkDeviceMemory m_memory;
-
-			VkImage m_resolveImage;
-			VkImageView m_resolveImageView;
-			VkDeviceMemory m_resolveMemory;
 	};
 }

@@ -20,7 +20,8 @@ namespace JAREP::Rendering::Core {
 			            VkImageTiling tiling,
 			            VkImageUsageFlags usage,
 			            VkMemoryPropertyFlags properties,
-			            VkImageAspectFlags aspect);
+			            VkImageAspectFlags aspect,
+			            VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT);
 
 			~VulkanImage();
 

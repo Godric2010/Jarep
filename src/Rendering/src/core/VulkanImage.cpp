@@ -7,9 +7,11 @@
 
 using namespace JAREP::Rendering::Core;
 
-VulkanImage::VulkanImage(VkDevice device, VkPhysicalDevice physicalDevice, uint32_t width, uint32_t height,
-                         VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
-                         VkMemoryPropertyFlags properties, VkImageAspectFlags aspect) {
+VulkanImage::VulkanImage(const VkDevice device, const VkPhysicalDevice physicalDevice, const uint32_t width,
+                         const uint32_t height,
+                         const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage,
+                         const VkMemoryPropertyFlags properties, const VkImageAspectFlags aspect,
+                         const VkSampleCountFlagBits sampleCount) {
 	m_device = device;
 	m_image = VK_NULL_HANDLE;
 	m_imageMemory = VK_NULL_HANDLE;
@@ -28,7 +30,7 @@ VulkanImage::VulkanImage(VkDevice device, VkPhysicalDevice physicalDevice, uint3
 	createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	createInfo.usage = usage;
 	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	createInfo.samples = sampleCount;
 	createInfo.flags = 0;
 
 	if (vkCreateImage(device, &createInfo, nullptr, &m_image) != VK_SUCCESS) {
