@@ -10,6 +10,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}" /cmake)
 
 add_subdirectory(src/WindowManagement)
 add_subdirectory(src/Rendering)
+add_subdirectory(src/EngineCore)
 
 add_executable(JAREP main.cpp)
 add_dependencies(JAREP CompileShaders)
@@ -17,6 +18,7 @@ add_dependencies(JAREP CompileShaders)
 target_link_libraries(JAREP PRIVATE
         WindowManagement
         Rendering
+        EngineCore
 )
 
 find_package(Python3 REQUIRED)

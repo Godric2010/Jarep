@@ -7,10 +7,13 @@
 
 #include "WindowManagement/WindowCreator.hpp"
 #include "Rendering/RendererCreator.hpp"
+#include "EngineCore/Types/Vertex.hpp"
 
 bool framebufferResized = false;
 
 int main() {
+	JAREP::Core::Types::Vertex vert;
+
 	const auto window_manager = JAREP::Window::CreateWindowManager();
 	const auto window_settings = JAREP::Window::WindowSettings{
 		.windowTitle = "JAREP",
