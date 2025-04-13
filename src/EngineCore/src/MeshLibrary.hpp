@@ -3,8 +3,10 @@
 //
 
 #pragma once
-#include <map>
+#include <unordered_map>
+
 #include "EngineCore/IMeshLibrary.hpp"
+#include "Hashing/TypeHasher.hpp"
 
 namespace JAREP::Core {
 	class MeshLibrary : public IMeshLibrary {
@@ -13,12 +15,13 @@ namespace JAREP::Core {
 
 			~MeshLibrary() override;
 
-			size_t AddMesh(Types::Mesh mesh) override;
+			MeshID LoadMesh(Types::Mesh mesh) override;
 
-			Types::Mesh GetMesh(size_t index) override;
+			void UnloadMesh(MeshID id) override;
+
+			[[nodiscard]] Types::Mesh GetMesh(MeshID id) const override;
 
 		private:
-			std::map<size_t, Types::Mesh> m_meshes;
-			size_t m_lastIndex;
+			std::unordered_map<MeshID, Types::Mesh> m_meshes;
 	};
 }

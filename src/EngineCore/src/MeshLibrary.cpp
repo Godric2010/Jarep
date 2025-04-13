@@ -4,23 +4,39 @@
 
 #include "MeshLibrary.hpp"
 
+#include <stdexcept>
+
 using namespace JAREP::Core;
 
 MeshLibrary::MeshLibrary() {
-	m_meshes = std::map<size_t, Types::Mesh>();
-	m_lastIndex = 0;
+	m_meshes = std::unordered_map<MeshID, Types::Mesh>();
 }
 
 MeshLibrary::~MeshLibrary() {
 	m_meshes.clear();
 }
 
-size_t MeshLibrary::AddMesh(Types::Mesh mesh) {
-	size_t newIndex = m_lastIndex + 1;
-	m_meshes[newIndex] = mesh;
-	return newIndex;
+MeshID MeshLibrary::LoadMesh(const Types::Mesh mesh) {
+	const MeshID id = Hashing::HashMesh(mesh);
+	if (m_meshes.contains(id)) {
+		return id;
+	}
+	m_meshes[id] = mesh;
+	return id;
 }
 
-Types::Mesh MeshLibrary::GetMesh(size_t index) {
-	return m_meshes[index];
+void MeshLibrary::UnloadMesh(const MeshID id) {
+	if (m_meshes.contains(id)) {
+		m_meshes.erase(id);
+		return;
+	}
+	throw std::out_of_range("Could not remove mesh from library, since it seems to be not loaded.");
+}
+
+Types::Mesh MeshLibrary::GetMesh(const MeshID id) const {
+	auto it = m_meshes.find(id);
+	if (it != m_meshes.end()) {
+		return it->second;
+	}
+	throw std::out_of_range("Mesh does not exist in library");
 }
