@@ -11,6 +11,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}" /cmake)
 add_subdirectory(src/WindowManagement)
 add_subdirectory(src/Rendering)
 add_subdirectory(src/EngineCore)
+add_subdirectory(src/AssetLoader)
 
 add_executable(JAREP main.cpp)
 add_dependencies(JAREP CompileShaders)
@@ -19,6 +20,7 @@ target_link_libraries(JAREP PRIVATE
         WindowManagement
         Rendering
         EngineCore
+        AssetLoader
 )
 
 find_package(Python3 REQUIRED)
@@ -30,12 +32,14 @@ file(GLOB_RECURSE SHADER_SOURCES
 add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/shaders/compiled.flag
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/compile_shaders.py
-            --output=${CMAKE_BINARY_DIR}/shaders/compiled.flag
+        --output=${CMAKE_BINARY_DIR}/shaders/compiled.flag
         DEPENDS ${SHADER_SOURCES}
         COMMENT "Compiling Vulkan Shaders"
 )
 
 add_custom_target(CompileShaders ALL DEPENDS ${CMAKE_BINARY_DIR}/shaders/compiled.flag)
+
+file(COPY ${CMAKE_SOURCE_DIR}/Resources/Meshes DESTINATION ${CMAKE_BINARY_DIR}/Resources)
 
 option(ENABLE_TESTS "Enable building tests" ON)
 if (ENABLE_TESTS)

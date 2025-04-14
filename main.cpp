@@ -5,14 +5,23 @@
 #include <chrono>
 #include <iostream>
 
+#include "AssetLoader/IMeshLoader.hpp"
 #include "WindowManagement/WindowCreator.hpp"
 #include "Rendering/RendererCreator.hpp"
 #include "EngineCore/Types/Vertex.hpp"
+#include "src/AssetLoader/src/MeshLoader.hpp"
+#include "src/EngineCore/src/MeshLibrary.hpp"
 
 bool framebufferResized = false;
 
 int main() {
-	JAREP::Core::Types::Vertex vert;
+
+	auto meshLoader = JAREP::AssetLoader::MeshLoader();
+	auto meshName = std::string("demo_cube");
+	auto mesh = meshLoader.LoadMeshAsObj(meshName);
+
+	auto meshLibrary = JAREP::Core::MeshLibrary();
+	auto meshID = meshLibrary.LoadMesh(mesh);
 
 	const auto window_manager = JAREP::Window::CreateWindowManager();
 	const auto window_settings = JAREP::Window::WindowSettings{
