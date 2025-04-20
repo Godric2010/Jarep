@@ -4,6 +4,7 @@
 #pragma once
 
 #include "core/VulkanCore.hpp"
+#include "meshes/VulkanMeshRegistry.hpp"
 #include "pipeline/VulkanFramebuffer.hpp"
 #include "pipeline/VulkanPipeline.hpp"
 #include "pipeline/VulkanRenderPass.hpp"
@@ -22,6 +23,8 @@ namespace JAREP::Rendering {
 			~RenderManager() override;
 
 			bool Initialize(RenderSettings render_settings) override;
+
+			Meshes::VulkanMeshRegistry* GetMeshRegistry() override;
 
 			void Resize(uint32_t width, uint32_t height) override;
 
@@ -53,6 +56,8 @@ namespace JAREP::Rendering {
 			VkExtent2D m_windowResolution;
 			VkExtent2D m_renderResolution;
 			VkSampleCountFlagBits m_sampleCountFlag;
+
+			std::unique_ptr<Meshes::VulkanMeshRegistry> m_meshRegistry;
 
 			void clampAndSetSampleCount(uint8_t requestedSample);
 

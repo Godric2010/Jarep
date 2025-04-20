@@ -39,7 +39,14 @@ bool RenderManager::Initialize(RenderSettings render_settings) {
 	m_currentFrame = 0;
 	m_acquiredImageIndex = 0;
 
+	m_meshRegistry = std::make_unique<Meshes::VulkanMeshRegistry>(m_core->getDevice()->getDevice(),
+	                                                              m_core->getDevice()->getPhysicalDevice());
+
 	return true;
+}
+
+Meshes::VulkanMeshRegistry* RenderManager::GetMeshRegistry() {
+	return m_meshRegistry.get();
 }
 
 void RenderManager::Resize(uint32_t width, uint32_t height) {
@@ -73,6 +80,8 @@ void RenderManager::DrawFrame() {
 
 
 void RenderManager::Shutdown() {
+	m_meshRegistry.reset();
+
 	// Free resources
 	vkFreeCommandBuffers(m_core->getDevice()->getDevice(), m_core->getCommandPool()->get(),
 	                     static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());

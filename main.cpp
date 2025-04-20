@@ -15,7 +15,6 @@
 bool framebufferResized = false;
 
 int main() {
-
 	auto meshLoader = JAREP::AssetLoader::MeshLoader();
 	auto meshName = std::string("demo_cube");
 	auto mesh = meshLoader.LoadMeshAsObj(meshName);
@@ -60,6 +59,11 @@ int main() {
 
 	auto* renderer = JAREP::Rendering::CreateRenderer();
 	renderer->Initialize(render_settings);
+
+	if (auto rendererMeshRegistry = renderer->GetMeshRegistry(); !rendererMeshRegistry->HasMesh(meshID)) {
+		auto meshData = meshLibrary.GetMesh(meshID);
+		rendererMeshRegistry->AddMesh(meshData, meshID);
+	}
 
 
 	auto result = window_manager->RegisterForWindowUpdate([](int width, int height, JAREP::Window::DisplayMode mode) {
