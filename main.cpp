@@ -20,7 +20,7 @@ int main() {
 	auto mesh = meshLoader.LoadMeshAsObj(meshName);
 
 	auto meshLibrary = JAREP::Core::MeshLibrary();
-	auto meshID = meshLibrary.LoadMesh(mesh);
+	auto meshID = meshLibrary.AddMesh(mesh);
 
 	const auto window_manager = JAREP::Window::CreateWindowManager();
 	const auto window_settings = JAREP::Window::WindowSettings{

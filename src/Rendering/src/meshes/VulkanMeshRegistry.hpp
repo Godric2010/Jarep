@@ -22,7 +22,7 @@ namespace JAREP::Rendering::Meshes {
 
 			VulkanMeshRegistry& operator=(const VulkanMeshRegistry&) = delete;
 
-			void AddMesh(const JAREP::Core::Types::Mesh&mesh, JAREP::Core::MeshID meshID);
+			void AddMesh(const std::shared_ptr<JAREP::Core::Types::Mesh>&mesh, JAREP::Core::MeshID meshID);
 
 			bool HasMesh(JAREP::Core::MeshID meshID) const;
 

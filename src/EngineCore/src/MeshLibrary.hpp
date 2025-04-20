@@ -15,13 +15,13 @@ namespace JAREP::Core {
 
 			~MeshLibrary() override;
 
-			MeshID LoadMesh(Types::Mesh mesh) override;
+			MeshID AddMesh(const Types::Mesh&mesh) override;
 
-			void UnloadMesh(MeshID id) override;
+			void RemoveMesh(MeshID id) override;
 
-			[[nodiscard]] Types::Mesh GetMesh(MeshID id) const override;
+			[[nodiscard]] std::shared_ptr<Types::Mesh> GetMesh(MeshID id) const override;
 
 		private:
-			std::unordered_map<MeshID, Types::Mesh> m_meshes;
+			std::unordered_map<MeshID, std::shared_ptr<Types::Mesh>> m_meshes;
 	};
 }

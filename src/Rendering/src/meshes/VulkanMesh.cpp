@@ -6,21 +6,22 @@
 
 using namespace JAREP::Rendering::Meshes;
 
-VulkanMesh::VulkanMesh(VkDevice device, VkPhysicalDevice physicalDevice, const JAREP::Core::Types::Mesh&mesh) {
-	VkDeviceSize vertexSize = sizeof(JAREP::Core::Types::Vertex) * mesh.vertices.size();
+VulkanMesh::VulkanMesh(VkDevice device, VkPhysicalDevice physicalDevice,
+                       const std::shared_ptr<JAREP::Core::Types::Mesh>& mesh) {
+	VkDeviceSize vertexSize = sizeof(JAREP::Core::Types::Vertex) * mesh->vertices.size();
 	m_vertexBuffer = std::make_unique<Core::VulkanBuffer>(device, physicalDevice, vertexSize,
 	                                                      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 	                                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 	                                                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	m_vertexBuffer->copyFrom(mesh.vertices.data(), vertexSize);
+	m_vertexBuffer->copyFrom(mesh->vertices.data(), vertexSize);
 
-	m_indexCount = mesh.indices.size();
+	m_indexCount = mesh->indices.size();
 	VkDeviceSize indexSize = m_indexCount * sizeof(uint32_t);
 	m_indexBuffer = std::make_unique<Core::VulkanBuffer>(device, physicalDevice, indexSize,
 	                                                     VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 	                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 	                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	m_indexBuffer->copyFrom(mesh.indices.data(), indexSize);
+	m_indexBuffer->copyFrom(mesh->indices.data(), indexSize);
 }
 
 VulkanMesh::~VulkanMesh() {

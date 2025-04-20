@@ -12,7 +12,7 @@
 namespace JAREP::Rendering::Meshes {
 	class VulkanMesh {
 		public:
-			VulkanMesh(VkDevice device, VkPhysicalDevice physicalDevice, const JAREP::Core::Types::Mesh& mesh);
+			VulkanMesh(VkDevice device, VkPhysicalDevice physicalDevice, const std::shared_ptr<JAREP::Core::Types::Mesh>& mesh);
 			~VulkanMesh();
 
 			void Bind(VkCommandBuffer cmdBuffer) const;

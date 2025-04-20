@@ -23,23 +23,23 @@ TEST_CASE("IMeshLibrary basic functionality tests", "[MeshLibrary]") {
 	meshB.indices = {0};
 
 	SECTION("Mesh is loaded and returns valid ID") {
-		MeshID idA = meshLibrary->LoadMesh(meshA);
+		MeshID idA = meshLibrary->AddMesh(meshA);
 		REQUIRE(idA != 0);
 	}
 
 	SECTION("Duplicate returns same ID") {
-		MeshID id1 = meshLibrary->LoadMesh(meshA);
-		MeshID id2 = meshLibrary->LoadMesh(meshA);
+		MeshID id1 = meshLibrary->AddMesh(meshA);
+		MeshID id2 = meshLibrary->AddMesh(meshA);
 		REQUIRE(id1 == id2);
 	}
 
 	SECTION("Different meshes yield different IDs") {
-		MeshID id1 = meshLibrary->LoadMesh(meshA);
-		MeshID id2 = meshLibrary->LoadMesh(meshB);
+		MeshID id1 = meshLibrary->AddMesh(meshA);
+		MeshID id2 = meshLibrary->AddMesh(meshB);
 		REQUIRE(id1 != id2);
 	}
 	SECTION("Meshes can be retrieved correctly") {
-		MeshID idA = meshLibrary->LoadMesh(meshA);
+		MeshID idA = meshLibrary->AddMesh(meshA);
 		Types::Mesh retrieved = meshLibrary->GetMesh(idA);
 		REQUIRE(retrieved.vertices == meshA.vertices);
 		REQUIRE(retrieved.indices == meshA.indices);
@@ -50,12 +50,12 @@ TEST_CASE("IMeshLibrary basic functionality tests", "[MeshLibrary]") {
 	}
 
 	SECTION("Unloading mesh removes it") {
-		MeshID idA = meshLibrary->LoadMesh(meshA);
-		meshLibrary->UnloadMesh(idA);
+		MeshID idA = meshLibrary->AddMesh(meshA);
+		meshLibrary->RemoveMesh(idA);
 		REQUIRE_THROWS_AS(meshLibrary->GetMesh(idA), std::out_of_range);
 	}
 
 	SECTION("Unloading unknown mesh throws exception") {
-		REQUIRE_THROWS_AS(meshLibrary->UnloadMesh(9999), std::out_of_range);
+		REQUIRE_THROWS_AS(meshLibrary->RemoveMesh(9999), std::out_of_range);
 	}
 }

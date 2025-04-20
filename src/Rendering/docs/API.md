@@ -17,6 +17,11 @@
 *Returns: `bool`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;*
 
 
+### `Meshes::VulkanMeshRegistry * GetMeshRegistry()`
+
+*Returns: `Meshes::VulkanMeshRegistry *`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;*
+
+
 ### `void Resize(uint32_t width, uint32_t height)`
 
 

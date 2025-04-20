@@ -3,6 +3,8 @@
 //
 
 #pragma once
+#include <memory>
+
 #include "Types/Mesh.hpp"
 
 namespace JAREP::Core {
@@ -20,19 +22,19 @@ namespace JAREP::Core {
 			 * @param mesh The mesh to add.
 			 * @return The ID of the Mesh inside the library (HashCode)
 			 */
-			virtual MeshID LoadMesh(Types::Mesh mesh) = 0;
+			virtual MeshID AddMesh(const Types::Mesh&mesh) = 0;
 
 			/**
 			 * Remove a mesh from the library and therefore the memory.
 			 * @param id The id of the mesh to remove.
 			 */
-			virtual void UnloadMesh(MeshID id) = 0;
+			virtual void RemoveMesh(MeshID id) = 0;
 
 			/**
 			 * Get a mesh from the library.
 			 * @param id The hash-id of the mesh.
 			 * @return The mesh behind this id.
 			 */
-			[[nodiscard]] virtual Types::Mesh GetMesh(MeshID id) const = 0;
+			[[nodiscard]] virtual std::shared_ptr<Types::Mesh> GetMesh(MeshID id) const = 0;
 	};
 }

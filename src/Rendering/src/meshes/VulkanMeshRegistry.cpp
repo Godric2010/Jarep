@@ -17,7 +17,7 @@ VulkanMeshRegistry::VulkanMeshRegistry(VkDevice device, VkPhysicalDevice physica
 
 VulkanMeshRegistry::~VulkanMeshRegistry() = default;
 
-void VulkanMeshRegistry::AddMesh(const JAREP::Core::Types::Mesh&mesh, JAREP::Core::MeshID meshID) {
+void VulkanMeshRegistry::AddMesh(const std::shared_ptr<JAREP::Core::Types::Mesh>&mesh, JAREP::Core::MeshID meshID) {
 	if (m_meshes.contains(meshID)) {
 		throw std::runtime_error("Mesh already exists");
 	}

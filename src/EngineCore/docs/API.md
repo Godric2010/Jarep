@@ -12,7 +12,7 @@
 ### ` ~IMeshLibrary()`
 
 
-### `MeshID LoadMesh(Types::Mesh mesh)`
+### `MeshID AddMesh(const Types::Mesh &mesh)`
 
 **Description**:<br>*Add a new mesh to the library in memory. 
 
@@ -27,10 +27,10 @@ The ID of the Mesh inside the library (HashCode)*
 
 *Returns: `MeshID`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;The ID of the Mesh inside the library (HashCode)*
 
-*`Types::Mesh mesh`*<br>&nbsp;&nbsp;&nbsp;&nbsp;*The mesh to add.* 
+*`const Types::Mesh & mesh`*<br>&nbsp;&nbsp;&nbsp;&nbsp;*The mesh to add.* 
 
 
-### `void UnloadMesh(MeshID id)`
+### `void RemoveMesh(MeshID id)`
 
 **Description**:<br>*Remove a mesh from the library and therefore the memory. 
 
@@ -42,7 +42,7 @@ The id of the mesh to remove.*
 *`MeshID id`*<br>&nbsp;&nbsp;&nbsp;&nbsp;*The id of the mesh to remove.* 
 
 
-### `Types::Mesh GetMesh(MeshID id)`
+### `std::shared_ptr< Types::Mesh > GetMesh(MeshID id)`
 
 **Description**:<br>*Get a mesh from the library. 
 
@@ -55,7 +55,7 @@ The hash-id of the mesh.
 
 The mesh behind this id.*
 
-*Returns: `Types::Mesh`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;The mesh behind this id.*
+*Returns: `std::shared_ptr< Types::Mesh >`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;The mesh behind this id.*
 
 *`MeshID id`*<br>&nbsp;&nbsp;&nbsp;&nbsp;*The hash-id of the mesh.* 
 
