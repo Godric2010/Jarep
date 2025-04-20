@@ -28,6 +28,8 @@ namespace JAREP::Rendering::Pipeline {
 		VkFrontFace frontFace = VK_FRONT_FACE_CLOCKWISE;
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
+		std::optional<VkVertexInputBindingDescription> vertexInputBinding = std::nullopt;
+		std::optional<std::vector<VkVertexInputAttributeDescription>> vertexInputAttributes = std::nullopt;
 
 		bool depthTestEnable = false;
 		bool depthWriteEnable = false;

@@ -6,21 +6,25 @@
 
 #include <iostream>
 
+#include "../VulkanVertexLayout.hpp"
 #include "../core/VulkanCore.hpp"
 #include "../pipeline/VulkanDepthBuffer.hpp"
 
 using namespace JAREP::Rendering::Steps;
 
-MainPassStep::MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkSampleCountFlagBits sampleCountFlags) {
+MainPassStep::MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkSampleCountFlagBits sampleCountFlags,
+                           Meshes::VulkanMeshRegistry* meshRegistry) {
 	m_device = device;
 	m_physicalDevice = physicalDevice;
 	m_sampleCountFlag = sampleCountFlags;
 	m_pipelineLayout = VK_NULL_HANDLE;
 	m_format = {};
 	m_extent = {};
+	m_meshRegistry = meshRegistry;
 } ;
 
 MainPassStep::~MainPassStep() {
+	m_meshRegistry = nullptr;
 	m_offscreenTarget.reset();
 	m_pipeline.reset();
 	if (m_pipelineLayout != VK_NULL_HANDLE) {
@@ -97,7 +101,14 @@ void MainPassStep::Record(VkCommandBuffer cmdBuffer) {
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
 	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->get());
-	vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+	std::vector<JAREP::Core::MeshID> meshIDs = m_meshRegistry->GetAllMeshIDs();
+	for (const auto meshID: meshIDs) {
+		if (auto mesh = m_meshRegistry->TryGetMesh(meshID); mesh.has_value()) {
+			mesh.value()->Bind(cmdBuffer);
+			mesh.value()->Draw(cmdBuffer);
+		}
+	}
+
 
 	vkCmdEndRenderPass(cmdBuffer);
 }
@@ -139,10 +150,12 @@ void MainPassStep::createPipeline() {
 		.device = m_device,
 		.renderPass = m_renderPass->get(),
 		.extent = m_extent,
-		.vertexShaderPath = "triangle.vert.spv",
-		.fragmentShaderPath = "triangle.frag.spv",
+		.vertexShaderPath = "mesh.vert.spv",
+		.fragmentShaderPath = "mesh.frag.spv",
 		.pipelineLayout = m_pipelineLayout,
 		.msaaSamples = m_sampleCountFlag,
+		.vertexInputBinding = std::make_optional(VulkanVertexLayout::GetBindingDescription()),
+		.vertexInputAttributes = std::make_optional(VulkanVertexLayout::GetAttributeDescriptions()),
 		.depthTestEnable = false,
 		.depthWriteEnable = false,
 		.depthFormat = m_depthImageBuffer->getFormat(),

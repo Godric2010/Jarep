@@ -41,6 +41,7 @@ target_sources(${LIBRARY_NAME} PRIVATE
         src/steps/FinalBlitStep.cpp
         src/meshes/VulkanMesh.cpp
         src/meshes/VulkanMeshRegistry.cpp
+        src/VulkanVertexLayout.cpp
 )
 
 if (WIN32)

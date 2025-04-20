@@ -30,6 +30,8 @@ namespace JAREP::Rendering::Meshes {
 
 			void RemoveMesh(JAREP::Core::MeshID meshID);
 
+			std::vector<JAREP::Core::MeshID> GetAllMeshIDs() const;
+
 		private:
 			std::unordered_map<JAREP::Core::MeshID, std::unique_ptr<VulkanMesh>> m_meshes;
 

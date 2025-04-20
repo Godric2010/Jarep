@@ -4,6 +4,7 @@
 
 #include "VulkanMeshRegistry.hpp"
 
+#include <ranges>
 #include <stdexcept>
 
 using namespace JAREP::Rendering::Meshes;
@@ -39,4 +40,14 @@ void VulkanMeshRegistry::RemoveMesh(const JAREP::Core::MeshID meshID) {
 		throw std::runtime_error("Mesh does not exist in vulkan mesh registry!");
 	}
 	m_meshes.erase(meshID);
+}
+
+std::vector<JAREP::Core::MeshID> VulkanMeshRegistry::GetAllMeshIDs() const {
+	const size_t size = m_meshes.size();
+	std::vector<JAREP::Core::MeshID> meshIDs;
+	meshIDs.reserve(size);
+	for (const auto&[id, _]: m_meshes) {
+		meshIDs.push_back(id);
+	}
+	return meshIDs;
 }

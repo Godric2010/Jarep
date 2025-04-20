@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "IRenderStep.hpp"
+#include "../meshes/VulkanMeshRegistry.hpp"
 #include "../pipeline/VulkanOffscreenTarget.hpp"
 #include "../pipeline/VulkanPipeline.hpp"
 #include "../pipeline/VulkanRenderPass.hpp"
@@ -18,7 +19,8 @@ namespace JAREP::Rendering::Pipeline {
 namespace JAREP::Rendering::Steps {
 	class MainPassStep : public IRenderStep {
 		public:
-			MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkSampleCountFlagBits sampleCountFlags);
+			MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkSampleCountFlagBits sampleCountFlags,
+			             Meshes::VulkanMeshRegistry* meshRegistry);
 
 			~MainPassStep() override;
 
@@ -59,5 +61,7 @@ namespace JAREP::Rendering::Steps {
 			std::unique_ptr<Pipeline::VulkanOffscreenTarget> m_offscreenTarget;
 			std::unique_ptr<Pipeline::VulkanPipeline> m_pipeline;
 			std::unique_ptr<Pipeline::VulkanRenderPass> m_renderPass;
+
+			Meshes::VulkanMeshRegistry* m_meshRegistry;
 	};
 }

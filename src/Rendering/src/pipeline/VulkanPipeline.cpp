@@ -8,10 +8,12 @@
 #include <fstream>
 #include <stdexcept>
 
+#include "../VulkanVertexLayout.hpp"
+
 using namespace JAREP::Rendering::Pipeline;
 
 static std::vector<char> readFile(const std::string&fileName) {
-	std::filesystem::path shaderBase = std::filesystem::current_path() / "Resources"/ "Shaders";
+	std::filesystem::path shaderBase = std::filesystem::current_path() / "Resources" / "Shaders";
 	std::string shaderPath = (shaderBase / fileName).string();
 
 	std::ifstream file(shaderPath, std::ios::ate | std::ios::binary);
@@ -94,11 +96,20 @@ void VulkanPipeline::createGraphicsPipeline() {
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = {vertexShaderStageInfo, fragmentShaderStageInfo};
 
-	//TODO: Replace this dummy code with actual vertex data later
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vertexInputInfo.vertexBindingDescriptionCount = 0;
 	vertexInputInfo.vertexAttributeDescriptionCount = 0;
+
+	if (m_config.vertexInputBinding.has_value() && m_config.vertexInputAttributes.has_value()) {
+		vertexInputInfo.vertexBindingDescriptionCount = 1;
+		vertexInputInfo.pVertexBindingDescriptions = &m_config.vertexInputBinding.value();
+
+		const auto& attr = m_config.vertexInputAttributes.value();
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attr.size());
+		vertexInputInfo.pVertexAttributeDescriptions = attr.data();
+	}
+
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {};
 	inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

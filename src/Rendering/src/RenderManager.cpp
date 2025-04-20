@@ -22,6 +22,9 @@ bool RenderManager::Initialize(RenderSettings render_settings) {
 	m_core->Initialize(render_settings);
 	clampAndSetSampleCount(render_settings.msaa);
 
+	m_meshRegistry = std::make_unique<Meshes::VulkanMeshRegistry>(m_core->getDevice()->getDevice(),
+	                                                              m_core->getDevice()->getPhysicalDevice());
+
 	m_renderResolution = {render_settings.renderWidth, render_settings.renderHeight};
 	m_renderStepManager = std::make_unique<Steps::RenderStepManager>();
 
@@ -39,8 +42,6 @@ bool RenderManager::Initialize(RenderSettings render_settings) {
 	m_currentFrame = 0;
 	m_acquiredImageIndex = 0;
 
-	m_meshRegistry = std::make_unique<Meshes::VulkanMeshRegistry>(m_core->getDevice()->getDevice(),
-	                                                              m_core->getDevice()->getPhysicalDevice());
 
 	return true;
 }
@@ -138,7 +139,8 @@ void RenderManager::initSwapchain(uint32_t width, uint32_t height) {
 
 void RenderManager::createRenderSteps() const {
 	auto mainStep = std::make_unique<Steps::MainPassStep>(m_core->getDevice()->getDevice(),
-	                                                      m_core->getDevice()->getPhysicalDevice(), m_sampleCountFlag);
+	                                                      m_core->getDevice()->getPhysicalDevice(), m_sampleCountFlag,
+	                                                      m_meshRegistry.get());
 	mainStep->Prepare(m_renderResolution, m_swapchain->getFormat());
 
 
