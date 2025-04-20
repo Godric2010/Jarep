@@ -39,6 +39,8 @@ target_sources(${LIBRARY_NAME} PRIVATE
         src/steps/RenderStepManager.cpp
         src/steps/MainPassStep.cpp
         src/steps/FinalBlitStep.cpp
+        src/meshes/VulkanMesh.cpp
+        src/meshes/VulkanMeshRegistry.cpp
 )
 
 if (WIN32)
@@ -51,7 +53,10 @@ endif ()
 
 
 target_include_directories(${LIBRARY_NAME} PUBLIC include ${VULKAN_INCLUDE_DIRS})
-target_link_libraries(${LIBRARY_NAME} PRIVATE Vulkan::Vulkan)
+target_link_libraries(${LIBRARY_NAME}
+        PUBLIC EngineCore
+        PRIVATE Vulkan::Vulkan
+)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES
         CXX_STANDARD 23
