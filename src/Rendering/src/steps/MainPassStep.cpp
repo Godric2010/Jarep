@@ -21,10 +21,12 @@ MainPassStep::MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	m_format = {};
 	m_extent = {};
 	m_meshRegistry = meshRegistry;
+	m_objectUBO = std::make_unique<Core::VulkanUniformBuffer<Core::ObjectUBO>>(device, physicalDevice);
 } ;
 
 MainPassStep::~MainPassStep() {
 	m_meshRegistry = nullptr;
+	m_objectUBO.reset();
 	m_offscreenTarget.reset();
 	m_pipeline.reset();
 	if (m_pipelineLayout != VK_NULL_HANDLE) {
@@ -101,14 +103,15 @@ void MainPassStep::Record(VkCommandBuffer cmdBuffer) {
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
 	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->get());
-	std::vector<JAREP::Core::MeshID> meshIDs = m_meshRegistry->GetAllMeshIDs();
-	for (const auto meshID: meshIDs) {
-		if (auto mesh = m_meshRegistry->TryGetMesh(meshID); mesh.has_value()) {
-			mesh.value()->Bind(cmdBuffer);
-			mesh.value()->Draw(cmdBuffer);
-		}
-	}
 
+	for (const auto&renderObject: m_renderObjects) {
+		auto mesh = m_meshRegistry->TryGetMesh(renderObject.meshID);
+		if (!mesh.has_value()) continue;
+
+		m_objectUBO->Update(renderObject.transform);
+		mesh.value()->Bind(cmdBuffer);
+		mesh.value()->Draw(cmdBuffer);
+	}
 
 	vkCmdEndRenderPass(cmdBuffer);
 }
@@ -120,6 +123,11 @@ VkImageView MainPassStep::GetOutputImageView() {
 VkImage MainPassStep::GetOutputImage() {
 	return m_offscreenTarget->getImage();
 }
+
+void MainPassStep::SetRenderTargetObjects(std::vector<Core::RenderObject>&renderObjects) {
+	m_renderObjects = renderObjects;
+}
+
 
 void MainPassStep::createRenderPass() {
 	Pipeline::RenderPassConfig config = {

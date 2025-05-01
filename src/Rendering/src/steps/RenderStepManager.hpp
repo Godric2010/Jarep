@@ -6,6 +6,7 @@
 
 #include <vulkan/vulkan.hpp>
 #include "IRenderStep.hpp"
+#include "Rendering/RenderObject.hpp"
 
 namespace JAREP::Rendering::Steps {
 	class RenderStepManager {
@@ -16,11 +17,13 @@ namespace JAREP::Rendering::Steps {
 
 			void AddStep(std::unique_ptr<IRenderStep> step);
 
-			void Execute(VkCommandBuffer commandBuffer);
+			void Execute(VkCommandBuffer commandBuffer) const;
 
-			void SetRenderResolution(VkExtent2D resolution);
+			void SetRenderResolution(VkExtent2D resolution) const;
 
-			void Resize(VkExtent2D newExtent);
+			void SetRenderObjects(std::vector<Core::RenderObject> renderObjects) const;
+
+			void Resize(VkExtent2D newExtent) const;
 
 		private:
 			std::vector<std::unique_ptr<IRenderStep>> m_renderSteps;

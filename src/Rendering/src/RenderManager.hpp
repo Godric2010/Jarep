@@ -24,11 +24,14 @@ namespace JAREP::Rendering {
 
 			bool Initialize(RenderSettings render_settings) override;
 
-			Meshes::VulkanMeshRegistry* GetMeshRegistry() override;
-
 			void Resize(uint32_t width, uint32_t height) override;
 
 			void SetRenderResolution(uint32_t resX, uint32_t resY) override;
+
+			void AddRenderObject(JAREP::Core::MeshID meshID, std::shared_ptr<JAREP::Core::Types::Mesh> mesh,
+			                     Core::ObjectUBO objectData) override;
+
+			void UpdateRenderObject(Core::RenderObject renderObject) override;
 
 			void DrawFrame() override;
 

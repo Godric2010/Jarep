@@ -28,11 +28,45 @@
 ### `void SetRenderResolution(uint32_t resX, uint32_t resY)`
 
 
+### `void AddRenderObject(JAREP::Core::MeshID meshID, std::shared_ptr< JAREP::Core::Types::Mesh > mesh, Core::ObjectUBO objectData)`
+
+
+### `void UpdateRenderObject(Core::RenderObject renderObject)`
+
+
 ### `void DrawFrame()`
 
 
 ### `void Shutdown()`
 
+
+---
+
+---
+## struct JAREP::Rendering::Core::ObjectUBO
+
+**Description**:<br>
+
+---
+
+### Public Fields
+
+`std::array< float, 16 > transformMatrix `<br>&nbsp;&nbsp;**Description:**  
+
+---
+
+---
+## struct JAREP::Rendering::Core::RenderObject
+
+**Description**:<br>
+
+---
+
+### Public Fields
+
+`JAREP::Core::MeshID meshID `<br>&nbsp;&nbsp;**Description:**  
+
+`ObjectUBO transform `<br>&nbsp;&nbsp;**Description:**  
 
 ---
 

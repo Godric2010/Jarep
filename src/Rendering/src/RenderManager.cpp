@@ -46,10 +46,6 @@ bool RenderManager::Initialize(RenderSettings render_settings) {
 	return true;
 }
 
-Meshes::VulkanMeshRegistry* RenderManager::GetMeshRegistry() {
-	return m_meshRegistry.get();
-}
-
 void RenderManager::Resize(uint32_t width, uint32_t height) {
 	vkDeviceWaitIdle(m_core->getDevice()->getDevice());
 	destroySyncObjects();
@@ -66,6 +62,23 @@ void RenderManager::Resize(uint32_t width, uint32_t height) {
 void RenderManager::SetRenderResolution(uint32_t resX, uint32_t resY) {
 	m_renderResolution = {resX, resY};
 	m_renderStepManager->SetRenderResolution(m_renderResolution);
+}
+
+void RenderManager::AddRenderObject(const JAREP::Core::MeshID meshID,
+                                    const std::shared_ptr<JAREP::Core::Types::Mesh> mesh,
+                                    const Core::ObjectUBO objectData) {
+	if (m_meshRegistry->HasMesh(meshID) == false) {
+		m_meshRegistry->AddMesh(mesh, meshID);
+	}
+
+	const auto renderObjects = std::vector{
+		Core::RenderObject(meshID, objectData),
+	};
+	m_renderStepManager->SetRenderObjects(renderObjects);
+}
+
+void RenderManager::UpdateRenderObject(const Core::RenderObject renderObject) {
+	m_renderStepManager->SetRenderObjects(std::vector{renderObject});
 }
 
 void RenderManager::DrawFrame() {

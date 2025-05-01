@@ -5,6 +5,7 @@
 
 #include<vulkan\vulkan.hpp>
 
+#include "RenderObject.hpp"
 #include "../../src/meshes/VulkanMeshRegistry.hpp"
 
 namespace JAREP::Rendering {
@@ -36,11 +37,14 @@ namespace JAREP::Rendering {
 
 			virtual bool Initialize(RenderSettings render_settings) = 0;
 
-			virtual Meshes::VulkanMeshRegistry* GetMeshRegistry() = 0;
-
 			virtual void Resize(uint32_t width, uint32_t height) = 0;
 
 			virtual void SetRenderResolution(uint32_t resX, uint32_t resY) = 0;
+
+			virtual void AddRenderObject(JAREP::Core::MeshID meshID, std::shared_ptr<JAREP::Core::Types::Mesh> mesh,
+			                             Core::ObjectUBO objectData) = 0;
+
+			virtual void UpdateRenderObject(Core::RenderObject renderObject) = 0;
 
 			virtual void DrawFrame() = 0;
 

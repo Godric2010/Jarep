@@ -6,7 +6,10 @@
 #include <functional>
 #include <vulkan/vulkan.hpp>
 
+#include "IRenderData.hpp"
 #include "IRenderStep.hpp"
+#include "../core/VulkanUniformBuffer.hpp"
+
 #include "../meshes/VulkanMeshRegistry.hpp"
 #include "../pipeline/VulkanOffscreenTarget.hpp"
 #include "../pipeline/VulkanPipeline.hpp"
@@ -17,7 +20,7 @@ namespace JAREP::Rendering::Pipeline {
 }
 
 namespace JAREP::Rendering::Steps {
-	class MainPassStep : public IRenderStep {
+	class MainPassStep : public IRenderStep, public IRenderData {
 		public:
 			MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkSampleCountFlagBits sampleCountFlags,
 			             Meshes::VulkanMeshRegistry* meshRegistry);
@@ -39,6 +42,8 @@ namespace JAREP::Rendering::Steps {
 			VkImageView GetOutputImageView() override;
 
 			VkImage GetOutputImage() override;
+
+			void SetRenderTargetObjects(std::vector<Core::RenderObject>&renderObjects) override;
 
 		private:
 			void createFramebuffer();
@@ -63,5 +68,7 @@ namespace JAREP::Rendering::Steps {
 			std::unique_ptr<Pipeline::VulkanRenderPass> m_renderPass;
 
 			Meshes::VulkanMeshRegistry* m_meshRegistry;
+			std::vector<Core::RenderObject> m_renderObjects;
+			std::unique_ptr<Core::VulkanUniformBuffer<Core::ObjectUBO>> m_objectUBO;
 	};
 }

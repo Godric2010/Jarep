@@ -14,6 +14,7 @@ add_library(${LIBRARY_NAME})
 target_sources(${LIBRARY_NAME} PRIVATE
         include/${LIBRARY_NAME}/IRenderer.hpp
         include/${LIBRARY_NAME}/RendererCreator.hpp
+        include/${LIBRARY_NAME}/RenderObject.hpp
         src/RenderManager.cpp
         src/core/VulkanCore.cpp
         src/core/VulkanInstance.cpp
@@ -21,6 +22,7 @@ target_sources(${LIBRARY_NAME} PRIVATE
         src/core/VulkanDevice.cpp
         src/core/VulkanCommandPool.cpp
         src/core/VulkanBuffer.cpp
+        src/core/VulkanUniformBuffer.hpp
         src/core/VulkanImage.cpp
         src/core/VulkanImageOperations.cpp
         src/core/VulkanSampler.cpp

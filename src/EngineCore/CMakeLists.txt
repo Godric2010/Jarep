@@ -19,6 +19,7 @@ target_include_directories(${LIBRARY_NAME}
 target_sources(${LIBRARY_NAME} PRIVATE
         include/${LIBRARY_NAME}/Types/Vertex.hpp
         include/${LIBRARY_NAME}/Types/Mesh.hpp
+        include/${LIBRARY_NAME}/Types/Transform.hpp
         include/${LIBRARY_NAME}/IMeshLibrary.hpp
         src/MeshLibrary.cpp
         src/Hashing/TypeHasher.hpp

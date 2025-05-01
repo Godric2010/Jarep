@@ -5,14 +5,24 @@
 #include <chrono>
 #include <iostream>
 
-#include "AssetLoader/IMeshLoader.hpp"
+#include "EngineCore/Types/Transform.hpp"
 #include "WindowManagement/WindowCreator.hpp"
 #include "Rendering/RendererCreator.hpp"
-#include "EngineCore/Types/Vertex.hpp"
 #include "src/AssetLoader/src/MeshLoader.hpp"
 #include "src/EngineCore/src/MeshLibrary.hpp"
+#include <glm/gtc/type_ptr.hpp>
 
 bool framebufferResized = false;
+
+
+JAREP::Rendering::Core::ObjectUBO createUBO(const JAREP::Core::Types::Transform& transform) {
+
+	glm::mat4 transformMatrix = transform.ToMatrix();
+
+	JAREP::Rendering::Core::ObjectUBO ubo{};
+	std::memcpy(ubo.transformMatrix.data(), glm::value_ptr(transformMatrix), sizeof(glm::mat4));
+	return ubo;
+}
 
 int main() {
 	auto meshLoader = JAREP::AssetLoader::MeshLoader();
@@ -21,6 +31,12 @@ int main() {
 
 	auto meshLibrary = JAREP::Core::MeshLibrary();
 	auto meshID = meshLibrary.AddMesh(mesh);
+
+	JAREP::Core::Types::Transform meshTransform = {
+		.position = {0, 0, 10},
+		.rotation = {0, 0, 0},
+		.scale = {1, 1, 1},
+	};
 
 	const auto window_manager = JAREP::Window::CreateWindowManager();
 	const auto window_settings = JAREP::Window::WindowSettings{
@@ -60,10 +76,14 @@ int main() {
 	auto* renderer = JAREP::Rendering::CreateRenderer();
 	renderer->Initialize(render_settings);
 
-	if (auto rendererMeshRegistry = renderer->GetMeshRegistry(); !rendererMeshRegistry->HasMesh(meshID)) {
-		auto meshData = meshLibrary.GetMesh(meshID);
-		rendererMeshRegistry->AddMesh(meshData, meshID);
-	}
+	JAREP::Rendering::Core::ObjectUBO transformUBO = createUBO(meshTransform);
+
+	renderer->AddRenderObject(meshID, meshLibrary.GetMesh(meshID), transformUBO);
+
+	// if (auto rendererMeshRegistry = renderer->GetMeshRegistry(); !rendererMeshRegistry->HasMesh(meshID)) {
+	// 	auto meshData = meshLibrary.GetMesh(meshID);
+	// 	rendererMeshRegistry->AddMesh(meshData, meshID);
+	// }
 
 
 	auto result = window_manager->RegisterForWindowUpdate([](int width, int height, JAREP::Window::DisplayMode mode) {
