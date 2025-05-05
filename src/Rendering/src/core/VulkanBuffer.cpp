@@ -73,7 +73,7 @@ void* VulkanBuffer::map(VkDeviceSize offset, VkDeviceSize size) const {
 }
 
 void VulkanBuffer::unmap() const {
-	if (!(m_memoryProperties * VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
+	if (!(m_memoryProperties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
 		throw std::runtime_error("Tried to unmap non-host-visible memory!");
 	}
 	vkUnmapMemory(m_device, m_memory);

@@ -3,11 +3,13 @@
 //
 
 #pragma once
-#include <functional>
 #include <vulkan/vulkan.hpp>
 
 #include "IRenderData.hpp"
 #include "IRenderStep.hpp"
+#include "../core/VulkanDescriptorPool.hpp"
+#include "../core/VulkanDescriptorSet.hpp"
+#include "../core/VulkanDescriptorSetLayout.hpp"
 #include "../core/VulkanUniformBuffer.hpp"
 
 #include "../meshes/VulkanMeshRegistry.hpp"
@@ -66,6 +68,9 @@ namespace JAREP::Rendering::Steps {
 			std::unique_ptr<Pipeline::VulkanOffscreenTarget> m_offscreenTarget;
 			std::unique_ptr<Pipeline::VulkanPipeline> m_pipeline;
 			std::unique_ptr<Pipeline::VulkanRenderPass> m_renderPass;
+			std::unique_ptr<VulkanDescriptorPool> m_descriptorPool;
+			std::unique_ptr<VulkanDescriptorSet> m_descriptorSet;
+			std::unique_ptr<VulkanDescriptorSetLayout> m_descriptorSetLayout;
 
 			Meshes::VulkanMeshRegistry* m_meshRegistry;
 			std::vector<Core::RenderObject> m_renderObjects;

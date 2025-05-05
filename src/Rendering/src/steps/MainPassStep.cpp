@@ -18,6 +18,9 @@ MainPassStep::MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	m_physicalDevice = physicalDevice;
 	m_sampleCountFlag = sampleCountFlags;
 	m_pipelineLayout = VK_NULL_HANDLE;
+	m_descriptorPool = nullptr;
+	m_descriptorSetLayout = nullptr;
+	m_descriptorSet = nullptr;
 	m_format = {};
 	m_extent = {};
 	m_meshRegistry = meshRegistry;
@@ -29,6 +32,9 @@ MainPassStep::~MainPassStep() {
 	m_objectUBO.reset();
 	m_offscreenTarget.reset();
 	m_pipeline.reset();
+	m_descriptorSetLayout.reset();
+	m_descriptorSet.reset();
+	m_descriptorPool.reset();
 	if (m_pipelineLayout != VK_NULL_HANDLE) {
 		vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 	}
@@ -103,12 +109,17 @@ void MainPassStep::Record(VkCommandBuffer cmdBuffer) {
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
 	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->get());
+	std::vector<VkDescriptorSet> descriptorSets = {m_descriptorSet->get()};
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, descriptorSets.size(),
+							descriptorSets.data(), 0, nullptr);
 
 	for (const auto&renderObject: m_renderObjects) {
 		auto mesh = m_meshRegistry->TryGetMesh(renderObject.meshID);
 		if (!mesh.has_value()) continue;
 
 		m_objectUBO->Update(renderObject.transform);
+
+
 		mesh.value()->Bind(cmdBuffer);
 		mesh.value()->Draw(cmdBuffer);
 	}
@@ -142,10 +153,31 @@ void MainPassStep::createRenderPass() {
 }
 
 void MainPassStep::createPipeline() {
+	auto bindingInfo = VulkanDescriptorSetLayout::BindingInfo{};
+	bindingInfo.binding = 0;
+	bindingInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	bindingInfo.count = 1;
+	bindingInfo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	std::vector bindings = {bindingInfo};
+	m_descriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(m_device, bindings);
+
+	VulkanDescriptorPool::PoolSize poolSize{};
+	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSize.count = 1;
+	std::vector poolSizes = {poolSize};
+	m_descriptorPool = std::make_unique<VulkanDescriptorPool>(m_device, poolSizes, 1);
+
+	m_descriptorSet = std::make_unique<VulkanDescriptorSet>(m_device, m_descriptorPool->get(),
+	                                                        m_descriptorSetLayout->get());
+	m_descriptorSet->bindUniformBuffer(0, m_objectUBO->getBuffer(), sizeof(ObjectUBO));
+
+	const std::vector descriptorSetLayouts = {m_descriptorSetLayout->get()};
+
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
-	pipelineLayoutInfo.pSetLayouts = nullptr;
+	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 

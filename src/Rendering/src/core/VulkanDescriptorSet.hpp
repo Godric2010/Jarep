@@ -21,7 +21,7 @@ namespace JAREP::Rendering::Core {
 
 			VulkanDescriptorSet& operator=(const VulkanDescriptorSet&) = delete;
 
-			VkDescriptorSet get() const;
+			[[nodiscard]] VkDescriptorSet get() const;
 
 			void bindUniformBuffer(uint32_t binding, VkBuffer buffer, VkDeviceSize size, VkDeviceSize offset = 0);
 

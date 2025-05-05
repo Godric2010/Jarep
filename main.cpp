@@ -15,8 +15,7 @@
 bool framebufferResized = false;
 
 
-JAREP::Rendering::Core::ObjectUBO createUBO(const JAREP::Core::Types::Transform& transform) {
-
+JAREP::Rendering::Core::ObjectUBO createUBO(const JAREP::Core::Types::Transform&transform) {
 	glm::mat4 transformMatrix = transform.ToMatrix();
 
 	JAREP::Rendering::Core::ObjectUBO ubo{};
@@ -32,9 +31,10 @@ int main() {
 	auto meshLibrary = JAREP::Core::MeshLibrary();
 	auto meshID = meshLibrary.AddMesh(mesh);
 
+	float z_pos = /*glm::length(glm::vec3(0.5f))*/ 0.5f / tan(glm::radians(45.0f) * 0.5f);
 	JAREP::Core::Types::Transform meshTransform = {
-		.position = {0, 0, 10},
-		.rotation = {0, 0, 0},
+		.position = {0, 0, .80},
+		.rotation = {45 , 45, 0},
 		.scale = {1, 1, 1},
 	};
 

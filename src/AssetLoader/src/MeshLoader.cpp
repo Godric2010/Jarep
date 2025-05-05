@@ -19,7 +19,7 @@ JAREP::Core::Types::Mesh MeshLoader::LoadMeshAsObj(std::string&meshName) {
 	std::vector<tinyobj::material_t> materials;
 	std::string warn, err;
 
-	bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, fullPath.c_str());
+	bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, fullPath.c_str(), nullptr, true);
 	if (!warn.empty()) {
 		std::cerr << "TinyObjLoader Warning: " << warn << "\n" << std::endl;
 	}
@@ -40,7 +40,8 @@ JAREP::Core::Types::Mesh MeshLoader::LoadMeshAsObj(std::string&meshName) {
 				attrib.vertices[3 * index.vertex_index + 2]
 			};
 
-			if (!attrib.texcoords.empty()) {
+			// if (!attrib.texcoords.empty()) {
+			if (index.texcoord_index >= 0){
 				vertex.uv = {
 					attrib.texcoords[2 * index.texcoord_index + 0],
 					attrib.texcoords[2 * index.texcoord_index + 1]
@@ -49,6 +50,8 @@ JAREP::Core::Types::Mesh MeshLoader::LoadMeshAsObj(std::string&meshName) {
 			else {
 				vertex.uv = {0.0f, 0.0f};
 			}
+
+
 			mesh.vertices.push_back(vertex);
 			mesh.indices.push_back(static_cast<uint32_t>(mesh.vertices.size() - 1));
 		}

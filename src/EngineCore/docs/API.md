@@ -78,6 +78,30 @@ The mesh behind this id.*
 ---
 
 ---
+## struct JAREP::Core::Types::Transform
+
+**Description**:<br>
+
+---
+
+### Public Functions
+
+### `glm::mat4 ToMatrix()`
+
+*Returns: `glm::mat4`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;*
+
+
+### Public Fields
+
+`glm::vec3 position {0.0f, 0.0f, 0.0f}`<br>&nbsp;&nbsp;**Description:**  
+
+`glm::vec3 rotation {0.0f, 0.0f, 0.0f}`<br>&nbsp;&nbsp;**Description:**  
+
+`glm::vec3 scale {1.0f, 1.0f, 1.0f}`<br>&nbsp;&nbsp;**Description:**  
+
+---
+
+---
 ## struct JAREP::Core::Types::Vertex
 
 **Description**:<br>

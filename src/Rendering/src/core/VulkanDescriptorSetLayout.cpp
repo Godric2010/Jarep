@@ -13,7 +13,6 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice device, const std:
 	m_layout = VK_NULL_HANDLE;
 
 	std::vector<VkDescriptorSetLayoutBinding> vkBindings;
-	vkBindings.resize(bindings.size());
 
 	for (const auto& binding: bindings) {
 		VkDescriptorSetLayoutBinding layoutBinding;
@@ -25,7 +24,7 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDevice device, const std:
 		vkBindings.push_back(layoutBinding);
 	}
 
-	VkDescriptorSetLayoutCreateInfo layoutInfo;
+	VkDescriptorSetLayoutCreateInfo layoutInfo{};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.bindingCount = static_cast<uint32_t>(vkBindings.size());
 	layoutInfo.pBindings = vkBindings.data();
