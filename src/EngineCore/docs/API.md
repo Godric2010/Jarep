@@ -1,6 +1,35 @@
 # API Documentation
 
 ---
+## struct JAREP::Core::Camera
+
+**Description**:<br>
+
+---
+
+### Public Fields
+
+`Types::Transform transform `<br>&nbsp;&nbsp;**Description:**  
+
+`float fovY `<br>&nbsp;&nbsp;**Description:**  
+
+`float nearZ `<br>&nbsp;&nbsp;**Description:**  
+
+`float farZ `<br>&nbsp;&nbsp;**Description:**  
+
+`bool isOrthographic `<br>&nbsp;&nbsp;**Description:**  
+
+`float orthographicWidth `<br>&nbsp;&nbsp;**Description:**  
+
+`float orthographicHeight `<br>&nbsp;&nbsp;**Description:**  
+
+`bool cullBackFaces `<br>&nbsp;&nbsp;**Description:**  
+
+`bool cullFrontFaces `<br>&nbsp;&nbsp;**Description:**  
+
+---
+
+---
 ## class JAREP::Core::IMeshLibrary
 
 **Description**:<br>The mesh library contains all meshes available into the memory at runtime.

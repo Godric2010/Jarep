@@ -1,6 +1,46 @@
 # API Documentation
 
 ---
+## struct JAREP::Rendering::Core::CameraConfig
+
+**Description**:<br>
+
+---
+
+### Public Fields
+
+`CameraUBO cameraUBO `<br>&nbsp;&nbsp;**Description:**  
+
+`float nearPlane `<br>&nbsp;&nbsp;**Description:**  
+
+`float farPlane `<br>&nbsp;&nbsp;**Description:**  
+
+`bool cullBackFaces `<br>&nbsp;&nbsp;**Description:**  
+
+`bool cullFrontFaces `<br>&nbsp;&nbsp;**Description:**  
+
+---
+
+---
+## struct JAREP::Rendering::Core::CameraUBO
+
+**Description**:<br>
+
+---
+
+### Public Fields
+
+`std::array< float, 16 > viewMatrix `<br>&nbsp;&nbsp;**Description:**  
+
+`std::array< float, 16 > projectionMatrix `<br>&nbsp;&nbsp;**Description:**  
+
+`uint32_t isOrthographic `<br>&nbsp;&nbsp;**Description:**  
+
+`uint32_t padding `<br>&nbsp;&nbsp;**Description:**  
+
+---
+
+---
 ## class JAREP::Rendering::IRenderer
 
 **Description**:<br>
@@ -12,7 +52,7 @@
 ### ` ~IRenderer()`
 
 
-### `bool Initialize(RenderSettings render_settings)`
+### `bool Initialize(RenderSettings render_settings, Core::CameraConfig cameraConfig)`
 
 *Returns: `bool`*<br>*&nbsp;&nbsp;&nbsp;&nbsp;*
 

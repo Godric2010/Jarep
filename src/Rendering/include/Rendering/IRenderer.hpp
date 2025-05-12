@@ -5,8 +5,9 @@
 
 #include<vulkan\vulkan.hpp>
 
-#include "RenderObject.hpp"
+#include "Core/RenderObject.hpp"
 #include "../../src/meshes/VulkanMeshRegistry.hpp"
+#include "Core/CameraObject.hpp"
 
 namespace JAREP::Rendering {
 	enum class SystemType {
@@ -35,7 +36,7 @@ namespace JAREP::Rendering {
 		public:
 			virtual ~IRenderer() = default;
 
-			virtual bool Initialize(RenderSettings render_settings) = 0;
+			virtual bool Initialize(RenderSettings render_settings, Core::CameraConfig cameraConfig) = 0;
 
 			virtual void Resize(uint32_t width, uint32_t height) = 0;
 

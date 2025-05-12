@@ -16,6 +16,7 @@
 #include "../pipeline/VulkanOffscreenTarget.hpp"
 #include "../pipeline/VulkanPipeline.hpp"
 #include "../pipeline/VulkanRenderPass.hpp"
+#include "Rendering/Core/CameraObject.hpp"
 
 namespace JAREP::Rendering::Pipeline {
 	class VulkanDepthBuffer;
@@ -25,7 +26,7 @@ namespace JAREP::Rendering::Steps {
 	class MainPassStep : public IRenderStep, public IRenderData {
 		public:
 			MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkSampleCountFlagBits sampleCountFlags,
-			             Meshes::VulkanMeshRegistry* meshRegistry);
+			             Meshes::VulkanMeshRegistry* meshRegistry, const CameraConfig&cameraConfig);
 
 			~MainPassStep() override;
 
@@ -73,7 +74,9 @@ namespace JAREP::Rendering::Steps {
 			std::unique_ptr<VulkanDescriptorSetLayout> m_descriptorSetLayout;
 
 			Meshes::VulkanMeshRegistry* m_meshRegistry;
-			std::vector<Core::RenderObject> m_renderObjects;
-			std::unique_ptr<Core::VulkanUniformBuffer<Core::ObjectUBO>> m_objectUBO;
+			CameraConfig m_cameraConfig;
+			std::vector<RenderObject> m_renderObjects;
+			std::unique_ptr<VulkanUniformBuffer<CameraUBO>> m_cameraUBO;
+			std::unique_ptr<VulkanUniformBuffer<ObjectUBO>> m_objectUBO;
 	};
 }

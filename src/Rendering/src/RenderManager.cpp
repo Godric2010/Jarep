@@ -16,24 +16,24 @@ RenderManager::RenderManager() = default;
 
 RenderManager::~RenderManager() = default;
 
-bool RenderManager::Initialize(RenderSettings render_settings) {
+bool RenderManager::Initialize(const RenderSettings renderSettings, Core::CameraConfig cameraConfig) {
 	// Initialize Core systems
 	m_core = std::make_unique<Core::VulkanCore>();
-	m_core->Initialize(render_settings);
-	clampAndSetSampleCount(render_settings.msaa);
+	m_core->Initialize(renderSettings);
+	clampAndSetSampleCount(renderSettings.msaa);
 
 	m_meshRegistry = std::make_unique<Meshes::VulkanMeshRegistry>(m_core->getDevice()->getDevice(),
 	                                                              m_core->getDevice()->getPhysicalDevice());
 
-	m_renderResolution = {render_settings.renderWidth, render_settings.renderHeight};
+	m_renderResolution = {renderSettings.renderWidth, renderSettings.renderHeight};
 	m_renderStepManager = std::make_unique<Steps::RenderStepManager>();
 
 	// Initialize swapchain
-	m_windowResolution = VkExtent2D(render_settings.renderWidth, render_settings.renderHeight);
-	initSwapchain(render_settings.width, render_settings.height);
+	m_windowResolution = VkExtent2D(renderSettings.renderWidth, renderSettings.renderHeight);
+	initSwapchain(renderSettings.width, renderSettings.height);
 
 	// Initialize render steps
-	createRenderSteps();
+	createRenderSteps(cameraConfig);
 
 	// Allocate resources
 	createSyncObjects();
@@ -66,7 +66,7 @@ void RenderManager::SetRenderResolution(uint32_t resX, uint32_t resY) {
 
 void RenderManager::AddRenderObject(const JAREP::Core::MeshID meshID,
                                     const std::shared_ptr<JAREP::Core::Types::Mesh> mesh,
-                                    const Core::ObjectUBO objectData) {
+                                    const ObjectUBO objectData) {
 	if (m_meshRegistry->HasMesh(meshID) == false) {
 		m_meshRegistry->AddMesh(mesh, meshID);
 	}
@@ -136,9 +136,9 @@ void RenderManager::clampAndSetSampleCount(uint8_t requestedSample) {
 }
 
 
-void RenderManager::initSwapchain(uint32_t width, uint32_t height) {
-	auto vulkanDevice = m_core->getDevice();
-	auto vulkanSurface = m_core->getSurface();
+void RenderManager::initSwapchain(const uint32_t width, const uint32_t height) {
+	const auto vulkanDevice = m_core->getDevice();
+	const auto vulkanSurface = m_core->getSurface();
 
 	Pipeline::SwapchainConfig swapchainConfig{};
 	swapchainConfig.width = width;
@@ -150,10 +150,10 @@ void RenderManager::initSwapchain(uint32_t width, uint32_t height) {
 	                                                          swapchainConfig);
 }
 
-void RenderManager::createRenderSteps() const {
+void RenderManager::createRenderSteps(CameraConfig cameraConfig) const {
 	auto mainStep = std::make_unique<Steps::MainPassStep>(m_core->getDevice()->getDevice(),
 	                                                      m_core->getDevice()->getPhysicalDevice(), m_sampleCountFlag,
-	                                                      m_meshRegistry.get());
+	                                                      m_meshRegistry.get(), cameraConfig);
 	mainStep->Prepare(m_renderResolution, m_swapchain->getFormat());
 
 

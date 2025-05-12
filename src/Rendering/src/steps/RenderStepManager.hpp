@@ -6,7 +6,8 @@
 
 #include <vulkan/vulkan.hpp>
 #include "IRenderStep.hpp"
-#include "Rendering/RenderObject.hpp"
+#include "../../include/Rendering/Core/RenderObject.hpp"
+#include "Rendering/Core/CameraObject.hpp"
 
 namespace JAREP::Rendering::Steps {
 	class RenderStepManager {

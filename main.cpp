@@ -12,6 +12,8 @@
 #include "src/EngineCore/src/MeshLibrary.hpp"
 #include <glm/gtc/type_ptr.hpp>
 
+#include "EngineCore/Camera.hpp"
+
 bool framebufferResized = false;
 
 
@@ -23,6 +25,40 @@ JAREP::Rendering::Core::ObjectUBO createUBO(const JAREP::Core::Types::Transform&
 	return ubo;
 }
 
+JAREP::Rendering::Core::CameraUBO createCameraUBO(const JAREP::Core::Camera&camera, const float renderWidth,
+                                                  const float renderHeight) {
+	const glm::mat4 world = camera.transform.ToMatrix();
+	glm::mat4 view = glm::inverse(world);
+	glm::mat4 projection;
+	if (camera.isOrthographic) {
+		const float w = camera.orthographicWidth * 0.5;
+		const float h = camera.orthographicHeight * 0.5;
+		projection = glm::ortho(-w, w, -h, h, camera.nearZ, camera.farZ);
+	}
+	else {
+		const float aspectRatio = renderWidth / renderHeight;
+		projection = glm::perspective(glm::radians(camera.fovY), aspectRatio, camera.nearZ, camera.farZ);
+		projection[1][1] *= -1;
+	}
+
+	JAREP::Rendering::Core::CameraUBO ubo{};
+	std::memcpy(ubo.viewMatrix.data(), glm::value_ptr(view), sizeof(glm::mat4));
+	std::memcpy(ubo.projectionMatrix.data(), glm::value_ptr(projection), sizeof(glm::mat4));
+	ubo.isOrthographic = camera.isOrthographic ? 1u : 0u;
+	return ubo;
+}
+
+JAREP::Rendering::Core::CameraConfig createCameraConfig(const JAREP::Core::Camera&camera, const float renderWidth,
+                                                        const float renderHeight) {
+	JAREP::Rendering::Core::CameraConfig cameraConfig{};
+	cameraConfig.cameraUBO = createCameraUBO(camera, renderWidth, renderHeight);
+	cameraConfig.nearPlane = camera.nearZ;
+	cameraConfig.farPlane = camera.farZ;
+	cameraConfig.cullBackFaces = camera.cullBackFaces;
+	cameraConfig.cullFrontFaces = camera.cullFrontFaces;
+	return cameraConfig;
+}
+
 int main() {
 	auto meshLoader = JAREP::AssetLoader::MeshLoader();
 	auto meshName = std::string("demo_cube");
@@ -31,12 +67,23 @@ int main() {
 	auto meshLibrary = JAREP::Core::MeshLibrary();
 	auto meshID = meshLibrary.AddMesh(mesh);
 
-	float z_pos = /*glm::length(glm::vec3(0.5f))*/ 0.5f / tan(glm::radians(45.0f) * 0.5f);
 	JAREP::Core::Types::Transform meshTransform = {
-		.position = {0, 0, .80},
-		.rotation = {45 , 45, 0},
+		.position = {0, 0, 0},
+		.rotation = {10, 10, 10},
 		.scale = {1, 1, 1},
 	};
+
+	JAREP::Core::Camera camera{};
+	camera.transform.position = {0, 0, 10};
+	camera.transform.rotation = {0, 0, 0};
+	camera.transform.scale = {1, 1, 1};
+	camera.fovY = 60;
+	camera.nearZ = 0.001f;
+	camera.farZ = 1000.0f;
+	camera.isOrthographic = false;
+	camera.cullBackFaces = true;
+	camera.cullFrontFaces = false;
+
 
 	const auto window_manager = JAREP::Window::CreateWindowManager();
 	const auto window_settings = JAREP::Window::WindowSettings{
@@ -63,18 +110,20 @@ int main() {
 	auto render_extensions = window_manager->GetExtensions();
 	auto [handle, display, type] = window_manager->GetNativeWindowHandle();
 
-	JAREP::Rendering::RenderSettings render_settings;
-	render_settings.systemType = JAREP::Rendering::SystemType::Windows;
-	render_settings.extensions = render_extensions;
-	render_settings.handle = handle;
-	render_settings.display = display;
-	render_settings.width = window_settings.displayWidth;
-	render_settings.height = window_settings.displayHeight;
-	render_settings.msaa = 8;
+	JAREP::Rendering::RenderSettings renderSettings;
+	renderSettings.systemType = JAREP::Rendering::SystemType::Windows;
+	renderSettings.extensions = render_extensions;
+	renderSettings.handle = handle;
+	renderSettings.display = display;
+	renderSettings.width = window_settings.displayWidth;
+	renderSettings.height = window_settings.displayHeight;
+	renderSettings.msaa = 8;
 
+	JAREP::Rendering::Core::CameraConfig cameraConfig = createCameraConfig(
+		camera, renderSettings.width, renderSettings.height);
 
 	auto* renderer = JAREP::Rendering::CreateRenderer();
-	renderer->Initialize(render_settings);
+	renderer->Initialize(renderSettings, cameraConfig);
 
 	JAREP::Rendering::Core::ObjectUBO transformUBO = createUBO(meshTransform);
 

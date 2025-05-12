@@ -14,7 +14,8 @@ add_library(${LIBRARY_NAME})
 target_sources(${LIBRARY_NAME} PRIVATE
         include/${LIBRARY_NAME}/IRenderer.hpp
         include/${LIBRARY_NAME}/RendererCreator.hpp
-        include/${LIBRARY_NAME}/RenderObject.hpp
+        include/${LIBRARY_NAME}/Core/RenderObject.hpp
+        include/${LIBRARY_NAME}/Core/CameraObject.hpp
         src/RenderManager.cpp
         src/core/VulkanCore.cpp
         src/core/VulkanInstance.cpp

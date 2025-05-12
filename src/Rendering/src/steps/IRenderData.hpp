@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "Rendering/RenderObject.hpp"
+#include "../../include/Rendering/Core/RenderObject.hpp"
 
 namespace JAREP::Rendering::Steps {
 	class IRenderData {

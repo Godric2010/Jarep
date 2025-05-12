@@ -22,7 +22,7 @@ namespace JAREP::Rendering {
 
 			~RenderManager() override;
 
-			bool Initialize(RenderSettings render_settings) override;
+			bool Initialize(RenderSettings renderSettings, Core::CameraConfig cameraConfig) override;
 
 			void Resize(uint32_t width, uint32_t height) override;
 
@@ -66,7 +66,7 @@ namespace JAREP::Rendering {
 
 			void initSwapchain(uint32_t width, uint32_t height);
 
-			void createRenderSteps() const;
+			void createRenderSteps(Core::CameraConfig cameraConfig) const;
 
 			void createSyncObjects();
 
