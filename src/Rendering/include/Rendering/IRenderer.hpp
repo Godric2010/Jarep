@@ -43,7 +43,7 @@ namespace JAREP::Rendering {
 			virtual void SetRenderResolution(uint32_t resX, uint32_t resY) = 0;
 
 			virtual void AddRenderObject(JAREP::Core::MeshID meshID, std::shared_ptr<JAREP::Core::Types::Mesh> mesh,
-			                             Core::ObjectUBO objectData) = 0;
+			                             Core::InstanceData objectData) = 0;
 
 			virtual void UpdateRenderObject(Core::RenderObject renderObject) = 0;
 

@@ -6,12 +6,12 @@
 #include "EngineCore/IMeshLibrary.hpp"
 
 namespace JAREP::Rendering::Core {
-	struct alignas(16) ObjectUBO {
-		std::array<float, 16> transformMatrix;
+	struct alignas(16) InstanceData {
+		std::array<float, 16> modelMatrix;
 	};
 
 	struct RenderObject {
 		JAREP::Core::MeshID meshID;
-		ObjectUBO transform;
+		InstanceData transform;
 	};
 }

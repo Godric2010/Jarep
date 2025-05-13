@@ -27,7 +27,7 @@ MainPassStep::MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	m_cameraConfig = cameraConfig;
 	m_cameraUBO = std::make_unique<VulkanUniformBuffer<CameraUBO>>(device, physicalDevice);
 	m_cameraUBO.get()->Update(m_cameraConfig.cameraUBO);
-	m_objectUBO = std::make_unique<VulkanUniformBuffer<ObjectUBO>>(device, physicalDevice);
+	m_objectUBO = std::make_unique<VulkanUniformBuffer<InstanceData>>(device, physicalDevice);
 } ;
 
 MainPassStep::~MainPassStep() {
@@ -184,7 +184,7 @@ void MainPassStep::createPipeline() {
 	                                                        m_descriptorSetLayout->get());
 
 	m_descriptorSet->bindUniformBuffer(0, m_cameraUBO->getBuffer(), sizeof(CameraUBO));
-	m_descriptorSet->bindUniformBuffer(1, m_objectUBO->getBuffer(), sizeof(ObjectUBO));
+	m_descriptorSet->bindUniformBuffer(1, m_objectUBO->getBuffer(), sizeof(InstanceData));
 
 	const std::vector descriptorSetLayouts = {m_descriptorSetLayout->get()};
 

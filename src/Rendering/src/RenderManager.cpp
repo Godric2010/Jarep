@@ -66,7 +66,7 @@ void RenderManager::SetRenderResolution(uint32_t resX, uint32_t resY) {
 
 void RenderManager::AddRenderObject(const JAREP::Core::MeshID meshID,
                                     const std::shared_ptr<JAREP::Core::Types::Mesh> mesh,
-                                    const ObjectUBO objectData) {
+                                    const InstanceData objectData) {
 	if (m_meshRegistry->HasMesh(meshID) == false) {
 		m_meshRegistry->AddMesh(mesh, meshID);
 	}
@@ -143,6 +143,7 @@ void RenderManager::initSwapchain(const uint32_t width, const uint32_t height) {
 	Pipeline::SwapchainConfig swapchainConfig{};
 	swapchainConfig.width = width;
 	swapchainConfig.height = height;
+	swapchainConfig.vsync = false;
 
 	m_swapchain = std::make_unique<Pipeline::VulkanSwapchain>(vulkanDevice->getDevice(),
 	                                                          vulkanDevice->getPhysicalDevice(),

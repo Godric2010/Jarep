@@ -77,6 +77,6 @@ namespace JAREP::Rendering::Steps {
 			CameraConfig m_cameraConfig;
 			std::vector<RenderObject> m_renderObjects;
 			std::unique_ptr<VulkanUniformBuffer<CameraUBO>> m_cameraUBO;
-			std::unique_ptr<VulkanUniformBuffer<ObjectUBO>> m_objectUBO;
+			std::unique_ptr<VulkanUniformBuffer<InstanceData>> m_objectUBO;
 	};
 }

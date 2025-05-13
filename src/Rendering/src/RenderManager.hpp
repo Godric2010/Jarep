@@ -29,7 +29,7 @@ namespace JAREP::Rendering {
 			void SetRenderResolution(uint32_t resX, uint32_t resY) override;
 
 			void AddRenderObject(JAREP::Core::MeshID meshID, std::shared_ptr<JAREP::Core::Types::Mesh> mesh,
-			                     Core::ObjectUBO objectData) override;
+			                     Core::InstanceData objectData) override;
 
 			void UpdateRenderObject(Core::RenderObject renderObject) override;
 
