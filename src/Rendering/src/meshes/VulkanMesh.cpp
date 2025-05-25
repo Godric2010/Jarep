@@ -40,3 +40,7 @@ void VulkanMesh::Bind(VkCommandBuffer cmdBuffer) const {
 void VulkanMesh::Draw(VkCommandBuffer cmdBuffer) const {
 	vkCmdDrawIndexed(cmdBuffer, m_indexCount, 1, 0, 0, 0);
 }
+
+size_t VulkanMesh::GetIndexCount() const {
+	return m_indexCount;
+}

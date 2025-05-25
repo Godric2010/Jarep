@@ -6,7 +6,7 @@ layout(set = 0, binding = 0) uniform CameraUBO{
     uint isOrtho;
 } cam;
 
-layout(set = 0, binding = 1) uniform ObjectUBO{
+layout(set = 1, binding = 0) uniform ObjectUBO{
     mat4 model;
 }ubo;
 

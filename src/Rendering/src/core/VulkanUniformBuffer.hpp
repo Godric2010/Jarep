@@ -13,11 +13,11 @@ namespace JAREP::Rendering::Core {
 	template<typename T>
 	class VulkanUniformBuffer {
 		public:
-			VulkanUniformBuffer(VkDevice device, VkPhysicalDevice physicalDevice);
+			VulkanUniformBuffer(VkDevice device, VkPhysicalDevice physicalDevice, size_t size);
 
 			~VulkanUniformBuffer();
 
-			void Update(const T&data);
+			void Update(const T* data, size_t size);
 
 			VkBuffer getBuffer() const;
 

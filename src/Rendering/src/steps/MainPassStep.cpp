@@ -25,14 +25,13 @@ MainPassStep::MainPassStep(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	m_extent = {};
 	m_meshRegistry = meshRegistry;
 	m_cameraConfig = cameraConfig;
-	m_cameraUBO = std::make_unique<VulkanUniformBuffer<CameraUBO>>(device, physicalDevice);
-	m_cameraUBO.get()->Update(m_cameraConfig.cameraUBO);
-	m_objectUBO = std::make_unique<VulkanUniformBuffer<InstanceData>>(device, physicalDevice);
+	m_cameraUBO = std::make_unique<VulkanUniformBuffer<CameraUBO>>(device, physicalDevice, sizeof(CameraUBO));
+	m_cameraUBO->Update(&m_cameraConfig.cameraUBO, sizeof(CameraUBO));
+	m_instanceProvider = std::make_unique<Instancing::UBOInstanceProvider>(device, physicalDevice, 1);
 } ;
 
 MainPassStep::~MainPassStep() {
 	m_meshRegistry = nullptr;
-	m_objectUBO.reset();
 	m_offscreenTarget.reset();
 	m_pipeline.reset();
 	m_descriptorSetLayout.reset();
@@ -111,25 +110,21 @@ void MainPassStep::Record(VkCommandBuffer cmdBuffer) {
 	scissor.offset = {0, 0};
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
+	m_instanceProvider->PrepareData(cmdBuffer, m_renderObjects);
 	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->get());
+	m_cameraUBO->Update(&m_cameraConfig.cameraUBO, sizeof(CameraUBO));
 
-	m_cameraUBO->Update(m_cameraConfig.cameraUBO);
-
-	std::vector<VkDescriptorSet> descriptorSets = {m_descriptorSet->get()};
+	const std::vector descriptorSets = {m_descriptorSet->get()};
 	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, descriptorSets.size(),
 	                        descriptorSets.data(), 0, nullptr);
 
-	for (const auto&renderObject: m_renderObjects) {
-		auto mesh = m_meshRegistry->TryGetMesh(renderObject.meshID);
-		if (!mesh.has_value()) continue;
+	m_instanceProvider->BindData(cmdBuffer, m_pipelineLayout);
 
-		m_objectUBO->Update(renderObject.transform);
+	const std::optional<Meshes::VulkanMesh *> mesh = m_meshRegistry->TryGetMesh(m_renderObjects[0].meshID);
+	if (!mesh.has_value()) return;
+	mesh.value()->Bind(cmdBuffer);
 
-
-		mesh.value()->Bind(cmdBuffer);
-		mesh.value()->Draw(cmdBuffer);
-	}
-
+	vkCmdDrawIndexed(cmdBuffer, mesh.value()->GetIndexCount(), 1, 0, 0, 0);
 	vkCmdEndRenderPass(cmdBuffer);
 }
 
@@ -165,18 +160,12 @@ void MainPassStep::createPipeline() {
 	camBinding.count = 1;
 	camBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-	auto objBinding = VulkanDescriptorSetLayout::BindingInfo{};
-	objBinding.binding = 1;
-	objBinding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	objBinding.count = 1;
-	objBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	std::vector bindings = {camBinding, objBinding};
+	std::vector bindings = {camBinding};
 	m_descriptorSetLayout = std::make_unique<VulkanDescriptorSetLayout>(m_device, bindings);
 
 	VulkanDescriptorPool::PoolSize poolSize{};
 	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSize.count = 2;
+	poolSize.count = 1;
 	std::vector poolSizes = {poolSize};
 	m_descriptorPool = std::make_unique<VulkanDescriptorPool>(m_device, poolSizes, 1);
 
@@ -184,9 +173,10 @@ void MainPassStep::createPipeline() {
 	                                                        m_descriptorSetLayout->get());
 
 	m_descriptorSet->bindUniformBuffer(0, m_cameraUBO->getBuffer(), sizeof(CameraUBO));
-	m_descriptorSet->bindUniformBuffer(1, m_objectUBO->getBuffer(), sizeof(InstanceData));
 
-	const std::vector descriptorSetLayouts = {m_descriptorSetLayout->get()};
+	const std::vector descriptorSetLayouts = {
+		m_descriptorSetLayout->get(), m_instanceProvider->GetDescriptorSetLayout()
+	};
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

@@ -17,6 +17,7 @@ namespace JAREP::Rendering::Meshes {
 
 			void Bind(VkCommandBuffer cmdBuffer) const;
 			void Draw(VkCommandBuffer cmdBuffer) const;
+			size_t GetIndexCount() const;
 
 		private:
 

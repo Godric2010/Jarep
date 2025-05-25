@@ -41,6 +41,19 @@
 ---
 
 ---
+## struct JAREP::Rendering::Core::InstanceData
+
+**Description**:<br>
+
+---
+
+### Public Fields
+
+`std::array< float, 16 > modelMatrix `<br>&nbsp;&nbsp;**Description:**  
+
+---
+
+---
 ## class JAREP::Rendering::IRenderer
 
 **Description**:<br>
@@ -63,7 +76,7 @@
 ### `void SetRenderResolution(uint32_t resX, uint32_t resY)`
 
 
-### `void AddRenderObject(JAREP::Core::MeshID meshID, std::shared_ptr< JAREP::Core::Types::Mesh > mesh, Core::ObjectUBO objectData)`
+### `void AddRenderObject(JAREP::Core::MeshID meshID, std::shared_ptr< JAREP::Core::Types::Mesh > mesh, Core::InstanceData objectData)`
 
 
 ### `void UpdateRenderObject(Core::RenderObject renderObject)`
@@ -78,19 +91,6 @@
 ---
 
 ---
-## struct JAREP::Rendering::Core::ObjectUBO
-
-**Description**:<br>
-
----
-
-### Public Fields
-
-`std::array< float, 16 > transformMatrix `<br>&nbsp;&nbsp;**Description:**  
-
----
-
----
 ## struct JAREP::Rendering::Core::RenderObject
 
 **Description**:<br>
@@ -101,7 +101,7 @@
 
 `JAREP::Core::MeshID meshID `<br>&nbsp;&nbsp;**Description:**  
 
-`ObjectUBO transform `<br>&nbsp;&nbsp;**Description:**  
+`InstanceData transform `<br>&nbsp;&nbsp;**Description:**  
 
 ---
 
